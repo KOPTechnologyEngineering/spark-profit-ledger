@@ -1,7 +1,10 @@
-import { useState } from "react";
-import { transactions } from "@/lib/mock-data";
-import { ArrowDownLeft, ArrowUpRight, Plus, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { transactions as mockTransactions } from "@/lib/mock-data";
+import { ArrowDownLeft, ArrowUpRight, Search } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import AddTransactionDialog from "@/components/AddTransactionDialog";
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<string>("all");

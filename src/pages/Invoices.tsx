@@ -1,7 +1,10 @@
-import { useState } from "react";
-import { invoices } from "@/lib/mock-data";
-import { Plus, Search, Filter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { invoices as mockInvoices } from "@/lib/mock-data";
+import { Search } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import NewInvoiceDialog from "@/components/NewInvoiceDialog";
 
 const statusColors = {
   paid: "bg-inflow-muted text-inflow",
