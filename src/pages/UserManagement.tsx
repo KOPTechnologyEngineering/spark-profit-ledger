@@ -72,7 +72,7 @@ export default function UserManagement() {
             .from("tbl_user_roles")
             .update({ access: newRoles[mod] as any })
             .eq("user_id", data.user.id)
-            .eq("module", mod);
+            .eq("module", mod as any);
         }
       }
 
