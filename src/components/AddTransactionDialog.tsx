@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import ApproverSelect from "@/components/ApproverSelect";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
 
@@ -18,14 +19,19 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<"inflow" | "outflow">("inflow");
   const [category, setCategory] = useState("Revenue");
-  const [status, setStatus] = useState("completed");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [approver1, setApprover1] = useState("");
+  const [approver2, setApprover2] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!approver1 || !approver2) {
+      toast({ title: "Error", description: "Please select 2 approvers", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.from("tbl_transactions").insert({
@@ -34,11 +40,22 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
         amount: Number(amount),
         type,
         category,
-        status,
+        status: "pending",
         date,
-      });
+        approver1_id: approver1,
+        approver2_id: approver2,
+        approver1_status: "pending",
+        approver2_status: "pending",
+        created_by_name: user.user_metadata?.full_name || user.email || "",
+      } as any);
       if (error) throw error;
-      toast({ title: "Transaction added", description: `${type === "inflow" ? "+" : "-"}£${Number(amount).toLocaleString()}` });
+
+      await supabase.from("tbl_notifications").insert([
+        { user_id: approver1, title: "Approval Required", message: `Transaction "${description}" needs your approval (£${Number(amount).toLocaleString()})`, link: "/transactions" },
+        { user_id: approver2, title: "Approval Required", message: `Transaction "${description}" needs your approval (£${Number(amount).toLocaleString()})`, link: "/transactions" },
+      ] as any);
+
+      toast({ title: "Transaction added", description: "Sent for approval" });
       setOpen(false);
       resetForm();
       onCreated?.();
@@ -54,8 +71,9 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
     setAmount("");
     setType("inflow");
     setCategory("Revenue");
-    setStatus("completed");
     setDate(new Date().toISOString().split("T")[0]);
+    setApprover1("");
+    setApprover2("");
   };
 
   return (
@@ -99,22 +117,15 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Date</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
+
+          <ApproverSelect approver1={approver1} approver2={approver2} onApprover1Change={setApprover1} onApprover2Change={setApprover2} />
+
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Adding..." : "Add Transaction"}
+            {loading ? "Adding..." : "Submit for Approval"}
           </Button>
         </form>
       </DialogContent>

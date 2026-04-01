@@ -3,11 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import ApproverSelect from "@/components/ApproverSelect";
 
 interface LineItem {
   description: string;
@@ -20,9 +20,10 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const [loading, setLoading] = useState(false);
   const [client, setClient] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [status, setStatus] = useState("draft");
   const [dueDate, setDueDate] = useState("");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0 }]);
+  const [approver1, setApprover1] = useState("");
+  const [approver2, setApprover2] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -39,6 +40,10 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!approver1 || !approver2) {
+      toast({ title: "Error", description: "Please select 2 approvers", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.from("tbl_invoices").insert({
@@ -46,12 +51,24 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
         invoice_number: invoiceNumber,
         client,
         amount: total,
-        status,
+        status: "pending",
         due_date: dueDate || undefined,
         items: items as any,
-      });
+        approver1_id: approver1,
+        approver2_id: approver2,
+        approver1_status: "pending",
+        approver2_status: "pending",
+        created_by_name: user.user_metadata?.full_name || user.email || "",
+      } as any);
       if (error) throw error;
-      toast({ title: "Invoice created", description: `${invoiceNumber} for £${total.toLocaleString()}` });
+
+      // Create notifications for approvers
+      await supabase.from("tbl_notifications").insert([
+        { user_id: approver1, title: "Approval Required", message: `Invoice ${invoiceNumber} needs your approval (£${total.toLocaleString()})`, link: "/invoices" },
+        { user_id: approver2, title: "Approval Required", message: `Invoice ${invoiceNumber} needs your approval (£${total.toLocaleString()})`, link: "/invoices" },
+      ] as any);
+
+      toast({ title: "Invoice created", description: `${invoiceNumber} sent for approval` });
       setOpen(false);
       resetForm();
       onCreated?.();
@@ -65,9 +82,10 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const resetForm = () => {
     setClient("");
     setInvoiceNumber("");
-    setStatus("draft");
     setDueDate("");
     setItems([{ description: "", quantity: 1, rate: 0 }]);
+    setApprover1("");
+    setApprover2("");
   };
 
   return (
@@ -91,23 +109,13 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
               <Label>Client</Label>
               <Input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Company name" required />
             </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2">
               <Label>Due Date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
           </div>
+
+          <ApproverSelect approver1={approver1} approver2={approver2} onApprover1Change={setApprover1} onApprover2Change={setApprover2} />
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -143,7 +151,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating..." : "Create Invoice"}
+            {loading ? "Creating..." : "Submit for Approval"}
           </Button>
         </form>
       </DialogContent>
