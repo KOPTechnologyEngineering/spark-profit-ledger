@@ -17,6 +17,14 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { session } = useAuth();
+
+  // If already signed in, redirect to home
+  if (session) {
+    navigate("/", { replace: true });
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
