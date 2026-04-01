@@ -1,20 +1,27 @@
-import { transactions } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 
 export default function RecentTransactions() {
+  const [transactions, setTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase.from("tbl_transactions").select("*").order("date", { ascending: false }).limit(6).then(({ data }) => {
+      setTransactions(data || []);
+    });
+  }, []);
+
   return (
     <div className="glass-card p-6">
       <h3 className="font-heading text-lg font-semibold text-foreground">Recent Transactions</h3>
       <div className="mt-4 space-y-3">
-        {transactions.slice(0, 6).map((tx) => (
+        {transactions.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>
+        ) : transactions.map((tx) => (
           <div key={tx.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
             <div className="flex items-center gap-3">
               <div className={`rounded-full p-1.5 ${tx.type === 'inflow' ? 'bg-inflow-muted' : 'bg-outflow-muted'}`}>
-                {tx.type === 'inflow' ? (
-                  <ArrowDownLeft className="h-3.5 w-3.5 text-inflow" />
-                ) : (
-                  <ArrowUpRight className="h-3.5 w-3.5 text-outflow" />
-                )}
+                {tx.type === 'inflow' ? <ArrowDownLeft className="h-3.5 w-3.5 text-inflow" /> : <ArrowUpRight className="h-3.5 w-3.5 text-outflow" />}
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">{tx.description}</p>
@@ -22,7 +29,7 @@ export default function RecentTransactions() {
               </div>
             </div>
             <span className={`font-heading text-sm font-semibold ${tx.type === 'inflow' ? 'text-inflow' : 'text-outflow'}`}>
-              {tx.type === 'inflow' ? '+' : '-'}£{tx.amount.toLocaleString()}
+              {tx.type === 'inflow' ? '+' : '-'}£{Number(tx.amount).toLocaleString()}
             </span>
           </div>
         ))}
