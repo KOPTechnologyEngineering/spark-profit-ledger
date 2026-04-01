@@ -17,8 +17,13 @@ export type Database = {
       tbl_invoices: {
         Row: {
           amount: number
+          approver1_id: string | null
+          approver1_status: string
+          approver2_id: string | null
+          approver2_status: string
           client: string
           created_at: string
+          created_by_name: string
           due_date: string
           id: string
           invoice_number: string
@@ -31,8 +36,13 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          approver1_id?: string | null
+          approver1_status?: string
+          approver2_id?: string | null
+          approver2_status?: string
           client: string
           created_at?: string
+          created_by_name?: string
           due_date?: string
           id?: string
           invoice_number: string
@@ -45,8 +55,13 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approver1_id?: string | null
+          approver1_status?: string
+          approver2_id?: string | null
+          approver2_status?: string
           client?: string
           created_at?: string
+          created_by_name?: string
           due_date?: string
           id?: string
           invoice_number?: string
@@ -55,6 +70,36 @@ export type Database = {
           notes?: string | null
           status?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string
+          message: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string
+          message?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string
+          message?: string
+          title?: string
           user_id?: string
         }
         Relationships: []
@@ -131,8 +176,13 @@ export type Database = {
       tbl_transactions: {
         Row: {
           amount: number
+          approver1_id: string | null
+          approver1_status: string
+          approver2_id: string | null
+          approver2_status: string
           category: string
           created_at: string
+          created_by_name: string
           date: string
           description: string
           id: string
@@ -143,8 +193,13 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          approver1_id?: string | null
+          approver1_status?: string
+          approver2_id?: string | null
+          approver2_status?: string
           category?: string
           created_at?: string
+          created_by_name?: string
           date?: string
           description: string
           id?: string
@@ -155,8 +210,13 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approver1_id?: string | null
+          approver1_status?: string
+          approver2_id?: string | null
+          approver2_status?: string
           category?: string
           created_at?: string
+          created_by_name?: string
           date?: string
           description?: string
           id?: string
