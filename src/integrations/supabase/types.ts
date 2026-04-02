@@ -146,28 +146,34 @@ export type Database = {
       tbl_profiles: {
         Row: {
           created_at: string
+          designation: string
           email: string
           full_name: string
           id: string
           is_active: boolean
+          signature_url: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          designation?: string
           email?: string
           full_name?: string
           id?: string
           is_active?: boolean
+          signature_url?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          designation?: string
           email?: string
           full_name?: string
           id?: string
           is_active?: boolean
+          signature_url?: string
           updated_at?: string
           user_id?: string
         }
@@ -180,6 +186,7 @@ export type Database = {
           approver1_status: string
           approver2_id: string | null
           approver2_status: string
+          attachments: Json
           category: string
           created_at: string
           created_by_name: string
@@ -197,6 +204,7 @@ export type Database = {
           approver1_status?: string
           approver2_id?: string | null
           approver2_status?: string
+          attachments?: Json
           category?: string
           created_at?: string
           created_by_name?: string
@@ -214,6 +222,7 @@ export type Database = {
           approver1_status?: string
           approver2_id?: string | null
           approver2_status?: string
+          attachments?: Json
           category?: string
           created_at?: string
           created_by_name?: string
