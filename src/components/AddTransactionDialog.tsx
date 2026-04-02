@@ -128,6 +128,8 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
 
           <ApproverSelect approver1={approver1} approver2={approver2} onApprover1Change={setApprover1} onApprover2Change={setApprover2} />
 
+          <AttachmentUpload attachments={attachments} onAttachmentsChange={setAttachments} />
+
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Adding..." : "Submit for Approval"}
           </Button>
