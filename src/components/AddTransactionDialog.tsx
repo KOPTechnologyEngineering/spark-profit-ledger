@@ -23,6 +23,7 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [approver1, setApprover1] = useState("");
   const [approver2, setApprover2] = useState("");
+  const [attachments, setAttachments] = useState<any[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
 
