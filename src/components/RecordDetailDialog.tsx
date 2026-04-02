@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Printer, CheckCircle, XCircle, FileText, Image } from "lucide-react";
+import { Download, Printer, CheckCircle, XCircle, FileText, Image, Trash2 } from "lucide-react";
 import { useProfiles, Profile } from "@/hooks/useProfiles";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 interface RecordDetailDialogProps {
   open: boolean;
@@ -14,12 +15,18 @@ interface RecordDetailDialogProps {
   onUpdated?: () => void;
 }
 
+const VAT_RATE = 0.2;
+
 export default function RecordDetailDialog({ open, onOpenChange, record, type, onUpdated }: RecordDetailDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const profiles = useProfiles();
+  const { hasAdmin } = useUserRoles();
 
   if (!record) return null;
+
+  const moduleForType = type === "invoice" ? "invoices" : "transactions";
+  const canDelete = hasAdmin(moduleForType);
 
   const getProfile = (id: string | null): Profile | undefined => {
     if (!id) return undefined;
@@ -68,6 +75,19 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this record? This action cannot be undone.")) return;
+    const table = type === "invoice" ? "tbl_invoices" : "tbl_transactions";
+    const { error } = await supabase.from(table).delete().eq("id", record.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Deleted", description: "Record has been deleted." });
+      onUpdated?.();
+      onOpenChange(false);
+    }
+  };
+
   const handleDownloadCSV = () => {
     const data = type === "invoice"
       ? `Invoice Number,Client,Amount,Status,Due Date,Created By\n${record.invoice_number},${record.client},${record.amount},${record.status},${record.due_date},${record.created_by_name}`
@@ -107,24 +127,33 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     let content = "";
     if (type === "invoice") {
       const items = Array.isArray(record.items) ? record.items : [];
-      const total = items.reduce((s: number, i: any) => s + (i.quantity || 0) * (i.rate || 0), 0);
+      const subtotal = items.reduce((s: number, i: any) => s + (i.quantity || 0) * (i.rate || 0), 0);
+      const vatAmount = subtotal * VAT_RATE;
+      const total = subtotal + vatAmount;
 
       content = `
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;border-bottom:3px solid #10B981;padding-bottom:20px">
           <div>
-            <h1 style="margin:0;font-size:28px;color:#10B981">INVOICE</h1>
+            <h1 style="margin:0;font-size:28px;color:#10B981">LedgerFlow</h1>
+            <p style="color:#666;margin:4px 0;font-size:12px">Smart Accounting for Modern Business</p>
+          </div>
+          <div style="text-align:right">
+            <h2 style="margin:0;font-size:24px;color:#333">INVOICE</h2>
             <p style="color:#666;margin:4px 0">${record.invoice_number}</p>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-bottom:24px">
+          <div>
+            <p style="margin:2px 0"><strong>Bill To:</strong> ${record.client}</p>
+            <p style="margin:2px 0"><strong>Created By:</strong> ${record.created_by_name || "—"}</p>
+            ${creatorProfile?.designation ? `<p style="margin:2px 0;color:#555;font-size:13px">${creatorProfile.designation}</p>` : ""}
           </div>
           <div style="text-align:right">
             <p style="margin:2px 0"><strong>Date:</strong> ${createdDate}</p>
             <p style="margin:2px 0"><strong>Due:</strong> ${record.due_date || "—"}</p>
             <p style="margin:2px 0"><strong>Status:</strong> ${record.status}</p>
           </div>
-        </div>
-
-        <div style="margin-bottom:20px">
-          <p style="margin:2px 0"><strong>Bill To:</strong> ${record.client}</p>
-          <p style="margin:2px 0"><strong>Created By:</strong> ${record.created_by_name || "—"}</p>
         </div>
 
         <table border="0" cellpadding="8" style="width:100%;border-collapse:collapse;margin-bottom:20px">
@@ -147,12 +176,22 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
             `).join("")}
           </tbody>
           <tfoot>
+            <tr>
+              <td colspan="3" style="text-align:right;padding-top:12px">Subtotal</td>
+              <td style="text-align:right;padding-top:12px">£${subtotal.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td colspan="3" style="text-align:right">VAT (${(VAT_RATE * 100).toFixed(0)}%)</td>
+              <td style="text-align:right">£${vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            </tr>
             <tr style="border-top:2px solid #333">
-              <td colspan="3" style="text-align:right;font-weight:bold;padding-top:12px">Total</td>
-              <td style="text-align:right;font-weight:bold;font-size:18px;padding-top:12px">£${total.toLocaleString()}</td>
+              <td colspan="3" style="text-align:right;font-weight:bold;padding-top:8px">Total (incl. VAT)</td>
+              <td style="text-align:right;font-weight:bold;font-size:18px;padding-top:8px">£${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>
           </tfoot>
         </table>
+
+        ${record.notes ? `<div style="margin-bottom:20px"><p style="font-size:12px;color:#666;font-weight:bold">NOTES</p><p style="font-size:13px;color:#555">${record.notes}</p></div>` : ""}
 
         <div style="margin-top:60px;padding-top:20px;border-top:1px solid #eee">
           <p style="font-size:12px;color:#666;margin-bottom:16px;font-weight:bold">SIGNATORIES</p>
@@ -162,10 +201,18 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
             ${signatoryBlock("Approver 2", approver2Profile, record.approver2_status, createdDate)}
           </div>
         </div>
+
+        <div style="margin-top:40px;text-align:center;border-top:1px solid #eee;padding-top:16px">
+          <p style="font-size:11px;color:#999">Generated by LedgerFlow · ${new Date().toLocaleDateString("en-GB")}</p>
+        </div>
       `;
     } else {
       content = `
-        <h1>Transaction</h1>
+        <div style="border-bottom:3px solid #10B981;padding-bottom:16px;margin-bottom:24px">
+          <h1 style="margin:0;font-size:24px;color:#10B981">LedgerFlow</h1>
+          <p style="color:#666;margin:4px 0;font-size:12px">Smart Accounting for Modern Business</p>
+        </div>
+        <h2>Transaction Record</h2>
         <p>Description: ${record.description}</p>
         <p>Amount: £${Number(record.amount).toLocaleString()}</p>
         <p>Type: ${record.type}</p>
@@ -180,6 +227,9 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
             ${signatoryBlock("Approver 1", approver1Profile, record.approver1_status, createdDate)}
             ${signatoryBlock("Approver 2", approver2Profile, record.approver2_status, createdDate)}
           </div>
+        </div>
+        <div style="margin-top:40px;text-align:center;border-top:1px solid #eee;padding-top:16px">
+          <p style="font-size:11px;color:#999">Generated by LedgerFlow · ${new Date().toLocaleDateString("en-GB")}</p>
         </div>
       `;
     }
@@ -207,6 +257,18 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
             <>
               <Row label="Client" value={record.client} />
               <Row label="Amount" value={`£${Number(record.amount).toLocaleString()}`} />
+              {(() => {
+                const items = Array.isArray(record.items) ? record.items : [];
+                const subtotal = items.reduce((s: number, i: any) => s + (i.quantity || 0) * (i.rate || 0), 0);
+                const vat = subtotal * VAT_RATE;
+                return (
+                  <>
+                    <Row label="Subtotal" value={`£${subtotal.toLocaleString()}`} />
+                    <Row label={`VAT (${(VAT_RATE * 100).toFixed(0)}%)`} value={`£${vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
+                    <Row label="Total (incl. VAT)" value={`£${(subtotal + vat).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
+                  </>
+                );
+              })()}
               <Row label="Status" value={record.status} />
               <Row label="Due Date" value={record.due_date} />
               <Row label="Created By" value={record.created_by_name || "—"} />
@@ -234,7 +296,6 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
             </>
           )}
 
-          {/* Attachments for transactions */}
           {type === "transaction" && record.attachments && Array.isArray(record.attachments) && record.attachments.length > 0 && (
             <div className="border-t border-border pt-3">
               <p className="text-xs text-muted-foreground font-medium uppercase mb-2">Attachments</p>
@@ -283,6 +344,11 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
                   <XCircle className="h-4 w-4 mr-1" /> Reject
                 </Button>
               </>
+            )}
+            {canDelete && (
+              <Button size="sm" variant="destructive" onClick={handleDelete} className={canApprove ? "" : "ml-auto"}>
+                <Trash2 className="h-4 w-4 mr-1" /> Delete
+              </Button>
             )}
           </div>
         </div>

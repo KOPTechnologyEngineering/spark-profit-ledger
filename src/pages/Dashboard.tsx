@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DollarSign, TrendingUp, TrendingDown, Wallet, FileText, Clock } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Wallet, FileText, Clock, AlertCircle } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import CashflowChart from "@/components/CashflowChart";
 import RecentTransactions from "@/components/RecentTransactions";
@@ -10,7 +10,11 @@ const periods = ["Daily", "Weekly", "Monthly", "Yearly"] as const;
 
 export default function Dashboard() {
   const [activePeriod, setActivePeriod] = useState<typeof periods[number]>("Monthly");
-  const [stats, setStats] = useState({ revenue: 0, expenses: 0, profit: 0, balance: 0, pendingInv: 0, overdueInv: 0, vatDue: 0, payeMonth: 0 });
+  const [stats, setStats] = useState({
+    revenue: 0, expenses: 0, profit: 0, balance: 0,
+    pendingInv: 0, overdueInv: 0, vatDue: 0, payeMonth: 0,
+    pendingRevenue: 0, pendingExpenses: 0,
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -20,8 +24,16 @@ export default function Dashboard() {
       const { data: paye } = await supabase.from("tbl_paye_employees").select("gross_pay");
 
       const all = txns || [];
-      const revenue = all.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
-      const expenses = all.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
+
+      // Only fully approved (completed) transactions count at full value
+      const approved = all.filter((t) => t.status === "completed");
+      const revenue = approved.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
+      const expenses = approved.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
+
+      // Pending amounts
+      const pending = all.filter((t) => t.status === "pending");
+      const pendingRevenue = pending.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
+      const pendingExpenses = pending.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
 
       const allInv = invs || [];
       const pendingInv = allInv.filter((i) => i.status === "pending").length;
@@ -31,14 +43,11 @@ export default function Dashboard() {
       const payeMonth = (paye || []).reduce((s, p) => s + Number(p.gross_pay), 0);
 
       setStats({
-        revenue,
-        expenses,
+        revenue, expenses,
         profit: revenue - expenses,
         balance: revenue - expenses,
-        pendingInv,
-        overdueInv,
-        vatDue,
-        payeMonth,
+        pendingInv, overdueInv, vatDue, payeMonth,
+        pendingRevenue, pendingExpenses,
       });
     };
     load();
@@ -61,11 +70,26 @@ export default function Dashboard() {
       </div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Revenue" value={`£${stats.revenue.toLocaleString()}`} changeType="positive" icon={DollarSign} variant="inflow" />
-        <StatCard title="Total Expenses" value={`£${stats.expenses.toLocaleString()}`} changeType="negative" icon={TrendingDown} variant="outflow" />
+        <StatCard title="Approved Revenue" value={`£${stats.revenue.toLocaleString()}`} change={stats.pendingRevenue > 0 ? `£${stats.pendingRevenue.toLocaleString()} pending` : undefined} changeType="positive" icon={DollarSign} variant="inflow" />
+        <StatCard title="Approved Expenses" value={`£${stats.expenses.toLocaleString()}`} change={stats.pendingExpenses > 0 ? `£${stats.pendingExpenses.toLocaleString()} pending` : undefined} changeType="negative" icon={TrendingDown} variant="outflow" />
         <StatCard title="Net Profit" value={`£${stats.profit.toLocaleString()}`} changeType={stats.profit >= 0 ? "positive" : "negative"} icon={TrendingUp} />
-        <StatCard title="Cash Balance" value={`£${stats.balance.toLocaleString()}`} change="Updated today" changeType="neutral" icon={Wallet} />
+        <StatCard title="Cash Balance" value={`£${stats.balance.toLocaleString()}`} change="Approved only" changeType="neutral" icon={Wallet} />
       </motion.div>
+
+      {(stats.pendingRevenue > 0 || stats.pendingExpenses > 0 || stats.pendingInv > 0) && (
+        <div className="glass-card border-warning/30 bg-warning/5 p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Pending Approvals</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.pendingInv > 0 && `${stats.pendingInv} invoice(s) pending. `}
+              {stats.pendingRevenue > 0 && `£${stats.pendingRevenue.toLocaleString()} inflow pending. `}
+              {stats.pendingExpenses > 0 && `£${stats.pendingExpenses.toLocaleString()} outflow pending. `}
+              Values above reflect only fully approved records.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
