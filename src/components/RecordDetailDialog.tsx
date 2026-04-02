@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Printer, CheckCircle, XCircle } from "lucide-react";
-import { useProfiles } from "@/hooks/useProfiles";
+import { Download, Printer, CheckCircle, XCircle, FileText, Image } from "lucide-react";
+import { useProfiles, Profile } from "@/hooks/useProfiles";
 
 interface RecordDetailDialogProps {
   open: boolean;
@@ -21,10 +21,19 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
 
   if (!record) return null;
 
+  const getProfile = (id: string | null): Profile | undefined => {
+    if (!id) return undefined;
+    return profiles.find((p) => p.user_id === id);
+  };
+
   const getApproverName = (id: string | null) => {
-    if (!id) return "—";
-    const p = profiles.find((p) => p.user_id === id);
-    return p ? p.full_name || p.email : "Unknown";
+    const p = getProfile(id);
+    return p ? p.full_name || p.email : "—";
+  };
+
+  const getDesignation = (id: string | null) => {
+    const p = getProfile(id);
+    return p?.designation || "";
   };
 
   const canApprove =
@@ -40,7 +49,6 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     if (record.approver1_id === user.id) updates.approver1_status = action;
     if (record.approver2_id === user.id) updates.approver2_status = action;
 
-    // Check if both approved
     const other1 = record.approver1_id === user.id ? action : record.approver1_status;
     const other2 = record.approver2_id === user.id ? action : record.approver2_status;
     if (other1 === "approved" && other2 === "approved") {
@@ -76,17 +84,119 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
   const handlePrint = () => {
     const w = window.open("", "_blank");
     if (!w) return;
-    const content = type === "invoice"
-      ? `<h1>Invoice ${record.invoice_number}</h1><p>Client: ${record.client}</p><p>Amount: £${Number(record.amount).toLocaleString()}</p><p>Status: ${record.status}</p><p>Due Date: ${record.due_date}</p><p>Created By: ${record.created_by_name}</p>${record.items ? `<h3>Line Items</h3><table border="1" cellpadding="6"><tr><th>Description</th><th>Qty</th><th>Rate</th></tr>${(Array.isArray(record.items) ? record.items : []).map((i: any) => `<tr><td>${i.description}</td><td>${i.quantity}</td><td>£${i.rate}</td></tr>`).join("")}</table>` : ""}`
-      : `<h1>Transaction</h1><p>Description: ${record.description}</p><p>Amount: £${Number(record.amount).toLocaleString()}</p><p>Type: ${record.type}</p><p>Category: ${record.category}</p><p>Status: ${record.status}</p><p>Date: ${record.date}</p><p>Created By: ${record.created_by_name}</p>`;
-    w.document.write(`<html><head><title>${type}</title><style>body{font-family:Arial,sans-serif;padding:40px}table{border-collapse:collapse;width:100%}th{background:#f0f0f0}</style></head><body>${content}</body></html>`);
+
+    const createdDate = record.created_at ? new Date(record.created_at).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
+
+    const approver1Profile = getProfile(record.approver1_id);
+    const approver2Profile = getProfile(record.approver2_id);
+    const creatorProfile = profiles.find(p => p.full_name === record.created_by_name || p.email === record.created_by_name);
+
+    const signatoryBlock = (label: string, profile: Profile | undefined, status: string, date: string) => {
+      return `
+        <div style="text-align:center;min-width:200px">
+          <p style="font-size:11px;color:#666;margin-bottom:4px">${label}</p>
+          ${profile?.signature_url ? `<img src="${profile.signature_url}" style="max-height:50px;margin:0 auto 4px" />` : `<div style="border-bottom:1px solid #333;width:160px;margin:30px auto 4px"></div>`}
+          <p style="font-weight:bold;margin:2px 0">${profile?.full_name || "—"}</p>
+          <p style="font-size:12px;color:#555;margin:0">${profile?.designation || ""}</p>
+          <p style="font-size:11px;color:#888;margin:2px 0">Status: ${status}</p>
+          <p style="font-size:11px;color:#888;margin:0">Date: ${date}</p>
+        </div>
+      `;
+    };
+
+    let content = "";
+    if (type === "invoice") {
+      const items = Array.isArray(record.items) ? record.items : [];
+      const total = items.reduce((s: number, i: any) => s + (i.quantity || 0) * (i.rate || 0), 0);
+
+      content = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px">
+          <div>
+            <h1 style="margin:0;font-size:28px;color:#10B981">INVOICE</h1>
+            <p style="color:#666;margin:4px 0">${record.invoice_number}</p>
+          </div>
+          <div style="text-align:right">
+            <p style="margin:2px 0"><strong>Date:</strong> ${createdDate}</p>
+            <p style="margin:2px 0"><strong>Due:</strong> ${record.due_date || "—"}</p>
+            <p style="margin:2px 0"><strong>Status:</strong> ${record.status}</p>
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <p style="margin:2px 0"><strong>Bill To:</strong> ${record.client}</p>
+          <p style="margin:2px 0"><strong>Created By:</strong> ${record.created_by_name || "—"}</p>
+        </div>
+
+        <table border="0" cellpadding="8" style="width:100%;border-collapse:collapse;margin-bottom:20px">
+          <thead>
+            <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6">
+              <th style="text-align:left">Description</th>
+              <th style="text-align:center;width:80px">Qty</th>
+              <th style="text-align:right;width:120px">Rate</th>
+              <th style="text-align:right;width:120px">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map((i: any) => `
+              <tr style="border-bottom:1px solid #eee">
+                <td>${i.description || ""}</td>
+                <td style="text-align:center">${i.quantity || 0}</td>
+                <td style="text-align:right">£${Number(i.rate || 0).toLocaleString()}</td>
+                <td style="text-align:right">£${(Number(i.quantity || 0) * Number(i.rate || 0)).toLocaleString()}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+          <tfoot>
+            <tr style="border-top:2px solid #333">
+              <td colspan="3" style="text-align:right;font-weight:bold;padding-top:12px">Total</td>
+              <td style="text-align:right;font-weight:bold;font-size:18px;padding-top:12px">£${total.toLocaleString()}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="margin-top:60px;padding-top:20px;border-top:1px solid #eee">
+          <p style="font-size:12px;color:#666;margin-bottom:16px;font-weight:bold">SIGNATORIES</p>
+          <div style="display:flex;justify-content:space-around;gap:30px">
+            ${signatoryBlock("Created By", creatorProfile, "—", createdDate)}
+            ${signatoryBlock("Approver 1", approver1Profile, record.approver1_status, createdDate)}
+            ${signatoryBlock("Approver 2", approver2Profile, record.approver2_status, createdDate)}
+          </div>
+        </div>
+      `;
+    } else {
+      content = `
+        <h1>Transaction</h1>
+        <p>Description: ${record.description}</p>
+        <p>Amount: £${Number(record.amount).toLocaleString()}</p>
+        <p>Type: ${record.type}</p>
+        <p>Category: ${record.category}</p>
+        <p>Status: ${record.status}</p>
+        <p>Date: ${record.date}</p>
+        <p>Created By: ${record.created_by_name || "—"}</p>
+        <div style="margin-top:40px;border-top:1px solid #eee;padding-top:20px">
+          <p style="font-size:12px;color:#666;font-weight:bold">SIGNATORIES</p>
+          <div style="display:flex;justify-content:space-around;gap:30px;margin-top:16px">
+            ${signatoryBlock("Created By", creatorProfile, "—", createdDate)}
+            ${signatoryBlock("Approver 1", approver1Profile, record.approver1_status, createdDate)}
+            ${signatoryBlock("Approver 2", approver2Profile, record.approver2_status, createdDate)}
+          </div>
+        </div>
+      `;
+    }
+
+    w.document.write(`<html><head><title>${type}</title><style>body{font-family:Arial,sans-serif;padding:40px;color:#333}table{border-collapse:collapse;width:100%}th{text-align:left}</style></head><body>${content}</body></html>`);
     w.document.close();
     w.print();
   };
 
+  const handleViewAttachment = async (att: any) => {
+    const { data } = await supabase.storage.from("transaction-attachments").createSignedUrl(att.path, 300);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading">
             {type === "invoice" ? `Invoice ${record.invoice_number}` : "Transaction Details"}
@@ -124,14 +234,35 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
             </>
           )}
 
+          {/* Attachments for transactions */}
+          {type === "transaction" && record.attachments && Array.isArray(record.attachments) && record.attachments.length > 0 && (
+            <div className="border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground font-medium uppercase mb-2">Attachments</p>
+              <div className="space-y-1">
+                {record.attachments.map((att: any, i: number) => (
+                  <button key={i} onClick={() => handleViewAttachment(att)} className="flex items-center gap-2 w-full rounded-md bg-secondary px-3 py-1.5 text-sm hover:bg-secondary/80 transition-colors">
+                    {att.type?.startsWith("image/") ? <Image className="h-4 w-4 text-muted-foreground" /> : <FileText className="h-4 w-4 text-muted-foreground" />}
+                    <span className="truncate text-foreground">{att.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-border pt-3 space-y-2">
             <p className="text-xs text-muted-foreground font-medium uppercase">Approvals</p>
             <div className="flex justify-between text-sm">
-              <span>Approver 1: {getApproverName(record.approver1_id)}</span>
+              <div>
+                <span>Approver 1: {getApproverName(record.approver1_id)}</span>
+                {getDesignation(record.approver1_id) && <span className="text-xs text-muted-foreground ml-1">({getDesignation(record.approver1_id)})</span>}
+              </div>
               <StatusBadge status={record.approver1_status} />
             </div>
             <div className="flex justify-between text-sm">
-              <span>Approver 2: {getApproverName(record.approver2_id)}</span>
+              <div>
+                <span>Approver 2: {getApproverName(record.approver2_id)}</span>
+                {getDesignation(record.approver2_id) && <span className="text-xs text-muted-foreground ml-1">({getDesignation(record.approver2_id)})</span>}
+              </div>
               <StatusBadge status={record.approver2_status} />
             </div>
           </div>

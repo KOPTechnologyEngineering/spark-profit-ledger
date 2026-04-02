@@ -25,7 +25,7 @@ export default function ApproverSelect({ approver1, approver2, onApprover1Change
           <SelectTrigger><SelectValue placeholder="Select approver" /></SelectTrigger>
           <SelectContent>
             {available.filter((p) => p.user_id !== approver2).map((p) => (
-              <SelectItem key={p.user_id} value={p.user_id}>{p.full_name || p.email}</SelectItem>
+              <SelectItem key={p.user_id} value={p.user_id}>{p.full_name || p.email}{p.designation ? ` — ${p.designation}` : ""}</SelectItem>
             ))}
           </SelectContent>
         </Select>
