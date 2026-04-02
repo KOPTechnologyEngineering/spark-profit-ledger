@@ -49,6 +49,7 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
         approver1_status: "pending",
         approver2_status: "pending",
         created_by_name: user.user_metadata?.full_name || user.email || "",
+        attachments: attachments,
       } as any);
       if (error) throw error;
 
