@@ -190,12 +190,13 @@ export default function UserManagement() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">User</th>
+                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">User</th>
                   {modules.map((m) => (
                     <th key={m} className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
                       {m === "pnl" ? "P&L" : m}
                     </th>
                   ))}
+                  {hasAdmin("users") && <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
