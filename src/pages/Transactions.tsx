@@ -5,53 +5,55 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
+import PeriodSelector from "@/components/PeriodSelector";
+import { type Period, filterByPeriod, downloadCSV } from "@/lib/date-filters";
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
+  const [period, setPeriod] = useState<Period>("Monthly");
 
   const fetchTransactions = async () => {
     setLoading(true);
     const { data } = await supabase.from("tbl_transactions").select("*").order("date", { ascending: false });
-    setTransactions(data || []);
+    setAllTransactions(data || []);
     setLoading(false);
   };
 
   useEffect(() => { fetchTransactions(); }, []);
 
-  const filtered = transactions
+  const periodFiltered = filterByPeriod(allTransactions, period);
+  const filtered = periodFiltered
     .filter((t) => typeFilter === "all" || t.type === typeFilter)
     .filter((t) => !search || t.description?.toLowerCase().includes(search.toLowerCase()));
 
-  const totalInflow = transactions.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
-  const totalOutflow = transactions.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
+  const totalInflow = periodFiltered.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
+  const totalOutflow = periodFiltered.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
 
   const downloadAllCSV = () => {
     const header = "Description,Amount,Type,Category,Status,Date,Created By\n";
-    const rows = filtered.map((t) => `"${t.description}",${t.amount},${t.type},${t.category},${t.status},${t.date},${t.created_by_name || ""}`).join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "transactions.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    const rows = filtered.map((t) => `"${t.description}",${t.amount},${t.type},${t.category},${t.status},${t.date},${t.created_by_name || ""}`);
+    downloadCSV("transactions.csv", header, rows);
   };
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">Transactions</h1>
           <p className="text-muted-foreground">Track all inflows and outflows</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={downloadAllCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
           <AddTransactionDialog onCreated={fetchTransactions} />
         </div>
+      </div>
+
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -71,8 +73,8 @@ export default function Transactions() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 min-w-[200px]">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search transactions..." className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
         </div>
