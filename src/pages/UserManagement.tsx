@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Shield, UserPlus } from "lucide-react";
+import { Plus, Shield, UserPlus, Trash2 } from "lucide-react";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
 
 const modules = ["invoices", "transactions", "pnl", "vat", "paye", "reports", "users"] as const;
@@ -33,6 +35,19 @@ export default function UserManagement() {
   );
   const [addLoading, setAddLoading] = useState(false);
   const { toast } = useToast();
+  const { hasAdmin } = useUserRoles();
+  const { user } = useAuth();
+
+  const deleteUser = async (userId: string) => {
+    const { error: rolesErr } = await supabase.from("tbl_user_roles").delete().eq("user_id", userId);
+    const { error: profileErr } = await supabase.from("tbl_profiles").delete().eq("user_id", userId);
+    if (rolesErr || profileErr) {
+      toast({ title: "Error", description: (rolesErr || profileErr)!.message, variant: "destructive" });
+    } else {
+      toast({ title: "User deleted" });
+      fetchUsers();
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -175,12 +190,13 @@ export default function UserManagement() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">User</th>
+                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">User</th>
                   {modules.map((m) => (
                     <th key={m} className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
                       {m === "pnl" ? "P&L" : m}
                     </th>
                   ))}
+                  {hasAdmin("users") && <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -208,6 +224,35 @@ export default function UserManagement() {
                         </Select>
                       </td>
                     ))}
+                    {hasAdmin("users") && (
+                      <td className="px-3 py-3 text-center">
+                        {u.user_id !== user?.id ? (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will remove {u.full_name || u.email} and all their permissions. This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteUser(u.user_id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">You</span>
+                        )}
+                      </td>
+                    )}
                   </motion.tr>
                 ))}
               </tbody>

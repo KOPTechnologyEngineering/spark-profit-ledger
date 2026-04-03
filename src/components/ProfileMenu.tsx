@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, Upload } from "lucide-react";
+import { User, Settings, LogOut, Upload, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -124,9 +124,29 @@ export default function ProfileMenu() {
                 </div>
               )}
               <input ref={fileRef} type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
-              <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                <Upload className="h-4 w-4 mr-1" /> {uploading ? "Uploading..." : "Upload Signature"}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                  <Upload className="h-4 w-4 mr-1" /> {uploading ? "Uploading..." : "Upload Signature"}
+                </Button>
+                {signatureUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                    onClick={async () => {
+                      setSignatureUrl("");
+                      await supabase
+                        .from("tbl_profiles")
+                        .update({ signature_url: "" } as any)
+                        .eq("user_id", user!.id);
+                      toast({ title: "Signature removed" });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Remove
+                  </Button>
+                )}
+              </div>
             </div>
             <Button onClick={handleSave} className="w-full" disabled={loading}>
               {loading ? "Saving..." : "Save Profile"}
