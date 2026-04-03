@@ -35,6 +35,19 @@ export default function UserManagement() {
   );
   const [addLoading, setAddLoading] = useState(false);
   const { toast } = useToast();
+  const { hasAdmin } = useUserRoles();
+  const { user } = useAuth();
+
+  const deleteUser = async (userId: string) => {
+    const { error: rolesErr } = await supabase.from("tbl_user_roles").delete().eq("user_id", userId);
+    const { error: profileErr } = await supabase.from("tbl_profiles").delete().eq("user_id", userId);
+    if (rolesErr || profileErr) {
+      toast({ title: "Error", description: (rolesErr || profileErr)!.message, variant: "destructive" });
+    } else {
+      toast({ title: "User deleted" });
+      fetchUsers();
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
