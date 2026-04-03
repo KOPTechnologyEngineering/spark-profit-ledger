@@ -124,9 +124,29 @@ export default function ProfileMenu() {
                 </div>
               )}
               <input ref={fileRef} type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
-              <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                <Upload className="h-4 w-4 mr-1" /> {uploading ? "Uploading..." : "Upload Signature"}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                  <Upload className="h-4 w-4 mr-1" /> {uploading ? "Uploading..." : "Upload Signature"}
+                </Button>
+                {signatureUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                    onClick={async () => {
+                      setSignatureUrl("");
+                      await supabase
+                        .from("tbl_profiles")
+                        .update({ signature_url: "" } as any)
+                        .eq("user_id", user!.id);
+                      toast({ title: "Signature removed" });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Remove
+                  </Button>
+                )}
+              </div>
             </div>
             <Button onClick={handleSave} className="w-full" disabled={loading}>
               {loading ? "Saving..." : "Save Profile"}
