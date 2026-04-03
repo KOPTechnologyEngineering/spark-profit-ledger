@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { downloadCSV } from "@/lib/date-filters";
 
 export default function PAYE() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [totals, setTotals] = useState({ gross: 0, tax: 0, ni: 0, net: 0 });
 
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.from("tbl_paye_employees").select("*").order("name");
+    supabase.from("tbl_paye_employees").select("*").order("name").then(({ data }) => {
       const emps = data || [];
       setEmployees(emps);
       setTotals({
@@ -17,15 +19,23 @@ export default function PAYE() {
         ni: emps.reduce((s, e) => s + Number(e.ni), 0),
         net: emps.reduce((s, e) => s + Number(e.net_pay), 0),
       });
-    };
-    load();
+    });
   }, []);
+
+  const exportCSV = () => {
+    const header = "Employee,Role,Gross Pay,Income Tax,NI,Net Pay\n";
+    const rows = employees.map((e) => `"${e.name}","${e.role}",${e.gross_pay},${e.tax},${e.ni},${e.net_pay}`);
+    downloadCSV("paye_payroll.csv", header, rows);
+  };
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-heading text-3xl font-bold text-foreground">PAYE Management</h1>
-        <p className="text-muted-foreground">Employee payroll and tax deductions</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="font-heading text-3xl font-bold text-foreground">PAYE Management</h1>
+          <p className="text-muted-foreground">Employee payroll and tax deductions</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">

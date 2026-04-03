@@ -1,28 +1,37 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { type Period, filterByPeriod } from "@/lib/date-filters";
+import { format } from "date-fns";
 
-export default function CashflowChart() {
+interface Props {
+  period?: Period;
+}
+
+export default function CashflowChart({ period = "All" }: Props) {
   const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase.from("tbl_transactions").select("amount, type, date").order("date", { ascending: true });
-      if (!data || data.length === 0) return;
+      if (!data || data.length === 0) { setChartData([]); return; }
 
-      // Group by month
-      const monthly: Record<string, { inflow: number; outflow: number }> = {};
-      data.forEach((t) => {
-        const month = new Date(t.date).toLocaleString("en-GB", { month: "short", year: "2-digit" });
-        if (!monthly[month]) monthly[month] = { inflow: 0, outflow: 0 };
-        if (t.type === "inflow") monthly[month].inflow += Number(t.amount);
-        else monthly[month].outflow += Number(t.amount);
+      const filtered = filterByPeriod(data, period);
+
+      const groupKey = period === "Daily" ? "HH:00" : period === "Weekly" ? "EEE" : "MMM yy";
+      const grouped: Record<string, { inflow: number; outflow: number }> = {};
+
+      filtered.forEach((t) => {
+        const key = format(new Date(t.date), groupKey);
+        if (!grouped[key]) grouped[key] = { inflow: 0, outflow: 0 };
+        if (t.type === "inflow") grouped[key].inflow += Number(t.amount);
+        else grouped[key].outflow += Number(t.amount);
       });
 
-      setChartData(Object.entries(monthly).map(([month, vals]) => ({ month, ...vals })));
+      setChartData(Object.entries(grouped).map(([month, vals]) => ({ month, ...vals })));
     };
     load();
-  }, []);
+  }, [period]);
 
   return (
     <div className="glass-card p-6">
@@ -30,7 +39,7 @@ export default function CashflowChart() {
       <p className="text-sm text-muted-foreground">Inflow vs outflow from transactions</p>
       <div className="mt-4 h-72">
         {chartData.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-muted-foreground text-sm">No transaction data yet</div>
+          <div className="flex h-full items-center justify-center text-muted-foreground text-sm">No transaction data for this period</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
