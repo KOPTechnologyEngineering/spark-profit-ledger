@@ -7,26 +7,31 @@ import {
   Users,
   TrendingUp,
   ClipboardList,
-  Settings,
   LogOut,
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-  { label: "Invoices", icon: FileText, path: "/invoices" },
-  { label: "Transactions", icon: ArrowDownUp, path: "/transactions" },
-  { label: "Profit & Loss", icon: TrendingUp, path: "/pnl" },
-  { label: "VAT", icon: Receipt, path: "/vat" },
-  { label: "PAYE", icon: Users, path: "/paye" },
-  { label: "Reports", icon: ClipboardList, path: "/reports" },
-  { label: "User Management", icon: Shield, path: "/users" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/", module: null },
+  { label: "Invoices", icon: FileText, path: "/invoices", module: "invoices" },
+  { label: "Transactions", icon: ArrowDownUp, path: "/transactions", module: "transactions" },
+  { label: "Profit & Loss", icon: TrendingUp, path: "/pnl", module: "pnl" },
+  { label: "VAT", icon: Receipt, path: "/vat", module: "vat" },
+  { label: "PAYE", icon: Users, path: "/paye", module: "paye" },
+  { label: "Reports", icon: ClipboardList, path: "/reports", module: "reports" },
+  { label: "User Management", icon: Shield, path: "/users", module: "users" },
 ];
 
 export default function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { hasNone, loading } = useUserRoles();
+
+  const visibleItems = navItems.filter(
+    (item) => !item.module || loading || !hasNone(item.module)
+  );
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border bg-sidebar">
@@ -40,7 +45,7 @@ export default function AppSidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link

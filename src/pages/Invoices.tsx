@@ -57,8 +57,8 @@ export default function Invoices() {
           <p className="text-muted-foreground">Manage and track your invoices</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={downloadAllCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
-          <NewInvoiceDialog onCreated={fetchInvoices} />
+          <Button variant="outline" size="sm" onClick={downloadAllCSV} disabled={viewOnly}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+          <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><NewInvoiceDialog onCreated={fetchInvoices} /></div>
         </div>
       </div>
 
