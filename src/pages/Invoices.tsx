@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import NewInvoiceDialog from "@/components/NewInvoiceDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 const statusColors: Record<string, string> = {
   paid: "bg-inflow-muted text-inflow",
