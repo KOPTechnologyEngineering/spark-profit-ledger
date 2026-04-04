@@ -14,6 +14,7 @@ import VAT from "@/pages/VAT";
 import PAYE from "@/pages/PAYE";
 import Reports from "@/pages/Reports";
 import UserManagement from "@/pages/UserManagement";
+import Approvals from "@/pages/Approvals";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/pnl" element={<ProfitLoss />} />
               <Route path="/vat" element={<VAT />} />
               <Route path="/paye" element={<PAYE />} />
+              <Route path="/approvals" element={<Approvals />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/users" element={<UserManagement />} />
             </Route>

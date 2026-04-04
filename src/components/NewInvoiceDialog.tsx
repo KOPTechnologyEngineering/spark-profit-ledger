@@ -64,8 +64,8 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
 
       // Create notifications for approvers
       await supabase.from("tbl_notifications").insert([
-        { user_id: approver1, title: "Approval Required", message: `Invoice ${invoiceNumber} needs your approval (£${total.toLocaleString()})`, link: "/invoices" },
-        { user_id: approver2, title: "Approval Required", message: `Invoice ${invoiceNumber} needs your approval (£${total.toLocaleString()})`, link: "/invoices" },
+        { user_id: approver1, title: "Approval Required", message: `Invoice ${invoiceNumber} needs your approval (£${total.toLocaleString()})`, link: "/approvals" },
+        { user_id: approver2, title: "Approval Required", message: `Invoice ${invoiceNumber} needs your approval (£${total.toLocaleString()})`, link: "/approvals" },
       ] as any);
 
       toast({ title: "Invoice created", description: `${invoiceNumber} sent for approval` });
