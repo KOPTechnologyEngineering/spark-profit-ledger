@@ -151,6 +151,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean
+          last_login_at: string | null
           signature_url: string
           updated_at: string
           user_id: string
@@ -162,6 +163,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
+          last_login_at?: string | null
           signature_url?: string
           updated_at?: string
           user_id: string
@@ -173,6 +175,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
+          last_login_at?: string | null
           signature_url?: string
           updated_at?: string
           user_id?: string
