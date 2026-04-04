@@ -54,8 +54,8 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
       if (error) throw error;
 
       await supabase.from("tbl_notifications").insert([
-        { user_id: approver1, title: "Approval Required", message: `Transaction "${description}" needs your approval (£${Number(amount).toLocaleString()})`, link: "/transactions" },
-        { user_id: approver2, title: "Approval Required", message: `Transaction "${description}" needs your approval (£${Number(amount).toLocaleString()})`, link: "/transactions" },
+        { user_id: approver1, title: "Approval Required", message: `Transaction "${description}" needs your approval (£${Number(amount).toLocaleString()})`, link: "/approvals" },
+        { user_id: approver2, title: "Approval Required", message: `Transaction "${description}" needs your approval (£${Number(amount).toLocaleString()})`, link: "/approvals" },
       ] as any);
 
       toast({ title: "Transaction added", description: "Sent for approval" });
