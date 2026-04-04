@@ -21,6 +21,8 @@ export default function Invoices() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
+  const { hasEdit } = useUserRoles();
+  const viewOnly = !hasEdit("invoices");
 
   const fetchInvoices = async () => {
     setLoading(true);
