@@ -16,6 +16,8 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
   const [period, setPeriod] = useState<Period>("Monthly");
+  const { hasEdit } = useUserRoles();
+  const viewOnly = !hasEdit("transactions");
 
   const fetchTransactions = async () => {
     setLoading(true);
