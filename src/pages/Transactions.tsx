@@ -50,8 +50,8 @@ export default function Transactions() {
           <p className="text-muted-foreground">Track all inflows and outflows</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={downloadAllCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
-          <AddTransactionDialog onCreated={fetchTransactions} />
+          <Button variant="outline" size="sm" onClick={downloadAllCSV} disabled={viewOnly}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+          <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={fetchTransactions} /></div>
         </div>
       </div>
 
