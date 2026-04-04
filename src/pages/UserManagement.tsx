@@ -20,6 +20,7 @@ interface UserProfile {
   full_name: string;
   email: string;
   is_active: boolean;
+  last_login_at: string | null;
   roles: Record<string, string>;
 }
 
