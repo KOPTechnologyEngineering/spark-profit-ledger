@@ -7,6 +7,7 @@ import AddTransactionDialog from "@/components/AddTransactionDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import PeriodSelector from "@/components/PeriodSelector";
 import { type Period, filterByPeriod, downloadCSV } from "@/lib/date-filters";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
