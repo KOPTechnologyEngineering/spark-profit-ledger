@@ -20,6 +20,7 @@ interface UserProfile {
   full_name: string;
   email: string;
   is_active: boolean;
+  last_login_at: string | null;
   roles: Record<string, string>;
 }
 
@@ -59,7 +60,7 @@ export default function UserManagement() {
         const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id);
         const roleMap: Record<string, string> = {};
         userRoles.forEach((r: any) => { roleMap[r.module] = r.access; });
-        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, roles: roleMap };
+        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap };
       });
       setUsers(mapped);
     }
@@ -191,6 +192,7 @@ export default function UserManagement() {
               <thead>
                 <tr className="border-b border-border">
                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">User</th>
+                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Last Login</th>
                   {modules.map((m) => (
                     <th key={m} className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
                       {m === "pnl" ? "P&L" : m}
@@ -211,6 +213,11 @@ export default function UserManagement() {
                     <td className="px-4 py-3">
                       <p className="text-sm font-medium text-foreground">{u.full_name || "—"}</p>
                       <p className="text-xs text-muted-foreground">{u.email}</p>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {u.last_login_at
+                        ? new Date(u.last_login_at).toLocaleString()
+                        : <span className="italic text-muted-foreground/60">Never</span>}
                     </td>
                     {modules.map((mod) => (
                       <td key={mod} className="px-3 py-3 text-center">

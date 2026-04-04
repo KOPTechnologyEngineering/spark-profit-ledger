@@ -32,8 +32,12 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Update last_login_at
+        if (loginData.user) {
+          await supabase.from("tbl_profiles").update({ last_login_at: new Date().toISOString() } as any).eq("user_id", loginData.user.id);
+        }
         toast({ title: "Welcome back!", description: "Successfully signed in." });
       } else {
         const { error } = await supabase.auth.signUp({

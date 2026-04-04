@@ -7,6 +7,7 @@ import AddTransactionDialog from "@/components/AddTransactionDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import PeriodSelector from "@/components/PeriodSelector";
 import { type Period, filterByPeriod, downloadCSV } from "@/lib/date-filters";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -15,6 +16,8 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
   const [period, setPeriod] = useState<Period>("Monthly");
+  const { hasEdit } = useUserRoles();
+  const viewOnly = !hasEdit("transactions");
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -47,8 +50,8 @@ export default function Transactions() {
           <p className="text-muted-foreground">Track all inflows and outflows</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={downloadAllCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
-          <AddTransactionDialog onCreated={fetchTransactions} />
+          <Button variant="outline" size="sm" onClick={downloadAllCSV} disabled={viewOnly}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+          <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={fetchTransactions} /></div>
         </div>
       </div>
 

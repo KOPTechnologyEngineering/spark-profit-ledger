@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import NewInvoiceDialog from "@/components/NewInvoiceDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 const statusColors: Record<string, string> = {
   paid: "bg-inflow-muted text-inflow",
@@ -20,6 +21,8 @@ export default function Invoices() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
+  const { hasEdit } = useUserRoles();
+  const viewOnly = !hasEdit("invoices");
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -54,8 +57,8 @@ export default function Invoices() {
           <p className="text-muted-foreground">Manage and track your invoices</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={downloadAllCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
-          <NewInvoiceDialog onCreated={fetchInvoices} />
+          <Button variant="outline" size="sm" onClick={downloadAllCSV} disabled={viewOnly}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+          <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><NewInvoiceDialog onCreated={fetchInvoices} /></div>
         </div>
       </div>
 
