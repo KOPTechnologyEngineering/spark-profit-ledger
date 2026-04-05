@@ -122,6 +122,19 @@ export default function UserManagement() {
     }
   };
 
+  const updateTimeout = async (userId: string, minutes: number) => {
+    const { error } = await supabase
+      .from("tbl_profiles")
+      .update({ session_timeout_minutes: minutes } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Updated", description: `Session timeout set to ${minutes} min` });
+      fetchUsers();
+    }
+  };
+
   const accessColor = (level: string) => {
     switch (level) {
       case "admin": return "text-primary";
