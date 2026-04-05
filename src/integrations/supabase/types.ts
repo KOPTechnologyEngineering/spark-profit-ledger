@@ -158,6 +158,7 @@ export type Database = {
           id: string
           is_active: boolean
           last_login_at: string | null
+          session_timeout_minutes: number
           signature_url: string
           updated_at: string
           user_id: string
@@ -170,6 +171,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_login_at?: string | null
+          session_timeout_minutes?: number
           signature_url?: string
           updated_at?: string
           user_id: string
@@ -182,6 +184,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_login_at?: string | null
+          session_timeout_minutes?: number
           signature_url?: string
           updated_at?: string
           user_id?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.tbl_profiles ADD COLUMN IF NOT EXISTS session_timeout_minutes integer NOT NULL DEFAULT 15;
