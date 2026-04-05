@@ -213,6 +213,7 @@ export default function UserManagement() {
                       {m === "pnl" ? "P&L" : m}
                     </th>
                   ))}
+                  <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Timeout</th>
                   {hasAdmin("users") && <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
