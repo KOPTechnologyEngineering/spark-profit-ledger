@@ -43,7 +43,7 @@ export default function Auth() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
+          options: { data: { full_name: fullName }, emailRedirectTo: "https://ledgerflow.koptechnology.co.uk" },
         });
         if (error) throw error;
         toast({ title: "Account created!", description: "Check your email to verify your account." });
