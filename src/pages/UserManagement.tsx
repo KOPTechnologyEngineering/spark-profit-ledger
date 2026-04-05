@@ -248,6 +248,16 @@ export default function UserManagement() {
                         </Select>
                       </td>
                     ))}
+                    <td className="px-3 py-3 text-center">
+                      <Select value={String(u.session_timeout_minutes)} onValueChange={(v) => updateTimeout(u.user_id, Number(v))}>
+                        <SelectTrigger className="w-24 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timeoutOptions.map((m) => <SelectItem key={m} value={String(m)}>{m} min</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </td>
                     {hasAdmin("users") && (
                       <td className="px-3 py-3 text-center">
                         {u.user_id !== user?.id ? (
