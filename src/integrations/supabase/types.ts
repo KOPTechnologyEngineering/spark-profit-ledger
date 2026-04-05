@@ -107,6 +107,8 @@ export type Database = {
       tbl_paye_employees: {
         Row: {
           created_at: string
+          designation: string
+          grade: string
           gross_pay: number
           id: string
           name: string
@@ -119,6 +121,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          designation?: string
+          grade?: string
           gross_pay?: number
           id?: string
           name: string
@@ -131,6 +135,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          designation?: string
+          grade?: string
           gross_pay?: number
           id?: string
           name?: string
