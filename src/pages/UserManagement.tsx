@@ -235,7 +235,7 @@ export default function UserManagement() {
                         ? new Date(u.last_login_at).toLocaleString()
                         : <span className="italic text-muted-foreground/60">Never</span>}
                     </td>
-                    <td className="hidden" /> {/* placeholder for timeout - inserted after modules */}
+                    
                     {modules.map((mod) => (
                       <td key={mod} className="px-3 py-3 text-center">
                         <Select value={u.roles[mod] || "none"} onValueChange={(v) => updateRole(u.user_id, mod, v)}>
