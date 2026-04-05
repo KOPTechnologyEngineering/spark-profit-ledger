@@ -79,7 +79,7 @@ export default function UserManagement() {
       const { data, error } = await supabase.auth.signUp({
         email: newEmail,
         password: newPassword,
-        options: { data: { full_name: newName } },
+        options: { data: { full_name: newName }, emailRedirectTo: "https://ledgerflow.koptechnology.co.uk" },
       });
       if (error) throw error;
 
