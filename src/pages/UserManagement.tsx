@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 
 const modules = ["invoices", "transactions", "pnl", "vat", "paye", "reports", "users"] as const;
 const accessLevels = ["none", "view", "edit", "admin"] as const;
+const timeoutOptions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
 
 interface UserProfile {
   user_id: string;
@@ -22,6 +23,7 @@ interface UserProfile {
   is_active: boolean;
   last_login_at: string | null;
   roles: Record<string, string>;
+  session_timeout_minutes: number;
 }
 
 export default function UserManagement() {
@@ -60,7 +62,7 @@ export default function UserManagement() {
         const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id);
         const roleMap: Record<string, string> = {};
         userRoles.forEach((r: any) => { roleMap[r.module] = r.access; });
-        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap };
+        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15 };
       });
       setUsers(mapped);
     }
