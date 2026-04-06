@@ -120,6 +120,10 @@ export default function UserManagement() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      // If users module changed to none/view, auto-disable approver
+      if (module === "users" && (access === "none" || access === "view")) {
+        await supabase.from("tbl_profiles").update({ is_approver: false } as any).eq("user_id", userId);
+      }
       toast({ title: "Updated", description: `Permission updated for ${module}` });
       fetchUsers();
     }
