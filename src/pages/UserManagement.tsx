@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Shield, UserPlus, Trash2, Clock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
@@ -24,6 +25,8 @@ interface UserProfile {
   last_login_at: string | null;
   roles: Record<string, string>;
   session_timeout_minutes: number;
+  is_hidden: boolean;
+  is_approver: boolean;
 }
 
 export default function UserManagement() {
@@ -62,7 +65,7 @@ export default function UserManagement() {
         const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id);
         const roleMap: Record<string, string> = {};
         userRoles.forEach((r: any) => { roleMap[r.module] = r.access; });
-        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15 };
+        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15, is_hidden: (p as any).is_hidden ?? false, is_approver: (p as any).is_approver ?? false };
       });
       setUsers(mapped);
     }
@@ -117,6 +120,10 @@ export default function UserManagement() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      // If users module changed to none/view, auto-disable approver
+      if (module === "users" && (access === "none" || access === "view")) {
+        await supabase.from("tbl_profiles").update({ is_approver: false } as any).eq("user_id", userId);
+      }
       toast({ title: "Updated", description: `Permission updated for ${module}` });
       fetchUsers();
     }
@@ -134,6 +141,22 @@ export default function UserManagement() {
       fetchUsers();
     }
   };
+
+  const updateApprover = async (userId: string, checked: boolean) => {
+    const { error } = await supabase
+      .from("tbl_profiles")
+      .update({ is_approver: checked } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Updated", description: `Approver status updated` });
+      fetchUsers();
+    }
+  };
+
+  const visibleUsers = users.filter((u) => !u.is_hidden);
+
 
   const accessColor = (level: string) => {
     switch (level) {
@@ -213,12 +236,13 @@ export default function UserManagement() {
                       {m === "pnl" ? "P&L" : m}
                     </th>
                   ))}
+                  <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Approver</th>
                   <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Timeout</th>
                   {hasAdmin("users") && <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {users.map((u, i) => (
+                {visibleUsers.map((u, i) => (
                   <motion.tr
                     key={u.user_id}
                     initial={{ opacity: 0, y: 10 }}
@@ -248,6 +272,20 @@ export default function UserManagement() {
                         </Select>
                       </td>
                     ))}
+                    <td className="px-3 py-3 text-center">
+                      {(() => {
+                        const usersRole = u.roles["users"] || "none";
+                        const canBeApprover = usersRole === "edit" || usersRole === "admin";
+                        return (
+                          <Checkbox
+                            checked={u.is_approver}
+                            disabled={!canBeApprover}
+                            onCheckedChange={(checked) => updateApprover(u.user_id, !!checked)}
+                            className={!canBeApprover ? "opacity-50 cursor-not-allowed" : ""}
+                          />
+                        );
+                      })()}
+                    </td>
                     <td className="px-3 py-3 text-center">
                       <Select value={String(u.session_timeout_minutes)} onValueChange={(v) => updateTimeout(u.user_id, Number(v))}>
                         <SelectTrigger className="w-24 text-xs">

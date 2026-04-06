@@ -14,8 +14,8 @@ export default function ApproverSelect({ approver1, approver2, onApprover1Change
   const profiles = useProfiles();
   const { user } = useAuth();
 
-  // Exclude self from approver selection
-  const available = profiles.filter((p) => p.user_id !== user?.id);
+  // Exclude self and only show users marked as approvers (also exclude hidden)
+  const available = profiles.filter((p) => p.user_id !== user?.id && p.is_approver && !p.is_hidden);
 
   return (
     <div className="grid grid-cols-2 gap-4">
