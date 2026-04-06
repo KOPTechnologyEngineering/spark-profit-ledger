@@ -24,6 +24,8 @@ interface UserProfile {
   last_login_at: string | null;
   roles: Record<string, string>;
   session_timeout_minutes: number;
+  is_hidden: boolean;
+  is_approver: boolean;
 }
 
 export default function UserManagement() {
