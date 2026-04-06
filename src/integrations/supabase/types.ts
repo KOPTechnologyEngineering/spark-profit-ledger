@@ -160,6 +160,8 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean
+          is_approver: boolean
+          is_hidden: boolean
           last_login_at: string | null
           session_timeout_minutes: number
           signature_url: string
@@ -173,6 +175,8 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
+          is_approver?: boolean
+          is_hidden?: boolean
           last_login_at?: string | null
           session_timeout_minutes?: number
           signature_url?: string
@@ -186,6 +190,8 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
+          is_approver?: boolean
+          is_hidden?: boolean
           last_login_at?: string | null
           session_timeout_minutes?: number
           signature_url?: string
