@@ -109,6 +109,7 @@ export type Database = {
           created_at: string
           designation: string
           grade: string
+          gross_annual: number
           gross_pay: number
           id: string
           name: string
@@ -123,6 +124,7 @@ export type Database = {
           created_at?: string
           designation?: string
           grade?: string
+          gross_annual?: number
           gross_pay?: number
           id?: string
           name: string
@@ -137,6 +139,7 @@ export type Database = {
           created_at?: string
           designation?: string
           grade?: string
+          gross_annual?: number
           gross_pay?: number
           id?: string
           name?: string

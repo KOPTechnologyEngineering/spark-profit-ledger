@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Plus, Trash2 } from "lucide-react";
+import { Download, Plus, Trash2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { downloadCSV } from "@/lib/date-filters";
@@ -25,9 +25,7 @@ const ISE_GRADES = [
   "Grade 10 – C-Suite / Chief Officer",
 ];
 
-// UK 2025/26 tax year calculations (monthly)
 function calcUKDeductions(grossAnnual: number) {
-  // Income Tax
   const personalAllowance = grossAnnual > 125140 ? 0 : 12570;
   const taxable = Math.max(0, grossAnnual - personalAllowance);
   let tax = 0;
@@ -35,8 +33,7 @@ function calcUKDeductions(grossAnnual: number) {
   if (taxable > 37700) tax += Math.min(taxable - 37700, 87440) * 0.4;
   if (taxable > 125140) tax += (taxable - 125140) * 0.45;
 
-  // Employee NI (Class 1)
-  const niLower = 12570; // primary threshold
+  const niLower = 12570;
   const niUpper = 50270;
   let ni = 0;
   if (grossAnnual > niLower) ni += Math.min(grossAnnual - niLower, niUpper - niLower) * 0.08;
@@ -55,17 +52,21 @@ function calcUKDeductions(grossAnnual: number) {
   };
 }
 
+const emptyForm = { name: "", designation: "", grade: "", grossAnnual: "" };
+
 export default function PAYE() {
   const { user } = useAuth();
   const { hasAdmin, hasEdit } = useUserRoles();
   const canEdit = hasEdit("paye");
   const canDelete = hasAdmin("paye");
+  const isAdmin = hasAdmin("paye");
 
   const [employees, setEmployees] = useState<any[]>([]);
   const [totals, setTotals] = useState({ gross: 0, tax: 0, ni: 0, net: 0 });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", designation: "", grade: "", grossAnnual: "" });
+  const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const fetchEmployees = async () => {
     const { data } = await supabase.from("tbl_paye_employees").select("*").order("name");
@@ -81,7 +82,24 @@ export default function PAYE() {
 
   useEffect(() => { fetchEmployees(); }, []);
 
-  const handleAdd = async () => {
+  const openAdd = () => {
+    setEditId(null);
+    setForm(emptyForm);
+    setOpen(true);
+  };
+
+  const openEdit = (emp: any) => {
+    setEditId(emp.id);
+    setForm({
+      name: emp.name,
+      designation: emp.designation || emp.role || "",
+      grade: emp.grade || "",
+      grossAnnual: String(emp.gross_annual || 0),
+    });
+    setOpen(true);
+  };
+
+  const handleSave = async () => {
     if (!form.name || !form.grossAnnual || !form.grade) {
       toast.error("Please fill in all required fields");
       return;
@@ -93,18 +111,26 @@ export default function PAYE() {
     }
     setSaving(true);
     const deductions = calcUKDeductions(annual);
-    const { error } = await supabase.from("tbl_paye_employees").insert({
-      user_id: user!.id,
+    const payload = {
       name: form.name.trim(),
       role: form.designation.trim(),
       designation: form.designation.trim(),
       grade: form.grade,
+      gross_annual: annual,
       ...deductions,
-    });
+    };
+
+    let error;
+    if (editId) {
+      ({ error } = await supabase.from("tbl_paye_employees").update(payload).eq("id", editId));
+    } else {
+      ({ error } = await supabase.from("tbl_paye_employees").insert({ user_id: user!.id, ...payload }));
+    }
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Employee added");
-    setForm({ name: "", designation: "", grade: "", grossAnnual: "" });
+    toast.success(editId ? "Employee updated" : "Employee added");
+    setForm(emptyForm);
+    setEditId(null);
     setOpen(false);
     fetchEmployees();
   };
@@ -118,14 +144,13 @@ export default function PAYE() {
   };
 
   const exportCSV = () => {
-    const header = "Employee,Designation,Grade,Monthly Gross,Income Tax,NI,Net Pay\n";
+    const header = "Employee,Designation,Grade,Gross Annual,Monthly Gross,Income Tax,NI,Net Pay\n";
     const rows = employees.map((e) =>
-      `"${e.name}","${e.designation || e.role}","${e.grade}",${e.gross_pay},${e.tax},${e.ni},${e.net_pay}`
+      `"${e.name}","${e.designation || e.role}","${e.grade}",${e.gross_annual},${e.gross_pay},${e.tax},${e.ni},${e.net_pay}`
     );
     downloadCSV("paye_payroll.csv", header, rows);
   };
 
-  // Preview calculation
   const preview = form.grossAnnual ? calcUKDeductions(parseFloat(form.grossAnnual) || 0) : null;
 
   return (
@@ -137,55 +162,55 @@ export default function PAYE() {
         </div>
         <div className="flex gap-2">
           {canEdit && (
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Employee</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Add Employee</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 mt-2">
-                  <div>
-                    <Label>Full Name *</Label>
-                    <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="John Smith" />
-                  </div>
-                  <div>
-                    <Label>Designation</Label>
-                    <Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} placeholder="e.g. Accountant" />
-                  </div>
-                  <div>
-                    <Label>ISE Grade *</Label>
-                    <Select value={form.grade} onValueChange={(v) => setForm({ ...form, grade: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
-                      <SelectContent>
-                        {ISE_GRADES.map((g) => (
-                          <SelectItem key={g} value={g}>{g}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Gross Annual Pay (£) *</Label>
-                    <Input type="number" min="0" step="100" value={form.grossAnnual} onChange={(e) => setForm({ ...form, grossAnnual: e.target.value })} placeholder="e.g. 45000" />
-                  </div>
-                  {preview && parseFloat(form.grossAnnual) > 0 && (
-                    <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-1 text-sm">
-                      <p className="font-semibold text-foreground mb-2">Monthly Breakdown (auto-calculated)</p>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Gross Pay</span><span className="text-foreground font-medium">£{preview.gross_pay.toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Income Tax</span><span className="text-outflow">-£{preview.tax.toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">National Insurance</span><span className="text-outflow">-£{preview.ni.toLocaleString()}</span></div>
-                      <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="font-semibold text-foreground">Net Pay</span><span className="font-bold text-inflow">£{preview.net_pay.toLocaleString()}</span></div>
-                    </div>
-                  )}
-                  <Button className="w-full" onClick={handleAdd} disabled={saving}>{saving ? "Saving…" : "Add Employee"}</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Add Employee</Button>
           )}
           <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
         </div>
       </div>
+
+      {/* Add / Edit Dialog */}
+      <Dialog open={open} onOpenChange={(v) => { if (!v) { setEditId(null); setForm(emptyForm); } setOpen(v); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editId ? "Edit Employee" : "Add Employee"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label>Full Name *</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="John Smith" />
+            </div>
+            <div>
+              <Label>Designation</Label>
+              <Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} placeholder="e.g. Accountant" />
+            </div>
+            <div>
+              <Label>ISE Grade *</Label>
+              <Select value={form.grade} onValueChange={(v) => setForm({ ...form, grade: v })}>
+                <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
+                <SelectContent>
+                  {ISE_GRADES.map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Gross Annual Pay (£) *</Label>
+              <Input type="number" min="0" step="100" value={form.grossAnnual} onChange={(e) => setForm({ ...form, grossAnnual: e.target.value })} placeholder="e.g. 45000" />
+            </div>
+            {preview && parseFloat(form.grossAnnual) > 0 && (
+              <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-1 text-sm">
+                <p className="font-semibold text-foreground mb-2">Monthly Breakdown (auto-calculated)</p>
+                <div className="flex justify-between"><span className="text-muted-foreground">Gross Pay</span><span className="text-foreground font-medium">£{preview.gross_pay.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Income Tax</span><span className="text-outflow">-£{preview.tax.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">National Insurance</span><span className="text-outflow">-£{preview.ni.toLocaleString()}</span></div>
+                <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="font-semibold text-foreground">Net Pay</span><span className="font-bold text-inflow">£{preview.net_pay.toLocaleString()}</span></div>
+              </div>
+            )}
+            <Button className="w-full" onClick={handleSave} disabled={saving}>{saving ? "Saving…" : editId ? "Update Employee" : "Add Employee"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-6 md:grid-cols-4">
         <div className="glass-card p-6">
@@ -220,11 +245,12 @@ export default function PAYE() {
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Employee</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Designation</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Grade</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Annual</th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Gross</th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Tax</th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">NI</th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Net Pay</th>
-                  {canDelete && <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>}
+                  {(canDelete || isAdmin) && <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -233,15 +259,23 @@ export default function PAYE() {
                     <td className="px-6 py-4 text-sm font-medium text-foreground">{emp.name}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{emp.designation || emp.role}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{emp.grade || "—"}</td>
+                    <td className="px-6 py-4 text-right font-heading text-sm text-muted-foreground">£{Number(emp.gross_annual || 0).toLocaleString()}</td>
                     <td className="px-6 py-4 text-right font-heading text-sm font-semibold text-foreground">£{Number(emp.gross_pay).toLocaleString()}</td>
                     <td className="px-6 py-4 text-right font-heading text-sm text-outflow">£{Number(emp.tax).toLocaleString()}</td>
                     <td className="px-6 py-4 text-right font-heading text-sm text-outflow">£{Number(emp.ni).toLocaleString()}</td>
                     <td className="px-6 py-4 text-right font-heading text-sm font-semibold text-inflow">£{Number(emp.net_pay).toLocaleString()}</td>
-                    {canDelete && (
-                      <td className="px-6 py-4 text-right">
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(emp.id, emp.name)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                    {(canDelete || isAdmin) && (
+                      <td className="px-6 py-4 text-right space-x-1">
+                        {isAdmin && (
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(emp.id, emp.name)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </td>
                     )}
                   </motion.tr>
