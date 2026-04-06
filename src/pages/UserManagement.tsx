@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Shield, UserPlus, Trash2, Clock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
@@ -64,7 +65,7 @@ export default function UserManagement() {
         const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id);
         const roleMap: Record<string, string> = {};
         userRoles.forEach((r: any) => { roleMap[r.module] = r.access; });
-        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15 };
+        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15, is_hidden: (p as any).is_hidden ?? false, is_approver: (p as any).is_approver ?? false };
       });
       setUsers(mapped);
     }
