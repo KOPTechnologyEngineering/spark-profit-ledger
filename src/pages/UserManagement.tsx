@@ -232,12 +232,13 @@ export default function UserManagement() {
                       {m === "pnl" ? "P&L" : m}
                     </th>
                   ))}
+                  <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Approver</th>
                   <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Timeout</th>
                   {hasAdmin("users") && <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {users.map((u, i) => (
+                {visibleUsers.map((u, i) => (
                   <motion.tr
                     key={u.user_id}
                     initial={{ opacity: 0, y: 10 }}
@@ -267,6 +268,20 @@ export default function UserManagement() {
                         </Select>
                       </td>
                     ))}
+                    <td className="px-3 py-3 text-center">
+                      {(() => {
+                        const usersRole = u.roles["users"] || "none";
+                        const canBeApprover = usersRole === "edit" || usersRole === "admin";
+                        return (
+                          <Checkbox
+                            checked={u.is_approver}
+                            disabled={!canBeApprover}
+                            onCheckedChange={(checked) => updateApprover(u.user_id, !!checked)}
+                            className={!canBeApprover ? "opacity-50 cursor-not-allowed" : ""}
+                          />
+                        );
+                      })()}
+                    </td>
                     <td className="px-3 py-3 text-center">
                       <Select value={String(u.session_timeout_minutes)} onValueChange={(v) => updateTimeout(u.user_id, Number(v))}>
                         <SelectTrigger className="w-24 text-xs">
