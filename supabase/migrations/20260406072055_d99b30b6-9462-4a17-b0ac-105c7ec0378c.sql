@@ -1,0 +1,1 @@
+ALTER TABLE public.tbl_paye_employees ADD COLUMN IF NOT EXISTS gross_annual numeric NOT NULL DEFAULT 0;
