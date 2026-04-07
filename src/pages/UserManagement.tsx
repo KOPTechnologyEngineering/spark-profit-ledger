@@ -120,9 +120,16 @@ export default function UserManagement() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      // If users module changed to none/view, auto-disable approver
-      if (module === "users" && (access === "none" || access === "view")) {
-        await supabase.from("tbl_profiles").update({ is_approver: false } as any).eq("user_id", userId);
+      // If both invoices and transactions are none, auto-disable approver
+      if (module === "invoices" || module === "transactions") {
+        const updatedUser = users.find(u => u.user_id === userId);
+        if (updatedUser) {
+          const invoicesAccess = module === "invoices" ? access : (updatedUser.roles["invoices"] || "none");
+          const transactionsAccess = module === "transactions" ? access : (updatedUser.roles["transactions"] || "none");
+          if (invoicesAccess === "none" && transactionsAccess === "none") {
+            await supabase.from("tbl_profiles").update({ is_approver: false } as any).eq("user_id", userId);
+          }
+        }
       }
       toast({ title: "Updated", description: `Permission updated for ${module}` });
       fetchUsers();
@@ -274,8 +281,9 @@ export default function UserManagement() {
                     ))}
                     <td className="px-3 py-3 text-center">
                       {(() => {
-                        const usersRole = u.roles["users"] || "none";
-                        const canBeApprover = usersRole === "edit" || usersRole === "admin";
+                        const invoicesRole = u.roles["invoices"] || "none";
+                        const transactionsRole = u.roles["transactions"] || "none";
+                        const canBeApprover = invoicesRole !== "none" || transactionsRole !== "none";
                         return (
                           <Checkbox
                             checked={u.is_approver}
