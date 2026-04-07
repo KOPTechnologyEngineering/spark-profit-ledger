@@ -274,8 +274,9 @@ export default function UserManagement() {
                     ))}
                     <td className="px-3 py-3 text-center">
                       {(() => {
-                        const usersRole = u.roles["users"] || "none";
-                        const canBeApprover = usersRole === "edit" || usersRole === "admin";
+                        const invoicesRole = u.roles["invoices"] || "none";
+                        const transactionsRole = u.roles["transactions"] || "none";
+                        const canBeApprover = invoicesRole !== "none" || transactionsRole !== "none";
                         return (
                           <Checkbox
                             checked={u.is_approver}
