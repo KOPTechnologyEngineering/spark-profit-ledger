@@ -42,7 +42,7 @@ export default function AppSidebar() {
           <TrendingUp className="h-4 w-4 text-primary-foreground" />
         </div>
         <span className="font-heading text-xl font-bold text-foreground">
-          LedgerFlow
+          Livreo
         </span>
       </div>
 
