@@ -119,8 +119,10 @@ export default function Invoices() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
+
 
       <RecordDetailDialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)} record={selected} type="invoice" onUpdated={fetchInvoices} />
     </div>
