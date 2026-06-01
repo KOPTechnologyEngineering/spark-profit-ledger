@@ -64,12 +64,12 @@ export default function VAT() {
         ) : (
           <div className="space-y-3">
             {vatReturns.map((q, i) => (
-              <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="flex items-center justify-between rounded-lg bg-secondary/50 px-6 py-4">
+              <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="flex flex-col gap-4 rounded-lg bg-secondary/50 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                   {q.status === 'filed' ? <CheckCircle className="h-5 w-5 text-inflow" /> : <Clock className="h-5 w-5 text-warning" />}
                   <span className="font-medium text-foreground">{q.quarter}</span>
                 </div>
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-4 sm:gap-8 flex-wrap">
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Output</p>
                     <p className="font-heading text-sm font-semibold text-foreground">£{Number(q.output_vat).toLocaleString()}</p>
@@ -85,6 +85,7 @@ export default function VAT() {
                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${q.status === 'filed' ? 'bg-inflow-muted text-inflow' : 'bg-warning/15 text-warning'}`}>{q.status}</span>
                 </div>
               </motion.div>
+
             ))}
           </div>
         )}

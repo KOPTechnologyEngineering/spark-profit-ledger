@@ -51,23 +51,24 @@ export default function Invoices() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">Invoices</h1>
           <p className="text-muted-foreground">Manage and track your invoices</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={downloadAllCSV} disabled={viewOnly}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
           <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><NewInvoiceDialog onCreated={fetchInvoices} /></div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5">
+
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 min-w-[200px]">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search invoices..." className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
         </div>
-        <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-secondary p-1 flex-wrap">
           {["all", "paid", "pending", "overdue", "draft", "rejected"].map((s) => (
             <button key={s} onClick={() => setFilter(s)} className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-all ${filter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
               {s}
@@ -76,13 +77,16 @@ export default function Invoices() {
         </div>
       </div>
 
+
       <div className="glass-card overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">No invoices found.</div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+
             <thead>
               <tr className="border-b border-border">
                 <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Invoice</th>
@@ -115,8 +119,10 @@ export default function Invoices() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
+
 
       <RecordDetailDialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)} record={selected} type="invoice" onUpdated={fetchInvoices} />
     </div>
