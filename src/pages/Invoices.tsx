@@ -63,12 +63,12 @@ export default function Invoices() {
       </div>
 
 
-      <div className="flex items-center gap-4">
-        <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 min-w-[200px]">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search invoices..." className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
         </div>
-        <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-secondary p-1 flex-wrap">
           {["all", "paid", "pending", "overdue", "draft", "rejected"].map((s) => (
             <button key={s} onClick={() => setFilter(s)} className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-all ${filter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
               {s}
@@ -76,6 +76,7 @@ export default function Invoices() {
           ))}
         </div>
       </div>
+
 
       <div className="glass-card overflow-hidden">
         {loading ? (
