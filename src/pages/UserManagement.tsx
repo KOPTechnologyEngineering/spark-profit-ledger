@@ -176,11 +176,12 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">User Management</h1>
           <p className="text-muted-foreground">Manage users and module-level permissions</p>
         </div>
+
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
