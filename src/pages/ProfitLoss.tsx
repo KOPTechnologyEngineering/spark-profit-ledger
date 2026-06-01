@@ -74,13 +74,13 @@ export default function ProfitLoss() {
           {revenue.length === 0 ? <p className="text-sm text-muted-foreground">No revenue data</p> : (
             <div className="space-y-3">
               {revenue.map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-24 overflow-hidden rounded-full bg-secondary">
+                <div key={item.label} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <span className="text-sm text-muted-foreground truncate sm:max-w-[40%]">{item.label}</span>
+                  <div className="flex items-center gap-3 sm:flex-1 sm:justify-end">
+                    <div className="h-2 flex-1 sm:w-24 sm:flex-none overflow-hidden rounded-full bg-secondary">
                       <div className="h-full rounded-full bg-inflow" style={{ width: `${(item.amount / totalRevenue) * 100}%` }} />
                     </div>
-                    <span className="font-heading text-sm font-semibold text-inflow">£{item.amount.toLocaleString()}</span>
+                    <span className="font-heading text-sm font-semibold text-inflow whitespace-nowrap">£{item.amount.toLocaleString()}</span>
                   </div>
                 </div>
               ))}
@@ -93,13 +93,13 @@ export default function ProfitLoss() {
           {expenses.length === 0 ? <p className="text-sm text-muted-foreground">No expense data</p> : (
             <div className="space-y-3">
               {expenses.map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-24 overflow-hidden rounded-full bg-secondary">
+                <div key={item.label} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <span className="text-sm text-muted-foreground truncate sm:max-w-[40%]">{item.label}</span>
+                  <div className="flex items-center gap-3 sm:flex-1 sm:justify-end">
+                    <div className="h-2 flex-1 sm:w-24 sm:flex-none overflow-hidden rounded-full bg-secondary">
                       <div className="h-full rounded-full bg-outflow" style={{ width: `${(item.amount / totalExpenses) * 100}%` }} />
                     </div>
-                    <span className="font-heading text-sm font-semibold text-outflow">£{item.amount.toLocaleString()}</span>
+                    <span className="font-heading text-sm font-semibold text-outflow whitespace-nowrap">£{item.amount.toLocaleString()}</span>
                   </div>
                 </div>
               ))}
