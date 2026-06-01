@@ -84,11 +84,9 @@ export default function Invoices() {
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">No invoices found.</div>
         ) : (
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px]">
-
           <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="w-full min-w-[640px]">
+
 
             <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
               <tr className="border-b border-border">
