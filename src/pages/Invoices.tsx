@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Download } from "lucide-react";
+import { Search, Download, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -84,17 +84,19 @@ export default function Invoices() {
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">No invoices found.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="w-full min-w-[640px]">
 
-            <thead>
+
+            <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
               <tr className="border-b border-border">
-                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Invoice</th>
-                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Client</th>
-                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Due Date</th>
-                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created By</th>
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Invoice</th>
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Client</th>
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden md:table-cell">Due Date</th>
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Created By</th>
+                <th className="px-4 sm:px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground sticky right-0 bg-card/95 backdrop-blur">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -104,17 +106,28 @@ export default function Invoices() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="border-b border-border/50 hover:bg-secondary/30 transition-colors cursor-pointer"
+                  className="border-b border-border/50 hover:bg-secondary/30 transition-colors cursor-pointer group"
                   onClick={() => setSelected(invoice)}
                 >
-                  <td className="px-6 py-4 font-heading text-sm font-semibold text-foreground">{invoice.invoice_number}</td>
-                  <td className="px-6 py-4 text-sm text-foreground">{invoice.client}</td>
-                  <td className="px-6 py-4 font-heading text-sm font-semibold text-foreground">£{Number(invoice.amount).toLocaleString()}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4 font-heading text-sm font-semibold text-foreground">{invoice.invoice_number}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm text-foreground">{invoice.client}</td>
+                  <td className="px-4 sm:px-6 py-4 font-heading text-sm font-semibold text-foreground whitespace-nowrap">£{Number(invoice.amount).toLocaleString()}</td>
+                  <td className="px-4 sm:px-6 py-4">
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusColors[invoice.status] || ""}`}>{invoice.status}</span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{invoice.due_date}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{invoice.created_by_name || "—"}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm text-muted-foreground hidden md:table-cell whitespace-nowrap">{invoice.due_date}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm text-muted-foreground hidden lg:table-cell">{invoice.created_by_name || "—"}</td>
+                  <td className="px-2 sm:px-4 py-4 text-right sticky right-0 bg-card/95 backdrop-blur group-hover:bg-secondary/60">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); setSelected(invoice); }}
+                      aria-label="View invoice"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span className="hidden sm:inline ml-1">View</span>
+                    </Button>
+                  </td>
                 </motion.tr>
               ))}
             </tbody>

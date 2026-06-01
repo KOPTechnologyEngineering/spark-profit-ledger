@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle, Clock, Download } from "lucide-react";
+import { CheckCircle, Clock, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PeriodSelector from "@/components/PeriodSelector";
 import { type Period, filterByPeriod, downloadCSV } from "@/lib/date-filters";
@@ -57,17 +57,24 @@ export default function VAT() {
         </div>
       </div>
 
-      <div className="glass-card p-6">
-        <h3 className="font-heading text-lg font-semibold text-foreground mb-4">VAT Return History</h3>
+      <div className="glass-card p-0 overflow-hidden">
+        <div className="sticky top-0 z-10 flex items-center justify-between bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-6 py-4 border-b border-border">
+          <h3 className="font-heading text-lg font-semibold text-foreground">VAT Return History</h3>
+          <span className="text-xs text-muted-foreground">{vatReturns.length} {vatReturns.length === 1 ? "return" : "returns"}</span>
+        </div>
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
         {vatReturns.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No VAT returns recorded yet. VAT summary above is calculated from transactions at 20% rate.</p>
         ) : (
           <div className="space-y-3">
             {vatReturns.map((q, i) => (
               <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="flex flex-col gap-4 rounded-lg bg-secondary/50 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-3">
-                  {q.status === 'filed' ? <CheckCircle className="h-5 w-5 text-inflow" /> : <Clock className="h-5 w-5 text-warning" />}
-                  <span className="font-medium text-foreground">{q.quarter}</span>
+                <div className="flex items-center justify-between gap-3 md:justify-start">
+                  <div className="flex items-center gap-3">
+                    {q.status === 'filed' ? <CheckCircle className="h-5 w-5 text-inflow" /> : <Clock className="h-5 w-5 text-warning" />}
+                    <span className="font-medium text-foreground">{q.quarter}</span>
+                  </div>
+                  <span className={`md:hidden inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${q.status === 'filed' ? 'bg-inflow-muted text-inflow' : 'bg-warning/15 text-warning'}`}>{q.status}</span>
                 </div>
                 <div className="flex items-center gap-4 sm:gap-8 flex-wrap">
                   <div className="text-right">
@@ -82,13 +89,18 @@ export default function VAT() {
                     <p className="text-xs text-muted-foreground">Net</p>
                     <p className="font-heading text-sm font-semibold text-outflow">£{Number(q.net_vat).toLocaleString()}</p>
                   </div>
-                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${q.status === 'filed' ? 'bg-inflow-muted text-inflow' : 'bg-warning/15 text-warning'}`}>{q.status}</span>
+                  <span className={`hidden md:inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${q.status === 'filed' ? 'bg-inflow-muted text-inflow' : 'bg-warning/15 text-warning'}`}>{q.status}</span>
+                  <Button variant="ghost" size="sm" aria-label="View return">
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-1">View</span>
+                  </Button>
                 </div>
               </motion.div>
 
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
