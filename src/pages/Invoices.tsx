@@ -51,16 +51,17 @@ export default function Invoices() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">Invoices</h1>
           <p className="text-muted-foreground">Manage and track your invoices</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={downloadAllCSV} disabled={viewOnly}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
           <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><NewInvoiceDialog onCreated={fetchInvoices} /></div>
         </div>
       </div>
+
 
       <div className="flex items-center gap-4">
         <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5">
