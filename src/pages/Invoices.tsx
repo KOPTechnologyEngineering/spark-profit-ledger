@@ -84,7 +84,9 @@ export default function Invoices() {
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">No invoices found.</div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+
             <thead>
               <tr className="border-b border-border">
                 <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Invoice</th>
