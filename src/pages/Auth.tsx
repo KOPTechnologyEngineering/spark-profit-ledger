@@ -66,7 +66,7 @@ export default function Auth() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <TrendingUp className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="mt-4 font-heading text-3xl font-bold text-foreground">Livreo</h1>
+          <h1 className="mt-4 font-heading text-3xl font-bold text-foreground">KOP Ledger</h1>
           <p className="mt-1 text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create your account"}
           </p>
