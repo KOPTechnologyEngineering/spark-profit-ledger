@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,11 +20,10 @@ export default function Auth() {
   const navigate = useNavigate();
   const { session } = useAuth();
 
-  // If already signed in, redirect to home
-  if (session) {
-    navigate("/", { replace: true });
-    return null;
-  }
+  // Redirect after render if already signed in (never call navigate during render)
+  useEffect(() => {
+    if (session) navigate("/", { replace: true });
+  }, [session, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +42,7 @@ export default function Auth() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName }, emailRedirectTo: "https://ledgerflow.koptechnology.co.uk" },
+          options: { data: { full_name: fullName }, emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
         toast({ title: "Account created!", description: "Check your email to verify your account." });
