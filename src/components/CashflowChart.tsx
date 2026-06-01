@@ -11,6 +11,7 @@ interface Props {
 
 export default function CashflowChart({ period = "All" }: Props) {
   const [chartData, setChartData] = useState<any[]>([]);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const load = async () => {
@@ -34,16 +35,22 @@ export default function CashflowChart({ period = "All" }: Props) {
     load();
   }, [period]);
 
+  const formatYTick = (v: number) => {
+    if (Math.abs(v) >= 1_000_000) return `£${(v / 1_000_000).toFixed(1)}m`;
+    if (Math.abs(v) >= 1_000) return `£${Math.round(v / 1000)}k`;
+    return `£${v}`;
+  };
+
   return (
-    <div className="glass-card p-6">
-      <h3 className="font-heading text-lg font-semibold text-foreground">Cash Flow Overview</h3>
-      <p className="text-sm text-muted-foreground">Inflow vs outflow from transactions</p>
-      <div className="mt-4 h-72">
+    <div className="glass-card p-4 sm:p-6">
+      <h3 className="font-heading text-base sm:text-lg font-semibold text-foreground">Cash Flow Overview</h3>
+      <p className="text-xs sm:text-sm text-muted-foreground">Inflow vs outflow from transactions</p>
+      <div className="mt-4 h-56 sm:h-72 w-full">
         {chartData.length === 0 ? (
           <div className="flex h-full items-center justify-center text-muted-foreground text-sm">No transaction data for this period</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={chartData} margin={{ top: 5, right: 8, left: isMobile ? -20 : 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="inflowGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.3} />
@@ -55,10 +62,10 @@ export default function CashflowChart({ period = "All" }: Props) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(222, 30%, 18%)" />
-              <XAxis dataKey="month" stroke="hsl(215, 20%, 55%)" fontSize={12} />
-              <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(v) => `£${v / 1000}k`} />
+              <XAxis dataKey="month" stroke="hsl(215, 20%, 55%)" fontSize={isMobile ? 10 : 12} interval="preserveStartEnd" minTickGap={isMobile ? 16 : 8} />
+              <YAxis stroke="hsl(215, 20%, 55%)" fontSize={isMobile ? 10 : 12} tickFormatter={formatYTick} width={isMobile ? 40 : 60} />
               <Tooltip
-                contentStyle={{ backgroundColor: "hsl(222, 47%, 9%)", border: "1px solid hsl(222, 30%, 18%)", borderRadius: "0.75rem", color: "hsl(210, 40%, 96%)" }}
+                contentStyle={{ backgroundColor: "hsl(222, 47%, 9%)", border: "1px solid hsl(222, 30%, 18%)", borderRadius: "0.75rem", color: "hsl(210, 40%, 96%)", fontSize: "0.75rem" }}
                 formatter={(value: number) => [`£${value.toLocaleString()}`, ""]}
               />
               <Area type="monotone" dataKey="inflow" stroke="hsl(160, 84%, 39%)" fill="url(#inflowGradient)" strokeWidth={2} name="Inflow" />
