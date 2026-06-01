@@ -20,11 +20,10 @@ export default function Auth() {
   const navigate = useNavigate();
   const { session } = useAuth();
 
-  // If already signed in, redirect to home
-  if (session) {
-    navigate("/", { replace: true });
-    return null;
-  }
+  // Redirect after render if already signed in (never call navigate during render)
+  useEffect(() => {
+    if (session) navigate("/", { replace: true });
+  }, [session, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
