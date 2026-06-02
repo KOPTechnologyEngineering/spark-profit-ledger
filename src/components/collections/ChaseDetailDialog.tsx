@@ -149,28 +149,42 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
 
           <div className="border-t border-border pt-4">
             <h4 className="font-medium mb-2">Reminders sent ({reminders.length})</h4>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {reminders.map((r) => (
-                <div key={r.id} className="rounded bg-secondary p-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="font-medium">{r.subject}</span>
-                    <span className="text-muted-foreground">{new Date(r.sent_at).toLocaleDateString()}</span>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {reminders.map((r) => {
+                const cls =
+                  r.status === "sent" || r.status === "delivered"
+                    ? "bg-inflow-muted text-inflow"
+                    : r.status === "failed" || r.status === "bounced"
+                    ? "bg-outflow-muted text-outflow"
+                    : "bg-warning/15 text-warning";
+                const ts = r.delivered_at || r.failed_at || r.sent_at || r.created_at;
+                return (
+                  <div key={r.id} className="rounded bg-secondary p-2 text-xs space-y-1">
+                    <div className="flex justify-between gap-2">
+                      <span className="font-medium truncate">{r.subject}</span>
+                      <span className={`shrink-0 rounded px-1.5 py-0.5 ${cls}`}>{r.status}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span className="truncate">→ {r.recipient_email || "no recipient"}</span>
+                      <span className="shrink-0">{new Date(ts).toLocaleString()}</span>
+                    </div>
+                    {r.error && <div className="text-outflow">{r.error}</div>}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {reminders.length === 0 && <p className="text-xs text-muted-foreground">None yet.</p>}
             </div>
           </div>
 
           <div className="border-t border-border pt-4">
-            <h4 className="font-medium mb-2">Activity history</h4>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <h4 className="font-medium mb-2">Activity timeline</h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
               {activity.map((a) => (
-                <div key={a.id} className="text-xs flex justify-between">
-                  <span className="text-foreground">
+                <div key={a.id} className="text-xs flex justify-between gap-2">
+                  <span className="text-foreground truncate">
                     {a.action.replace(/_/g, " ")} {a.detail && `— ${a.detail}`}
                   </span>
-                  <span className="text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground shrink-0">{new Date(a.created_at).toLocaleString()}</span>
                 </div>
               ))}
               {activity.length === 0 && <p className="text-xs text-muted-foreground">No activity yet.</p>}
