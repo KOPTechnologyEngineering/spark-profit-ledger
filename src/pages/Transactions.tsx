@@ -31,7 +31,7 @@ export default function Transactions() {
 
   useEffect(() => { fetchTransactions(); }, []);
 
-  const periodFiltered = filterByPeriod(allTransactions, period);
+  const periodFiltered = filterByDateRange(filterByPeriod(allTransactions, period), range, "date");
   const filtered = periodFiltered
     .filter((t) => typeFilter === "all" || t.type === typeFilter)
     .filter((t) => !search || t.description?.toLowerCase().includes(search.toLowerCase()));
