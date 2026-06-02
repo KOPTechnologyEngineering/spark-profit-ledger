@@ -323,6 +323,12 @@ export default function ChaseQueue() {
             </option>
           ))}
         </select>
+        {canEdit && (
+          <Button size="sm" variant="outline" onClick={generateDemo} title="Create demo overdue invoices + chase items">
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Generate demo
+          </Button>
+        )}
       </div>
 
       <div className="glass-card overflow-hidden">
