@@ -318,7 +318,7 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">Last email delivery</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {latest.subject} · → {latest.recipient_email || "no recipient"}
+                          {latest.template?.name || "Custom reminder"} · {latest.subject} · → {latest.recipient_email || "no recipient"}
                         </p>
                       </div>
                     </div>
