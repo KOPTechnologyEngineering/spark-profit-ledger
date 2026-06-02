@@ -347,17 +347,22 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
                       <span className={`rounded px-2 py-0.5 text-xs uppercase ${overallTone}`}>
                         {latest.status}
                       </span>
-                      {canEdit && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={retrying === latest.id}
-                          onClick={() => handleRetry(latest)}
-                        >
-                          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${retrying === latest.id ? "animate-spin" : ""}`} />
-                          {retrying === latest.id ? "Resending…" : "Resend reminder"}
-                        </Button>
-                      )}
+                      {canEdit && (() => {
+                        const onCooldown = cooldownLeftFor(latest.id) > 0;
+                        const disabled = retrying === latest.id || onCooldown;
+                        const left = cooldownLeftFor(latest.id);
+                        return (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={disabled}
+                            onClick={() => handleRetry(latest)}
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${retrying === latest.id ? "animate-spin" : ""}`} />
+                            {retrying === latest.id ? "Resending…" : onCooldown ? `Wait ${left}s` : "Resend reminder"}
+                          </Button>
+                        );
+                      })()}
                     </div>
 
                   </div>
