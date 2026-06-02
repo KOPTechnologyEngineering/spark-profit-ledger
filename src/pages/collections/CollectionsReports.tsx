@@ -22,8 +22,9 @@ const REPORTS = [
 export default function CollectionsReports() {
   const [report, setReport] = useState("overdue");
   const [data, setData] = useState<any[]>([]);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [range, setRange] = useState<DateRange | undefined>();
+  const from = range?.from ? format(range.from, "yyyy-MM-dd") : "";
+  const to = range?.to ? format(range.to, "yyyy-MM-dd") : range?.from ? format(range.from, "yyyy-MM-dd") : "";
 
   useEffect(() => {
     (async () => {
