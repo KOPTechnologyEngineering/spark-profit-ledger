@@ -27,13 +27,14 @@ const statusColors = {
 export default function Reports() {
   const { toast } = useToast();
   const [generating, setGenerating] = useState<string | null>(null);
+  const [range, setRange] = useState<DateRange | undefined>();
 
   const generate = async (key: string) => {
     setGenerating(key);
     try {
       if (key === "pnl" || key === "mgmt" || key === "aa") {
         const { data } = await supabase.from("tbl_transactions").select("amount, type, category, date, description, status");
-        const txns = data || [];
+        const txns = filterByDateRange(data || [], range, "date");
         const header = "Category,Type,Description,Amount,Date,Status\n";
         const rows = txns.map((t) => `"${t.category}","${t.type}","${t.description}",${t.amount},${t.date},${t.status}`);
         downloadCSV(`${key}_report.csv`, header, rows);
