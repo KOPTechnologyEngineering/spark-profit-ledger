@@ -41,9 +41,12 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
     return remaining;
   };
 
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!open) return;
     refresh();
+    const iv = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item]);
 
