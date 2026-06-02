@@ -27,6 +27,7 @@ import PaymentPromises from "@/pages/collections/PaymentPromises";
 import Disputes from "@/pages/collections/Disputes";
 import CollectionsReports from "@/pages/collections/CollectionsReports";
 import CollectionsSettings from "@/pages/collections/CollectionsSettings";
+import Unsubscribe from "@/pages/Unsubscribe";
 
 const queryClient = new QueryClient();
 
