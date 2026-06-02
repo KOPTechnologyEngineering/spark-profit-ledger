@@ -10,6 +10,7 @@ import {
   LogOut,
   Shield,
   ClipboardCheck,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -18,6 +19,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/", module: null },
   { label: "Invoices", icon: FileText, path: "/invoices", module: "invoices" },
+  { label: "Collections", icon: Mail, path: "/collections", module: "invoices" },
   { label: "Transactions", icon: ArrowDownUp, path: "/transactions", module: "transactions" },
   { label: "Profit & Loss", icon: TrendingUp, path: "/pnl", module: "pnl" },
   { label: "VAT", icon: Receipt, path: "/vat", module: "vat" },
@@ -49,7 +51,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {visibleItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = item.path === "/"
+            ? location.pathname === "/"
+            : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
           return (
             <Link
               key={item.path}
