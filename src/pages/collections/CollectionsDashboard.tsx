@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, AlertTriangle, Clock, Mail, TrendingUp, Users, Calendar, XCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, Mail, TrendingUp, Users, Calendar, XCircle, Send, CheckCircle2, Timer, Percent } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
