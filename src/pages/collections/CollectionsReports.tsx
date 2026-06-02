@@ -78,8 +78,7 @@ export default function CollectionsReports() {
             </option>
           ))}
         </select>
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-lg bg-secondary px-3 py-2 text-sm" />
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-lg bg-secondary px-3 py-2 text-sm" />
+        <DateRangePicker value={range} onChange={setRange} />
         <Button variant="outline" size="sm" onClick={exportCSV} disabled={!data.length}>
           <Download className="h-4 w-4 mr-1" /> Export CSV
         </Button>
