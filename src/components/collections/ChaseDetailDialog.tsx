@@ -187,7 +187,7 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
         .order("created_at", { ascending: false }),
       supabase
         .from("tbl_collection_reminders")
-        .select("*")
+        .select("*, template:tbl_collection_email_templates(name)")
         .eq("chase_item_id", item.id)
         .order("created_at", { ascending: false }),
     ]);
