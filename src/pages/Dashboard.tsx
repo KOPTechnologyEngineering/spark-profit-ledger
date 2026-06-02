@@ -4,12 +4,15 @@ import StatCard from "@/components/StatCard";
 import CashflowChart from "@/components/CashflowChart";
 import RecentTransactions from "@/components/RecentTransactions";
 import PeriodSelector from "@/components/PeriodSelector";
+import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { type Period, filterByPeriod } from "@/lib/date-filters";
 
 export default function Dashboard() {
   const [activePeriod, setActivePeriod] = useState<Period>("Monthly");
+  const [range, setRange] = useState<DateRange | undefined>();
   const [allTxns, setAllTxns] = useState<any[]>([]);
   const [allInvs, setAllInvs] = useState<any[]>([]);
   const [vatDue, setVatDue] = useState(0);
@@ -29,7 +32,7 @@ export default function Dashboard() {
     load();
   }, []);
 
-  const filtered = filterByPeriod(allTxns, activePeriod);
+  const filtered = filterByDateRange(filterByPeriod(allTxns, activePeriod), range, "date");
   const approved = filtered.filter((t) => t.status === "completed");
   const pending = filtered.filter((t) => t.status === "pending");
 
@@ -39,7 +42,7 @@ export default function Dashboard() {
   const pendingExpenses = pending.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
   const profit = revenue - expenses;
 
-  const filteredInvs = filterByPeriod(allInvs, activePeriod);
+  const filteredInvs = filterByDateRange(filterByPeriod(allInvs, activePeriod), range, "created_at");
   const pendingInv = filteredInvs.filter((i) => i.status === "pending").length;
   const overdueInv = filteredInvs.filter((i) => i.status === "overdue").length;
 
@@ -50,7 +53,10 @@ export default function Dashboard() {
           <h1 className="font-heading text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">Financial overview for your business</p>
         </div>
-        <PeriodSelector value={activePeriod} onChange={setActivePeriod} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <PeriodSelector value={activePeriod} onChange={setActivePeriod} />
+          <DateRangePicker value={range} onChange={setRange} />
+        </div>
       </div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import PeriodSelector from "@/components/PeriodSelector";
+import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
 import { type Period, filterByPeriod, downloadCSV } from "@/lib/date-filters";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
@@ -16,6 +18,7 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
   const [period, setPeriod] = useState<Period>("Monthly");
+  const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit } = useUserRoles();
   const viewOnly = !hasEdit("transactions");
 
@@ -28,7 +31,7 @@ export default function Transactions() {
 
   useEffect(() => { fetchTransactions(); }, []);
 
-  const periodFiltered = filterByPeriod(allTransactions, period);
+  const periodFiltered = filterByDateRange(filterByPeriod(allTransactions, period), range, "date");
   const filtered = periodFiltered
     .filter((t) => typeFilter === "all" || t.type === typeFilter)
     .filter((t) => !search || t.description?.toLowerCase().includes(search.toLowerCase()));
@@ -57,6 +60,7 @@ export default function Transactions() {
 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <PeriodSelector value={period} onChange={setPeriod} />
+        <DateRangePicker value={range} onChange={setRange} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

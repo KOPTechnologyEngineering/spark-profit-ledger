@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import NewInvoiceDialog from "@/components/NewInvoiceDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
+import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 const statusColors: Record<string, string> = {
@@ -21,6 +23,7 @@ export default function Invoices() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
+  const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit } = useUserRoles();
   const viewOnly = !hasEdit("invoices");
 
@@ -33,7 +36,7 @@ export default function Invoices() {
 
   useEffect(() => { fetchInvoices(); }, []);
 
-  const filtered = invoices
+  const filtered = filterByDateRange(invoices, range, "due_date")
     .filter((i) => filter === "all" || i.status === filter)
     .filter((i) => !search || i.invoice_number?.toLowerCase().includes(search.toLowerCase()) || i.client?.toLowerCase().includes(search.toLowerCase()));
 
@@ -75,6 +78,7 @@ export default function Invoices() {
             </button>
           ))}
         </div>
+        <DateRangePicker value={range} onChange={setRange} placeholder="Due date range" />
       </div>
 
 

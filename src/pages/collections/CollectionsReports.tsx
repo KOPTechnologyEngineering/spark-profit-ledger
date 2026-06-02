@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { daysOverdue, ageBracket } from "@/lib/collections";
 import { downloadCSV } from "@/lib/date-filters";
+import DateRangePicker from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
+import { format } from "date-fns";
 
 const REPORTS = [
   { id: "overdue", label: "Overdue invoices" },
@@ -19,8 +22,9 @@ const REPORTS = [
 export default function CollectionsReports() {
   const [report, setReport] = useState("overdue");
   const [data, setData] = useState<any[]>([]);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [range, setRange] = useState<DateRange | undefined>();
+  const from = range?.from ? format(range.from, "yyyy-MM-dd") : "";
+  const to = range?.to ? format(range.to, "yyyy-MM-dd") : range?.from ? format(range.from, "yyyy-MM-dd") : "";
 
   useEffect(() => {
     (async () => {
@@ -74,8 +78,7 @@ export default function CollectionsReports() {
             </option>
           ))}
         </select>
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-lg bg-secondary px-3 py-2 text-sm" />
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-lg bg-secondary px-3 py-2 text-sm" />
+        <DateRangePicker value={range} onChange={setRange} />
         <Button variant="outline" size="sm" onClick={exportCSV} disabled={!data.length}>
           <Download className="h-4 w-4 mr-1" /> Export CSV
         </Button>

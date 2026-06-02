@@ -4,6 +4,8 @@ import { FileText, Download, Building2, Receipt, Users, TrendingUp, ClipboardChe
 import { supabase } from "@/integrations/supabase/client";
 import { downloadCSV } from "@/lib/date-filters";
 import { useToast } from "@/hooks/use-toast";
+import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
 
 const reports = [
   { title: "Annual Financial Statements", description: "Complete P&L, Balance Sheet, and Cash Flow Statement per Companies Act 2006", icon: FileText, category: "Statutory", status: "ready", key: "pnl" },
@@ -25,19 +27,20 @@ const statusColors = {
 export default function Reports() {
   const { toast } = useToast();
   const [generating, setGenerating] = useState<string | null>(null);
+  const [range, setRange] = useState<DateRange | undefined>();
 
   const generate = async (key: string) => {
     setGenerating(key);
     try {
       if (key === "pnl" || key === "mgmt" || key === "aa") {
         const { data } = await supabase.from("tbl_transactions").select("amount, type, category, date, description, status");
-        const txns = data || [];
+        const txns = filterByDateRange(data || [], range, "date");
         const header = "Category,Type,Description,Amount,Date,Status\n";
         const rows = txns.map((t) => `"${t.category}","${t.type}","${t.description}",${t.amount},${t.date},${t.status}`);
         downloadCSV(`${key}_report.csv`, header, rows);
       } else if (key === "ct600") {
-        const { data } = await supabase.from("tbl_transactions").select("amount, type, category, status");
-        const txns = (data || []).filter((t) => t.status === "completed");
+        const { data } = await supabase.from("tbl_transactions").select("amount, type, category, status, date");
+        const txns = filterByDateRange((data || []).filter((t) => t.status === "completed"), range, "date");
         const revenue = txns.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
         const expenses = txns.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
         const profit = revenue - expenses;
@@ -47,7 +50,7 @@ export default function Reports() {
         downloadCSV("ct600_report.csv", header, rows);
       } else if (key === "vat") {
         const { data } = await supabase.from("tbl_transactions").select("amount, type, date, description, category");
-        const txns = data || [];
+        const txns = filterByDateRange(data || [], range, "date");
         const inflow = txns.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
         const outflow = txns.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
         const outputVAT = Math.round(inflow * 0.2);
@@ -77,9 +80,12 @@ export default function Reports() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-heading text-3xl font-bold text-foreground">Regulatory & Financial Reports</h1>
-        <p className="text-muted-foreground">Generate and file statutory reports</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="font-heading text-3xl font-bold text-foreground">Regulatory & Financial Reports</h1>
+          <p className="text-muted-foreground">Generate and file statutory reports</p>
+        </div>
+        <DateRangePicker value={range} onChange={setRange} placeholder="Filter by date" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
