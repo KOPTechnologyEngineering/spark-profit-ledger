@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { logActivity, STATUS_LABELS, STATUS_COLORS, daysOverdue } from "@/lib/collections";
 import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 
 interface Props {
   item: any;
@@ -19,30 +21,19 @@ interface Props {
 
 export default function ChaseDetailDialog({ item, invoice, open, onClose, onChange }: Props) {
   const { user } = useAuth();
+  const { hasEdit } = useUserRoles();
+  const canEdit = hasEdit("invoices");
   const [activity, setActivity] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
+  const [retrying, setRetrying] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [promiseDate, setPromiseDate] = useState("");
   const [promiseAmt, setPromiseAmt] = useState(String(invoice?.amount ?? ""));
 
   useEffect(() => {
     if (!open) return;
-    (async () => {
-      const [act, rem] = await Promise.all([
-        supabase
-          .from("tbl_collection_activity_logs")
-          .select("*")
-          .eq("invoice_id", item.invoice_id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("tbl_collection_reminders")
-          .select("*")
-          .eq("chase_item_id", item.id)
-          .order("created_at", { ascending: false }),
-      ]);
-      setActivity(act.data || []);
-      setReminders(rem.data || []);
-    })();
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item]);
 
   const addNote = async () => {
@@ -89,6 +80,118 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
     toast.success("Dispute opened");
     onChange();
     onClose();
+  };
+
+  const retryOne = async (rem: any): Promise<boolean> => {
+    if (!canEdit) {
+      toast.error("You don't have permission");
+      return false;
+    }
+    if (!rem.recipient_email) {
+      toast.error("No recipient email on file");
+      return false;
+    }
+    setRetrying(rem.id);
+    const messageId = `chase-reminder-${item.id}-${Date.now()}`;
+    try {
+      const { data: inserted, error: insertErr } = await supabase
+        .from("tbl_collection_reminders")
+        .insert({
+          user_id: user!.id,
+          chase_item_id: item.id,
+          invoice_id: item.invoice_id,
+          template_id: rem.template_id ?? null,
+          recipient_email: rem.recipient_email,
+          subject: rem.subject,
+          body: rem.body,
+          status: "queued",
+          message_id: messageId,
+        })
+        .select()
+        .single();
+
+      if (insertErr || !inserted) {
+        toast.error("Failed to queue retry");
+        return false;
+      }
+
+      const { error: sendErr } = await supabase
+        .from("tbl_collection_reminders")
+        .update({ status: "sent", delivered_at: new Date().toISOString() })
+        .eq("id", inserted.id);
+
+      if (sendErr) {
+        await supabase
+          .from("tbl_collection_reminders")
+          .update({ status: "failed", failed_at: new Date().toISOString(), error: sendErr.message })
+          .eq("id", inserted.id);
+        await logActivity({
+          invoice_id: item.invoice_id,
+          chase_item_id: item.id,
+          action: "reminder_retry_failed",
+          detail: rem.subject,
+          metadata: { message_id: messageId, original_id: rem.id, error: sendErr.message },
+        });
+        return false;
+      }
+
+      await supabase
+        .from("tbl_collection_chase_items")
+        .update({
+          last_reminder_at: new Date().toISOString(),
+          reminders_sent: (item.reminders_sent ?? 0) + 1,
+        })
+        .eq("id", item.id);
+
+      await logActivity({
+        invoice_id: item.invoice_id,
+        chase_item_id: item.id,
+        action: "reminder_retry_sent",
+        detail: rem.subject,
+        metadata: { message_id: messageId, original_id: rem.id, recipient: rem.recipient_email },
+      });
+      return true;
+    } finally {
+      setRetrying(null);
+    }
+  };
+
+  const handleRetry = async (rem: any) => {
+    const ok = await retryOne(rem);
+    if (ok) toast.success(`Retry sent to ${rem.recipient_email}`);
+    await refresh();
+    onChange();
+  };
+
+  const retryAllFailed = async () => {
+    const failed = reminders.filter((r) => r.status === "failed" || r.status === "bounced");
+    if (failed.length === 0) return;
+    if (!confirm(`Retry ${failed.length} failed reminder(s)?`)) return;
+    let success = 0;
+    for (const r of failed) {
+      if (await retryOne(r)) success++;
+    }
+    if (success === failed.length) toast.success(`Retried ${success} of ${failed.length}`);
+    else toast.error(`Retried ${success} of ${failed.length}`);
+    await refresh();
+    onChange();
+  };
+
+  const refresh = async () => {
+    const [act, rem] = await Promise.all([
+      supabase
+        .from("tbl_collection_activity_logs")
+        .select("*")
+        .eq("invoice_id", item.invoice_id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("tbl_collection_reminders")
+        .select("*")
+        .eq("chase_item_id", item.id)
+        .order("created_at", { ascending: false }),
+    ]);
+    setActivity(act.data || []);
+    setReminders(rem.data || []);
   };
 
   return (
@@ -148,13 +251,22 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
           </div>
 
           <div className="border-t border-border pt-4">
-            <h4 className="font-medium mb-2">Reminders sent ({reminders.length})</h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium">Reminders sent ({reminders.length})</h4>
+              {canEdit && reminders.some((r) => r.status === "failed" || r.status === "bounced") && (
+                <Button size="sm" variant="outline" onClick={retryAllFailed} disabled={!!retrying}>
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1 ${retrying ? "animate-spin" : ""}`} />
+                  Retry failed
+                </Button>
+              )}
+            </div>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {reminders.map((r) => {
+                const isFailed = r.status === "failed" || r.status === "bounced";
                 const cls =
                   r.status === "sent" || r.status === "delivered"
                     ? "bg-inflow-muted text-inflow"
-                    : r.status === "failed" || r.status === "bounced"
+                    : isFailed
                     ? "bg-outflow-muted text-outflow"
                     : "bg-warning/15 text-warning";
                 const ts = r.delivered_at || r.failed_at || r.sent_at || r.created_at;
@@ -169,12 +281,28 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
                       <span className="shrink-0">{new Date(ts).toLocaleString()}</span>
                     </div>
                     {r.error && <div className="text-outflow">{r.error}</div>}
+                    {isFailed && canEdit && (
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          disabled={retrying === r.id}
+                          onClick={() => handleRetry(r)}
+                        >
+                          <RefreshCw className={`h-3 w-3 mr-1 ${retrying === r.id ? "animate-spin" : ""}`} />
+                          {retrying === r.id ? "Retrying..." : "Retry"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
               {reminders.length === 0 && <p className="text-xs text-muted-foreground">None yet.</p>}
             </div>
           </div>
+
+
 
           <div className="border-t border-border pt-4">
             <h4 className="font-medium mb-2">Activity timeline</h4>
