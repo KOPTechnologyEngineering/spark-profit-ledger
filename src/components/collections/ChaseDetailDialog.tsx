@@ -32,22 +32,8 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
 
   useEffect(() => {
     if (!open) return;
-    (async () => {
-      const [act, rem] = await Promise.all([
-        supabase
-          .from("tbl_collection_activity_logs")
-          .select("*")
-          .eq("invoice_id", item.invoice_id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("tbl_collection_reminders")
-          .select("*")
-          .eq("chase_item_id", item.id)
-          .order("created_at", { ascending: false }),
-      ]);
-      setActivity(act.data || []);
-      setReminders(rem.data || []);
-    })();
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item]);
 
   const addNote = async () => {
