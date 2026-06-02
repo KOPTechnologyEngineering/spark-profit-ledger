@@ -12,6 +12,7 @@ import { type Period, filterByPeriod } from "@/lib/date-filters";
 
 export default function Dashboard() {
   const [activePeriod, setActivePeriod] = useState<Period>("Monthly");
+  const [range, setRange] = useState<DateRange | undefined>();
   const [allTxns, setAllTxns] = useState<any[]>([]);
   const [allInvs, setAllInvs] = useState<any[]>([]);
   const [vatDue, setVatDue] = useState(0);
