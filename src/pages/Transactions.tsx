@@ -60,6 +60,7 @@ export default function Transactions() {
 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <PeriodSelector value={period} onChange={setPeriod} />
+        <DateRangePicker value={range} onChange={setRange} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
