@@ -192,7 +192,21 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
         .order("created_at", { ascending: false }),
     ]);
     setActivity(act.data || []);
-    setReminders(rem.data || []);
+    const remRows = rem.data || [];
+    setReminders(remRows);
+
+    // Pull provider-level delivery events for the latest reminder
+    const latest = remRows[0];
+    if (latest?.message_id) {
+      const { data: logs } = await supabase
+        .from("email_send_log" as any)
+        .select("*")
+        .eq("message_id", latest.message_id)
+        .order("created_at", { ascending: true });
+      setDeliveryLog((logs as any[]) || []);
+    } else {
+      setDeliveryLog([]);
+    }
   };
 
   return (
