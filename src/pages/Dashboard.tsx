@@ -32,7 +32,7 @@ export default function Dashboard() {
     load();
   }, []);
 
-  const filtered = filterByPeriod(allTxns, activePeriod);
+  const filtered = filterByDateRange(filterByPeriod(allTxns, activePeriod), range, "date");
   const approved = filtered.filter((t) => t.status === "completed");
   const pending = filtered.filter((t) => t.status === "pending");
 
@@ -42,7 +42,7 @@ export default function Dashboard() {
   const pendingExpenses = pending.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
   const profit = revenue - expenses;
 
-  const filteredInvs = filterByPeriod(allInvs, activePeriod);
+  const filteredInvs = filterByDateRange(filterByPeriod(allInvs, activePeriod), range, "created_at");
   const pendingInv = filteredInvs.filter((i) => i.status === "pending").length;
   const overdueInv = filteredInvs.filter((i) => i.status === "overdue").length;
 
