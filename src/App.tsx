@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/layouts/AppLayout";
+import CollectionsLayout from "@/layouts/CollectionsLayout";
 import Dashboard from "@/pages/Dashboard";
 import Invoices from "@/pages/Invoices";
 import Transactions from "@/pages/Transactions";
@@ -17,6 +18,15 @@ import UserManagement from "@/pages/UserManagement";
 import Approvals from "@/pages/Approvals";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
+import CollectionsDashboard from "@/pages/collections/CollectionsDashboard";
+import ChaseQueue from "@/pages/collections/ChaseQueue";
+import AutomationRules from "@/pages/collections/AutomationRules";
+import EmailTemplates from "@/pages/collections/EmailTemplates";
+import Escalations from "@/pages/collections/Escalations";
+import PaymentPromises from "@/pages/collections/PaymentPromises";
+import Disputes from "@/pages/collections/Disputes";
+import CollectionsReports from "@/pages/collections/CollectionsReports";
+import CollectionsSettings from "@/pages/collections/CollectionsSettings";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +49,17 @@ const App = () => (
               <Route path="/approvals" element={<Approvals />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/collections" element={<CollectionsLayout />}>
+                <Route index element={<CollectionsDashboard />} />
+                <Route path="queue" element={<ChaseQueue />} />
+                <Route path="rules" element={<AutomationRules />} />
+                <Route path="templates" element={<EmailTemplates />} />
+                <Route path="escalations" element={<Escalations />} />
+                <Route path="promises" element={<PaymentPromises />} />
+                <Route path="disputes" element={<Disputes />} />
+                <Route path="reports" element={<CollectionsReports />} />
+                <Route path="settings" element={<CollectionsSettings />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -35,7 +35,7 @@ export default function CollectionsSettings() {
       if (data) {
         setId(data.id);
         setForm(data);
-        setRecipients((data.internal_recipients || []).join(", "));
+        setRecipients(((data.internal_recipients as string[]) || []).join(", "));
       }
     })();
   }, [user]);
