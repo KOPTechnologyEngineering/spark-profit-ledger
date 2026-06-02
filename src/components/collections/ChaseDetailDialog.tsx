@@ -27,6 +27,7 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
   const [reminders, setReminders] = useState<any[]>([]);
   const [deliveryLog, setDeliveryLog] = useState<any[]>([]);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [lastRetryAt, setLastRetryAt] = useState<Record<string, number>>({});
   const [note, setNote] = useState("");
   const [promiseDate, setPromiseDate] = useState("");
   const [promiseAmt, setPromiseAmt] = useState(String(invoice?.amount ?? ""));
