@@ -36,7 +36,30 @@ export default function CollectionsDashboard() {
     const d = daysOverdue(i.due_date);
     return d <= 0 && d >= -7;
   });
-  const failedReminders = reminders.filter((r) => r.status === "failed").length;
+  const failedReminders = reminders.filter((r) => r.status === "failed" || r.status === "bounced").length;
+  const queuedReminders = reminders.filter((r) => r.status === "queued" || r.status === "pending").length;
+  const sentReminders = reminders.filter((r) => r.status === "sent" || r.status === "delivered").length;
+  const totalReminders = reminders.length;
+  const attempted = sentReminders + failedReminders;
+  const deliverySuccess = attempted ? Math.round((sentReminders / attempted) * 100) : 0;
+  const latencies = reminders
+    .map((r) => {
+      const start = r.created_at ? new Date(r.created_at).getTime() : null;
+      const end = r.delivered_at
+        ? new Date(r.delivered_at).getTime()
+        : r.sent_at
+        ? new Date(r.sent_at).getTime()
+        : null;
+      return start && end && end >= start ? end - start : null;
+    })
+    .filter((n): n is number => n !== null);
+  const avgLatencyMs = latencies.length ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0;
+  const formatLatency = (ms: number) => {
+    if (!ms) return "—";
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+    return `${(ms / 60_000).toFixed(1)}m`;
+  };
   const today = new Date().toISOString().slice(0, 10);
   const promisedToday = promises.filter((p) => p.status === "active" && p.promised_date === today).length;
   const paid = invs.filter((i) => i.status === "paid").length;
