@@ -4,6 +4,8 @@ import { FileText, Download, Building2, Receipt, Users, TrendingUp, ClipboardChe
 import { supabase } from "@/integrations/supabase/client";
 import { downloadCSV } from "@/lib/date-filters";
 import { useToast } from "@/hooks/use-toast";
+import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
 
 const reports = [
   { title: "Annual Financial Statements", description: "Complete P&L, Balance Sheet, and Cash Flow Statement per Companies Act 2006", icon: FileText, category: "Statutory", status: "ready", key: "pnl" },
