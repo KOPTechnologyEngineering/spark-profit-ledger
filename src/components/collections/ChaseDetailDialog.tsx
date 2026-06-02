@@ -322,9 +322,23 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
                         </p>
                       </div>
                     </div>
-                    <span className={`shrink-0 rounded px-2 py-0.5 text-xs uppercase ${overallTone}`}>
-                      {latest.status}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`rounded px-2 py-0.5 text-xs uppercase ${overallTone}`}>
+                        {latest.status}
+                      </span>
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={retrying === latest.id}
+                          onClick={() => handleRetry(latest)}
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${retrying === latest.id ? "animate-spin" : ""}`} />
+                          {retrying === latest.id ? "Resending…" : "Resend reminder"}
+                        </Button>
+                      )}
+                    </div>
+
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
