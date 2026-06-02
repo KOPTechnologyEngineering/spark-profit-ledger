@@ -11,6 +11,8 @@ import { logActivity, STATUS_LABELS, STATUS_COLORS, daysOverdue } from "@/lib/co
 import { toast } from "sonner";
 import { RefreshCw, Clock, CheckCircle2, XCircle, Mail } from "lucide-react";
 
+const COOLDOWN_MS = 10_000;
+
 interface Props {
   item: any;
   invoice: any;
