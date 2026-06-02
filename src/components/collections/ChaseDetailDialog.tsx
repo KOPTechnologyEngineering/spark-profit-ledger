@@ -25,6 +25,7 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
   const canEdit = hasEdit("invoices");
   const [activity, setActivity] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
+  const [deliveryLog, setDeliveryLog] = useState<any[]>([]);
   const [retrying, setRetrying] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [promiseDate, setPromiseDate] = useState("");
