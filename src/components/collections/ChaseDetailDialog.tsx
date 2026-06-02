@@ -185,9 +185,8 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
     for (const r of failed) {
       if (await retryOne(r)) success++;
     }
-    toast[success === failed.length ? "success" : "warning" in toast ? "warning" : "success"](
-      `Retried ${success} of ${failed.length}`,
-    );
+    if (success === failed.length) toast.success(`Retried ${success} of ${failed.length}`);
+    else toast.error(`Retried ${success} of ${failed.length}`);
     await refresh();
     onChange();
   };
