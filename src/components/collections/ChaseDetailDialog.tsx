@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { logActivity, STATUS_LABELS, STATUS_COLORS, daysOverdue } from "@/lib/collections";
 import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 
 interface Props {
   item: any;
