@@ -50,16 +50,20 @@ export default function ChaseQueue() {
 
   const sendReminder = async (item: any) => {
     if (!canEdit) return toast.error("You don't have permission");
-    if (!confirm("Send reminder email now?")) return;
     const inv = invMap[item.invoice_id];
     if (!inv) return toast.error("Invoice not found");
+    const recipient = item.customer_email || "";
+    if (!recipient) return toast.error("No recipient email on file");
+    if (!confirm(`Send reminder email now to ${recipient}?`)) return;
+
     const tpl = (window as any).__defaultTemplate;
+    const dOver = Math.max(0, daysOverdue(inv.due_date));
     const vars = {
       customer_name: inv.client,
       invoice_number: inv.invoice_number,
       invoice_amount: `£${Number(inv.amount).toLocaleString()}`,
       due_date: inv.due_date,
-      days_overdue: String(Math.max(0, daysOverdue(inv.due_date))),
+      days_overdue: String(dOver),
       payment_link: "",
       company_name: "KOP Ledger",
       account_manager_name: "",
@@ -67,13 +71,8 @@ export default function ChaseQueue() {
     const subject = tpl ? renderTemplate(tpl.subject, vars) : `Reminder: Invoice ${inv.invoice_number} is overdue`;
     const body = tpl
       ? renderTemplate(tpl.body, vars)
-      : `Hello ${inv.client},\n\nThis is a reminder that invoice ${inv.invoice_number} for £${inv.amount} is overdue.`;
+      : `This is a reminder that invoice ${inv.invoice_number} for £${inv.amount} is overdue by ${dOver} day(s).\n\nPlease arrange payment at your earliest convenience.`;
 
-    const recipient = item.customer_email || "";
-    if (!recipient) {
-      toast.error("No recipient email on file");
-      return;
-    }
     const messageId = `chase-reminder-${item.id}-${Date.now()}`;
 
     // 1. Insert reminder as queued
@@ -98,7 +97,7 @@ export default function ChaseQueue() {
       return;
     }
 
-    // 2. Mark chase item as reminder sent + bump counters
+    // 2. Bump chase item counters
     await supabase
       .from("tbl_collection_chase_items")
       .update({
@@ -108,40 +107,67 @@ export default function ChaseQueue() {
       })
       .eq("id", item.id);
 
-    // 3. Simulate delivery transition (queued → sent). Real email send
-    // will update this row via the email_send_log webhook when configured.
-    const { error: sendErr } = await supabase
-      .from("tbl_collection_reminders")
-      .update({ status: "sent", delivered_at: new Date().toISOString() })
-      .eq("id", inserted.id);
+    await logActivity({
+      invoice_id: item.invoice_id,
+      chase_item_id: item.id,
+      action: "reminder_queued",
+      detail: subject,
+      metadata: { message_id: messageId, recipient },
+    });
+    toast.message(`Reminder queued for ${recipient}`);
+    load();
 
-    if (sendErr) {
+    // 3. Invoke the edge function for real delivery
+    try {
+      const { error: sendErr } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "chase-reminder",
+          recipientEmail: recipient,
+          idempotencyKey: messageId,
+          templateData: {
+            subject,
+            bodyText: body,
+            customerName: inv.client,
+            invoiceNumber: inv.invoice_number,
+            invoiceAmount: vars.invoice_amount,
+            daysOverdue: dOver,
+          },
+        },
+      });
+
+      if (sendErr) throw sendErr;
+
       await supabase
         .from("tbl_collection_reminders")
-        .update({ status: "failed", failed_at: new Date().toISOString(), error: sendErr.message })
+        .update({ status: "sent", delivered_at: new Date().toISOString() })
+        .eq("id", inserted.id);
+      await logActivity({
+        invoice_id: item.invoice_id,
+        chase_item_id: item.id,
+        action: "reminder_sent",
+        detail: subject,
+        metadata: { message_id: messageId, recipient },
+      });
+      toast.success(`Reminder sent to ${recipient}`);
+    } catch (err: any) {
+      const msg = err?.message || "Send failed";
+      await supabase
+        .from("tbl_collection_reminders")
+        .update({ status: "failed", failed_at: new Date().toISOString(), error: msg })
         .eq("id", inserted.id);
       await logActivity({
         invoice_id: item.invoice_id,
         chase_item_id: item.id,
         action: "reminder_failed",
         detail: subject,
-        metadata: { message_id: messageId, error: sendErr.message },
+        metadata: { message_id: messageId, error: msg },
       });
-      toast.error("Reminder failed to send");
+      toast.error(`Reminder failed: ${msg}`);
+    } finally {
       load();
-      return;
     }
-
-    await logActivity({
-      invoice_id: item.invoice_id,
-      chase_item_id: item.id,
-      action: "reminder_sent",
-      detail: subject,
-      metadata: { message_id: messageId, recipient },
-    });
-    toast.success(`Reminder sent to ${recipient}`);
-    load();
   };
+
 
   const pauseResume = async (item: any) => {
     if (!canEdit) return;
