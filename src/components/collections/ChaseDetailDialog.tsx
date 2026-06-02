@@ -327,41 +327,71 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
                     </span>
                   </div>
 
-                  <ol className="space-y-2 pl-1">
-                    {steps.map((s, i) => {
-                      const Icon = s.icon;
-                      return (
-                        <li key={s.key} className="flex gap-3 text-xs">
-                          <div className="flex flex-col items-center">
-                            <span className={`h-2 w-2 rounded-full ${s.dot}`} />
-                            {i < steps.length - 1 && <span className="w-px flex-1 bg-border mt-1" />}
-                          </div>
-                          <div className="flex-1 -mt-0.5 pb-1">
-                            <div className={`flex items-center gap-1.5 font-medium ${s.tone}`}>
-                              <Icon className="h-3.5 w-3.5" />
-                              <span>{s.label}</span>
-                              {s.ts && (
-                                <span className="text-muted-foreground font-normal">
-                                  · {new Date(s.ts).toLocaleString()}
-                                </span>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <ol className="space-y-2 pl-1">
+                      {steps.map((s, i) => {
+                        const Icon = s.icon;
+                        return (
+                          <li key={s.key} className="flex gap-3 text-xs">
+                            <div className="flex flex-col items-center">
+                              <span className={`h-2 w-2 rounded-full ${s.dot}`} />
+                              {i < steps.length - 1 && <span className="w-px flex-1 bg-border mt-1" />}
+                            </div>
+                            <div className="flex-1 -mt-0.5 pb-1">
+                              <div className={`flex items-center gap-1.5 font-medium ${s.tone}`}>
+                                <Icon className="h-3.5 w-3.5" />
+                                <span>{s.label}</span>
+                                {s.ts && (
+                                  <span className="text-muted-foreground font-normal">
+                                    · {new Date(s.ts).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                              {("error" in s) && s.error && (
+                                <p className="mt-0.5 text-outflow">{s.error}</p>
                               )}
                             </div>
-                            {("error" in s) && s.error && (
-                              <p className="mt-0.5 text-outflow">{s.error}</p>
-                            )}
+                          </li>
+                        );
+                      })}
+                      {pending && (
+                        <li className="flex gap-3 text-xs">
+                          <div className="flex flex-col items-center">
+                            <span className="h-2 w-2 rounded-full bg-muted-foreground/30 animate-pulse" />
                           </div>
+                          <div className="text-muted-foreground -mt-0.5">Waiting for provider…</div>
                         </li>
-                      );
-                    })}
-                    {pending && (
-                      <li className="flex gap-3 text-xs">
-                        <div className="flex flex-col items-center">
-                          <span className="h-2 w-2 rounded-full bg-muted-foreground/30 animate-pulse" />
+                      )}
+                    </ol>
+
+                    <div className="rounded-md border border-border bg-background/60 p-2 text-xs space-y-1 self-start">
+                      <p className="font-medium text-muted-foreground mb-1">Template inputs</p>
+                      {([
+                        ["Invoice", invoice?.invoice_number],
+                        ["Invoice ID", invoice?.id],
+                        ["Client", invoice?.client],
+                        ["Amount", invoice?.amount != null ? `£${Number(invoice.amount).toLocaleString()}` : null],
+                        ["Issue date", invoice?.issue_date],
+                        ["Due date", invoice?.due_date],
+                        ["Days overdue", invoice?.due_date ? daysOverdue(invoice.due_date) : null],
+                        ["Status", invoice?.status],
+                        ["Recipient", latest.recipient_email],
+                        ["Customer email", item?.customer_email],
+                        ["Reminders sent", item?.reminders_sent ?? 0],
+                        ["Chase stage", item?.chase_stage],
+                        ["Template", latest.template?.name || "Custom reminder"],
+                        ["Subject", latest.subject],
+                      ] as [string, any][]).map(([k, v]) => (
+                        <div key={k} className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">{k}</span>
+                          <span className="font-mono text-right truncate max-w-[60%]" title={String(v ?? "—")}>
+                            {v == null || v === "" ? "—" : String(v)}
+                          </span>
                         </div>
-                        <div className="text-muted-foreground -mt-0.5">Waiting for provider…</div>
-                      </li>
-                    )}
-                  </ol>
+                      ))}
+                    </div>
+                  </div>
+
 
                   {deliveryLog.length > 0 && (
                     <div className="border-t border-border pt-2">
