@@ -78,6 +78,7 @@ export default function Invoices() {
             </button>
           ))}
         </div>
+        <DateRangePicker value={range} onChange={setRange} placeholder="Due date range" />
       </div>
 
 
