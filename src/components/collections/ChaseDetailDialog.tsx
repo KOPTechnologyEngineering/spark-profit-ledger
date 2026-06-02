@@ -11,6 +11,8 @@ import { logActivity, STATUS_LABELS, STATUS_COLORS, daysOverdue } from "@/lib/co
 import { toast } from "sonner";
 import { RefreshCw, Clock, CheckCircle2, XCircle, Mail } from "lucide-react";
 
+const COOLDOWN_MS = 10_000;
+
 interface Props {
   item: any;
   invoice: any;
@@ -27,13 +29,24 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
   const [reminders, setReminders] = useState<any[]>([]);
   const [deliveryLog, setDeliveryLog] = useState<any[]>([]);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [lastRetryAt, setLastRetryAt] = useState<Record<string, number>>({});
   const [note, setNote] = useState("");
   const [promiseDate, setPromiseDate] = useState("");
   const [promiseAmt, setPromiseAmt] = useState(String(invoice?.amount ?? ""));
 
+  const cooldownLeftFor = (id: string) => {
+    const t = lastRetryAt[id];
+    if (!t) return 0;
+    const remaining = Math.max(0, Math.ceil((COOLDOWN_MS - (Date.now() - t)) / 1000));
+    return remaining;
+  };
+
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!open) return;
     refresh();
+    const iv = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item]);
 
@@ -158,6 +171,14 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
   };
 
   const handleRetry = async (rem: any) => {
+    const now = Date.now();
+    const previous = lastRetryAt[rem.id];
+    if (previous && now - previous < COOLDOWN_MS) {
+      const remaining = Math.ceil((COOLDOWN_MS - (now - previous)) / 1000);
+      toast.error(`Please wait ${remaining}s before resending`);
+      return;
+    }
+    setLastRetryAt((prev) => ({ ...prev, [rem.id]: now }));
     const ok = await retryOne(rem);
     if (ok) toast.success(`Retry sent to ${rem.recipient_email}`);
     await refresh();
@@ -326,17 +347,22 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
                       <span className={`rounded px-2 py-0.5 text-xs uppercase ${overallTone}`}>
                         {latest.status}
                       </span>
-                      {canEdit && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={retrying === latest.id}
-                          onClick={() => handleRetry(latest)}
-                        >
-                          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${retrying === latest.id ? "animate-spin" : ""}`} />
-                          {retrying === latest.id ? "Resending…" : "Resend reminder"}
-                        </Button>
-                      )}
+                      {canEdit && (() => {
+                        const onCooldown = cooldownLeftFor(latest.id) > 0;
+                        const disabled = retrying === latest.id || onCooldown;
+                        const left = cooldownLeftFor(latest.id);
+                        return (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={disabled}
+                            onClick={() => handleRetry(latest)}
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${retrying === latest.id ? "animate-spin" : ""}`} />
+                            {retrying === latest.id ? "Resending…" : onCooldown ? `Wait ${left}s` : "Resend reminder"}
+                          </Button>
+                        );
+                      })()}
                     </div>
 
                   </div>
