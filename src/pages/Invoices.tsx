@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import NewInvoiceDialog from "@/components/NewInvoiceDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
+import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 const statusColors: Record<string, string> = {
