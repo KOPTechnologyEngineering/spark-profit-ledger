@@ -415,9 +415,12 @@ export type Database = {
           body: string
           chase_item_id: string
           created_at: string
+          delivered_at: string | null
           error: string
+          failed_at: string | null
           id: string
           invoice_id: string
+          message_id: string | null
           recipient_email: string
           sent_at: string
           status: string
@@ -429,9 +432,12 @@ export type Database = {
           body?: string
           chase_item_id: string
           created_at?: string
+          delivered_at?: string | null
           error?: string
+          failed_at?: string | null
           id?: string
           invoice_id: string
+          message_id?: string | null
           recipient_email: string
           sent_at?: string
           status?: string
@@ -443,9 +449,12 @@ export type Database = {
           body?: string
           chase_item_id?: string
           created_at?: string
+          delivered_at?: string | null
           error?: string
+          failed_at?: string | null
           id?: string
           invoice_id?: string
+          message_id?: string | null
           recipient_email?: string
           sent_at?: string
           status?: string
