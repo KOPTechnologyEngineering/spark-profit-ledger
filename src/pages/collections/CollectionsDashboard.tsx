@@ -136,17 +136,52 @@ export default function CollectionsDashboard() {
           </div>
         </div>
 
-        <div className="glass-card p-6">
-          <h3 className="font-heading text-lg font-semibold text-foreground">Reminder Activity</h3>
-          <div className="mt-4 flex items-baseline gap-6">
-            <div>
-              <p className="text-3xl font-heading font-bold text-foreground">{reminders.length}</p>
-              <p className="text-xs text-muted-foreground">Total reminders sent</p>
+        <div className="glass-card p-6 lg:col-span-2">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="font-heading text-lg font-semibold text-foreground">Delivery Performance</h3>
+            <span className="text-xs text-muted-foreground">{totalReminders} reminders tracked</span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-lg bg-secondary p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Send className="h-3.5 w-3.5" /> Queued
+              </div>
+              <p className="mt-1 font-heading text-2xl font-bold text-warning">{queuedReminders}</p>
             </div>
-            <div>
-              <p className="text-3xl font-heading font-bold text-outflow">{failedReminders}</p>
-              <p className="text-xs text-muted-foreground">Failed</p>
+            <div className="rounded-lg bg-secondary p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Sent
+              </div>
+              <p className="mt-1 font-heading text-2xl font-bold text-inflow">{sentReminders}</p>
             </div>
+            <div className="rounded-lg bg-secondary p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <XCircle className="h-3.5 w-3.5" /> Failed
+              </div>
+              <p className="mt-1 font-heading text-2xl font-bold text-outflow">{failedReminders}</p>
+            </div>
+            <div className="rounded-lg bg-secondary p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Percent className="h-3.5 w-3.5" /> Success rate
+              </div>
+              <p className="mt-1 font-heading text-2xl font-bold text-foreground">{deliverySuccess}%</p>
+            </div>
+          </div>
+
+          {totalReminders > 0 && (
+            <div className="mt-4 flex h-2 w-full overflow-hidden rounded-full bg-secondary">
+              <div className="bg-inflow" style={{ width: `${(sentReminders / totalReminders) * 100}%` }} />
+              <div className="bg-warning" style={{ width: `${(queuedReminders / totalReminders) * 100}%` }} />
+              <div className="bg-outflow" style={{ width: `${(failedReminders / totalReminders) * 100}%` }} />
+            </div>
+          )}
+
+          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+            <Timer className="h-4 w-4" />
+            Average send latency:{" "}
+            <span className="font-medium text-foreground">{formatLatency(avgLatencyMs)}</span>
+            <span className="text-xs">({latencies.length} samples)</span>
           </div>
         </div>
 
