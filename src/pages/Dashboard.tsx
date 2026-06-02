@@ -53,7 +53,10 @@ export default function Dashboard() {
           <h1 className="font-heading text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">Financial overview for your business</p>
         </div>
-        <PeriodSelector value={activePeriod} onChange={setActivePeriod} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <PeriodSelector value={activePeriod} onChange={setActivePeriod} />
+          <DateRangePicker value={range} onChange={setRange} />
+        </div>
       </div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
