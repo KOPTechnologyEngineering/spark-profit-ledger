@@ -27,6 +27,36 @@ export default function CollectionsSettings() {
   const [form, setForm] = useState<any>(DEFAULTS);
   const [recipients, setRecipients] = useState("");
   const [id, setId] = useState<string | null>(null);
+  const [testEmail, setTestEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
+
+  const sendTest = async () => {
+    const email = testEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Enter a valid email address");
+      return;
+    }
+    setSendingTest(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "test-delivery",
+          recipientEmail: email,
+          idempotencyKey: `test-delivery-${user?.id ?? "anon"}-${Date.now()}`,
+          templateData: {
+            recipientName: email.split("@")[0],
+            triggeredAt: new Date().toISOString(),
+          },
+        },
+      });
+      if (error) throw error;
+      toast.success(`Test email queued for ${email}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to send test email");
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -137,6 +167,25 @@ export default function CollectionsSettings() {
           Save settings
         </Button>
       )}
+
+      <div className="border-t border-border pt-4 space-y-2">
+        <Label>Send test email</Label>
+        <p className="text-xs text-muted-foreground">
+          Verify delivery by sending the test template to any address.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            type="email"
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            placeholder="you@example.com"
+            disabled={sendingTest}
+          />
+          <Button onClick={sendTest} disabled={sendingTest || !testEmail.trim()}>
+            {sendingTest ? "Sending..." : "Send test"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
