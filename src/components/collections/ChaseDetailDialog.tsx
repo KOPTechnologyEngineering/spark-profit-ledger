@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { logActivity, STATUS_LABELS, STATUS_COLORS, daysOverdue } from "@/lib/collections";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Clock, CheckCircle2, XCircle, Mail } from "lucide-react";
 
 interface Props {
   item: any;
