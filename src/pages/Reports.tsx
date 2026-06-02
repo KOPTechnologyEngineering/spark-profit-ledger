@@ -80,9 +80,12 @@ export default function Reports() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-heading text-3xl font-bold text-foreground">Regulatory & Financial Reports</h1>
-        <p className="text-muted-foreground">Generate and file statutory reports</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="font-heading text-3xl font-bold text-foreground">Regulatory & Financial Reports</h1>
+          <p className="text-muted-foreground">Generate and file statutory reports</p>
+        </div>
+        <DateRangePicker value={range} onChange={setRange} placeholder="Filter by date" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
