@@ -18,6 +18,7 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
   const [period, setPeriod] = useState<Period>("Monthly");
+  const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit } = useUserRoles();
   const viewOnly = !hasEdit("transactions");
 
