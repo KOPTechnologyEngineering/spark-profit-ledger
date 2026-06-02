@@ -39,8 +39,8 @@ export default function Reports() {
         const rows = txns.map((t) => `"${t.category}","${t.type}","${t.description}",${t.amount},${t.date},${t.status}`);
         downloadCSV(`${key}_report.csv`, header, rows);
       } else if (key === "ct600") {
-        const { data } = await supabase.from("tbl_transactions").select("amount, type, category, status");
-        const txns = (data || []).filter((t) => t.status === "completed");
+        const { data } = await supabase.from("tbl_transactions").select("amount, type, category, status, date");
+        const txns = filterByDateRange((data || []).filter((t) => t.status === "completed"), range, "date");
         const revenue = txns.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
         const expenses = txns.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
         const profit = revenue - expenses;
@@ -50,7 +50,7 @@ export default function Reports() {
         downloadCSV("ct600_report.csv", header, rows);
       } else if (key === "vat") {
         const { data } = await supabase.from("tbl_transactions").select("amount, type, date, description, category");
-        const txns = data || [];
+        const txns = filterByDateRange(data || [], range, "date");
         const inflow = txns.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
         const outflow = txns.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
         const outputVAT = Math.round(inflow * 0.2);
