@@ -36,7 +36,7 @@ export default function Invoices() {
 
   useEffect(() => { fetchInvoices(); }, []);
 
-  const filtered = invoices
+  const filtered = filterByDateRange(invoices, range, "due_date")
     .filter((i) => filter === "all" || i.status === filter)
     .filter((i) => !search || i.invoice_number?.toLowerCase().includes(search.toLowerCase()) || i.client?.toLowerCase().includes(search.toLowerCase()));
 
