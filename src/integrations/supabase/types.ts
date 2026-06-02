@@ -14,6 +14,429 @@ export type Database = {
   }
   public: {
     Tables: {
+      tbl_collection_activity_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string
+          chase_item_id: string | null
+          created_at: string
+          detail: string
+          id: string
+          invoice_id: string | null
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string
+          chase_item_id?: string | null
+          created_at?: string
+          detail?: string
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string
+          chase_item_id?: string | null
+          created_at?: string
+          detail?: string
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_collection_chase_items: {
+        Row: {
+          assigned_to: string | null
+          chase_stage: string
+          created_at: string
+          customer_email: string
+          customer_name: string
+          id: string
+          invoice_id: string
+          last_reminder_at: string | null
+          next_reminder_at: string | null
+          notes: string
+          reminders_sent: number
+          rule_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          chase_stage?: string
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          id?: string
+          invoice_id: string
+          last_reminder_at?: string | null
+          next_reminder_at?: string | null
+          notes?: string
+          reminders_sent?: number
+          rule_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          chase_stage?: string
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          id?: string
+          invoice_id?: string
+          last_reminder_at?: string | null
+          next_reminder_at?: string | null
+          notes?: string
+          reminders_sent?: number
+          rule_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_collection_disputes: {
+        Row: {
+          assigned_to: string | null
+          chase_item_id: string | null
+          created_at: string
+          customer_name: string
+          description: string
+          documents: Json
+          id: string
+          internal_notes: string
+          invoice_id: string
+          raised_by: string | null
+          raised_by_name: string
+          reason: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          chase_item_id?: string | null
+          created_at?: string
+          customer_name?: string
+          description?: string
+          documents?: Json
+          id?: string
+          internal_notes?: string
+          invoice_id: string
+          raised_by?: string | null
+          raised_by_name?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          chase_item_id?: string | null
+          created_at?: string
+          customer_name?: string
+          description?: string
+          documents?: Json
+          id?: string
+          internal_notes?: string
+          invoice_id?: string
+          raised_by?: string | null
+          raised_by_name?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_collection_email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          subject: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          subject: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_collection_escalations: {
+        Row: {
+          amount: number
+          assigned_to: string | null
+          chase_item_id: string | null
+          created_at: string
+          customer_name: string
+          days_overdue: number
+          due_date: string | null
+          id: string
+          invoice_id: string
+          level: string
+          reason: string
+          resolution_notes: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          assigned_to?: string | null
+          chase_item_id?: string | null
+          created_at?: string
+          customer_name?: string
+          days_overdue?: number
+          due_date?: string | null
+          id?: string
+          invoice_id: string
+          level?: string
+          reason?: string
+          resolution_notes?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          assigned_to?: string | null
+          chase_item_id?: string | null
+          created_at?: string
+          customer_name?: string
+          days_overdue?: number
+          due_date?: string | null
+          id?: string
+          invoice_id?: string
+          level?: string
+          reason?: string
+          resolution_notes?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_collection_payment_promises: {
+        Row: {
+          amount_promised: number
+          chase_item_id: string | null
+          contact_person: string
+          created_at: string
+          customer_name: string
+          id: string
+          invoice_id: string
+          notes: string
+          promised_date: string
+          reminder_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_promised?: number
+          chase_item_id?: string | null
+          contact_person?: string
+          created_at?: string
+          customer_name?: string
+          id?: string
+          invoice_id: string
+          notes?: string
+          promised_date: string
+          reminder_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_promised?: number
+          chase_item_id?: string | null
+          contact_person?: string
+          created_at?: string
+          customer_name?: string
+          id?: string
+          invoice_id?: string
+          notes?: string
+          promised_date?: string
+          reminder_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_collection_reminders: {
+        Row: {
+          body: string
+          chase_item_id: string
+          created_at: string
+          error: string
+          id: string
+          invoice_id: string
+          recipient_email: string
+          sent_at: string
+          status: string
+          subject: string
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          chase_item_id: string
+          created_at?: string
+          error?: string
+          id?: string
+          invoice_id: string
+          recipient_email: string
+          sent_at?: string
+          status?: string
+          subject?: string
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          chase_item_id?: string
+          created_at?: string
+          error?: string
+          id?: string
+          invoice_id?: string
+          recipient_email?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_collection_rules: {
+        Row: {
+          created_at: string
+          customer_segment: string
+          description: string
+          id: string
+          internal_recipients: Json
+          is_active: boolean
+          max_amount: number | null
+          min_amount: number
+          name: string
+          steps: Json
+          stop_conditions: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_segment?: string
+          description?: string
+          id?: string
+          internal_recipients?: Json
+          is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number
+          name: string
+          steps?: Json
+          stop_conditions?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_segment?: string
+          description?: string
+          id?: string
+          internal_recipients?: Json
+          is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number
+          name?: string
+          steps?: Json
+          stop_conditions?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tbl_collection_settings: {
+        Row: {
+          business_days_only: boolean
+          created_at: string
+          default_sender_email: string
+          escalation_thresholds: Json
+          grace_period_days: number
+          id: string
+          internal_recipients: Json
+          max_reminders: number
+          pause_on_reply: boolean
+          stop_when_paid: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_days_only?: boolean
+          created_at?: string
+          default_sender_email?: string
+          escalation_thresholds?: Json
+          grace_period_days?: number
+          id?: string
+          internal_recipients?: Json
+          max_reminders?: number
+          pause_on_reply?: boolean
+          stop_when_paid?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_days_only?: boolean
+          created_at?: string
+          default_sender_email?: string
+          escalation_thresholds?: Json
+          grace_period_days?: number
+          id?: string
+          internal_recipients?: Json
+          max_reminders?: number
+          pause_on_reply?: boolean
+          stop_when_paid?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tbl_invoices: {
         Row: {
           amount: number
