@@ -161,6 +161,14 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
   };
 
   const handleRetry = async (rem: any) => {
+    const now = Date.now();
+    const previous = lastRetryAt[rem.id];
+    if (previous && now - previous < COOLDOWN_MS) {
+      const remaining = Math.ceil((COOLDOWN_MS - (now - previous)) / 1000);
+      toast.error(`Please wait ${remaining}s before resending`);
+      return;
+    }
+    setLastRetryAt((prev) => ({ ...prev, [rem.id]: now }));
     const ok = await retryOne(rem);
     if (ok) toast.success(`Retry sent to ${rem.recipient_email}`);
     await refresh();
