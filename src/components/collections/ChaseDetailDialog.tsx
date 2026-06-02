@@ -265,6 +265,130 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
             </Button>
           </div>
 
+          {reminders[0] && (() => {
+            const latest = reminders[0];
+            const steps = [
+              {
+                key: "queued",
+                label: "Queued",
+                ts: latest.created_at,
+                icon: Clock,
+                done: true,
+                tone: "text-muted-foreground",
+                dot: "bg-warning",
+              },
+              ...(latest.status === "sent" || latest.status === "delivered"
+                ? [{
+                    key: "sent",
+                    label: latest.status === "delivered" ? "Delivered" : "Sent",
+                    ts: latest.delivered_at || latest.sent_at,
+                    icon: CheckCircle2,
+                    done: true,
+                    tone: "text-inflow",
+                    dot: "bg-inflow",
+                  }]
+                : []),
+              ...(latest.status === "failed" || latest.status === "bounced"
+                ? [{
+                    key: "failed",
+                    label: latest.status === "bounced" ? "Bounced" : "Failed",
+                    ts: latest.failed_at,
+                    icon: XCircle,
+                    done: true,
+                    tone: "text-outflow",
+                    dot: "bg-outflow",
+                    error: latest.error,
+                  }]
+                : []),
+            ];
+            const pending = latest.status === "queued" || latest.status === "pending";
+            const overallTone =
+              latest.status === "sent" || latest.status === "delivered"
+                ? "bg-inflow-muted text-inflow"
+                : latest.status === "failed" || latest.status === "bounced"
+                ? "bg-outflow-muted text-outflow"
+                : "bg-warning/15 text-warning";
+
+            return (
+              <div className="border-t border-border pt-4">
+                <div className="rounded-lg border border-border bg-secondary/40 p-3 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">Last email delivery</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {latest.subject} · → {latest.recipient_email || "no recipient"}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded px-2 py-0.5 text-xs uppercase ${overallTone}`}>
+                      {latest.status}
+                    </span>
+                  </div>
+
+                  <ol className="space-y-2 pl-1">
+                    {steps.map((s, i) => {
+                      const Icon = s.icon;
+                      return (
+                        <li key={s.key} className="flex gap-3 text-xs">
+                          <div className="flex flex-col items-center">
+                            <span className={`h-2 w-2 rounded-full ${s.dot}`} />
+                            {i < steps.length - 1 && <span className="w-px flex-1 bg-border mt-1" />}
+                          </div>
+                          <div className="flex-1 -mt-0.5 pb-1">
+                            <div className={`flex items-center gap-1.5 font-medium ${s.tone}`}>
+                              <Icon className="h-3.5 w-3.5" />
+                              <span>{s.label}</span>
+                              {s.ts && (
+                                <span className="text-muted-foreground font-normal">
+                                  · {new Date(s.ts).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                            {("error" in s) && s.error && (
+                              <p className="mt-0.5 text-outflow">{s.error}</p>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {pending && (
+                      <li className="flex gap-3 text-xs">
+                        <div className="flex flex-col items-center">
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground/30 animate-pulse" />
+                        </div>
+                        <div className="text-muted-foreground -mt-0.5">Waiting for provider…</div>
+                      </li>
+                    )}
+                  </ol>
+
+                  {deliveryLog.length > 0 && (
+                    <div className="border-t border-border pt-2">
+                      <p className="text-xs text-muted-foreground mb-1">Provider events</p>
+                      <ul className="space-y-1">
+                        {deliveryLog.map((d) => (
+                          <li key={d.id} className="flex justify-between gap-2 text-xs">
+                            <span className="font-medium">{d.status}</span>
+                            <span className="text-muted-foreground">
+                              {new Date(d.created_at).toLocaleString()}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {latest.message_id && (
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">
+                      id: {latest.message_id}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="border-t border-border pt-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">Reminders sent ({reminders.length})</h4>
