@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { daysOverdue, ageBracket } from "@/lib/collections";
 import { downloadCSV } from "@/lib/date-filters";
+import DateRangePicker from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
+import { format } from "date-fns";
 
 const REPORTS = [
   { id: "overdue", label: "Overdue invoices" },
