@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, Eye, Mail, Pause, Play, AlertTriangle, MessageSquare } from "lucide-react";
+import { Search, Eye, Mail, Pause, Play, AlertTriangle, MessageSquare, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -204,6 +204,93 @@ export default function ChaseQueue() {
     load();
   };
 
+  const generateDemo = async () => {
+    if (!user || !canEdit) return toast.error("You don't have permission");
+    if (!confirm("Create 3 demo overdue invoices and seed chase items + timeline activity?")) return;
+
+    const today = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const mkDue = (daysAgo: number) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - daysAgo);
+      return iso(d);
+    };
+    const stamp = Date.now().toString().slice(-5);
+    const demos = [
+      { client: "Acme Trading Ltd", email: "ap@acme-demo.test", amount: 1250, daysAgo: 5 },
+      { client: "Northwind Supplies", email: "billing@northwind-demo.test", amount: 3480, daysAgo: 18 },
+      { client: "Globex Manufacturing", email: "finance@globex-demo.test", amount: 6720, daysAgo: 42 },
+    ];
+
+    const invoiceRows = demos.map((d, i) => ({
+      user_id: user.id,
+      invoice_number: `DEMO-${stamp}-${i + 1}`,
+      client: d.client,
+      amount: d.amount,
+      issue_date: iso(new Date(today.getTime() - (d.daysAgo + 30) * 86400000)),
+      due_date: mkDue(d.daysAgo),
+      status: "sent",
+      items: [{ description: "Demo line item", qty: 1, unit_price: d.amount }],
+      notes: "Auto-generated demo invoice",
+    }));
+
+    const { data: inserted, error: invErr } = await supabase
+      .from("tbl_invoices")
+      .insert(invoiceRows)
+      .select();
+    if (invErr || !inserted) {
+      toast.error("Failed to create demo invoices");
+      return;
+    }
+
+    const chaseRows = inserted.map((inv, i) => ({
+      user_id: user.id,
+      invoice_id: inv.id,
+      customer_name: inv.client,
+      customer_email: demos[i].email,
+      status: "overdue",
+    }));
+    const { data: chases } = await supabase
+      .from("tbl_collection_chase_items")
+      .insert(chaseRows)
+      .select();
+
+    // Seed timeline activity + a queued reminder on the most overdue one
+    if (chases && chases.length) {
+      for (const c of chases) {
+        await logActivity({
+          invoice_id: c.invoice_id,
+          chase_item_id: c.id,
+          action: "chase_created",
+          detail: "Demo chase generated",
+        });
+      }
+      const latest = chases[chases.length - 1];
+      const latestInv = inserted[chases.length - 1];
+      const messageId = `demo-reminder-${latest.id}`;
+      await supabase.from("tbl_collection_reminders").insert({
+        user_id: user.id,
+        chase_item_id: latest.id,
+        invoice_id: latest.invoice_id,
+        recipient_email: demos[demos.length - 1].email,
+        subject: `Reminder: Invoice ${latestInv.invoice_number} is overdue`,
+        body: "Demo reminder body — your invoice is past due.",
+        status: "queued",
+        message_id: messageId,
+      });
+      await logActivity({
+        invoice_id: latest.invoice_id,
+        chase_item_id: latest.id,
+        action: "reminder_queued",
+        detail: "Demo reminder queued",
+        metadata: { message_id: messageId },
+      });
+    }
+
+    toast.success(`Created ${inserted.length} demo chases`);
+    load();
+  };
+
   const filtered = items.filter((it) => {
     const inv = invMap[it.invoice_id];
     if (!inv) return false;
@@ -236,6 +323,12 @@ export default function ChaseQueue() {
             </option>
           ))}
         </select>
+        {canEdit && (
+          <Button size="sm" variant="outline" onClick={generateDemo} title="Create demo overdue invoices + chase items">
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Generate demo
+          </Button>
+        )}
       </div>
 
       <div className="glass-card overflow-hidden">
