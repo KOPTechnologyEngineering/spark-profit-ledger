@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, Eye, Mail, Pause, Play, AlertTriangle, MessageSquare } from "lucide-react";
+import { Search, Eye, Mail, Pause, Play, AlertTriangle, MessageSquare, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
