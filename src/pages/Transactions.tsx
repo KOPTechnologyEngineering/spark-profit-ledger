@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import PeriodSelector from "@/components/PeriodSelector";
+import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
 import { type Period, filterByPeriod, downloadCSV } from "@/lib/date-filters";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
