@@ -265,13 +265,22 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
           </div>
 
           <div className="border-t border-border pt-4">
-            <h4 className="font-medium mb-2">Reminders sent ({reminders.length})</h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium">Reminders sent ({reminders.length})</h4>
+              {canEdit && reminders.some((r) => r.status === "failed" || r.status === "bounced") && (
+                <Button size="sm" variant="outline" onClick={retryAllFailed} disabled={!!retrying}>
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1 ${retrying ? "animate-spin" : ""}`} />
+                  Retry failed
+                </Button>
+              )}
+            </div>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {reminders.map((r) => {
+                const isFailed = r.status === "failed" || r.status === "bounced";
                 const cls =
                   r.status === "sent" || r.status === "delivered"
                     ? "bg-inflow-muted text-inflow"
-                    : r.status === "failed" || r.status === "bounced"
+                    : isFailed
                     ? "bg-outflow-muted text-outflow"
                     : "bg-warning/15 text-warning";
                 const ts = r.delivered_at || r.failed_at || r.sent_at || r.created_at;
@@ -286,12 +295,28 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
                       <span className="shrink-0">{new Date(ts).toLocaleString()}</span>
                     </div>
                     {r.error && <div className="text-outflow">{r.error}</div>}
+                    {isFailed && canEdit && (
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          disabled={retrying === r.id}
+                          onClick={() => handleRetry(r)}
+                        >
+                          <RefreshCw className={`h-3 w-3 mr-1 ${retrying === r.id ? "animate-spin" : ""}`} />
+                          {retrying === r.id ? "Retrying..." : "Retry"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
               {reminders.length === 0 && <p className="text-xs text-muted-foreground">None yet.</p>}
             </div>
           </div>
+
+
 
           <div className="border-t border-border pt-4">
             <h4 className="font-medium mb-2">Activity timeline</h4>
