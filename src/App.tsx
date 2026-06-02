@@ -27,6 +27,7 @@ import PaymentPromises from "@/pages/collections/PaymentPromises";
 import Disputes from "@/pages/collections/Disputes";
 import CollectionsReports from "@/pages/collections/CollectionsReports";
 import CollectionsSettings from "@/pages/collections/CollectionsSettings";
+import Unsubscribe from "@/pages/Unsubscribe";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/invoices" element={<Invoices />} />
