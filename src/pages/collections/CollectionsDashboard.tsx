@@ -19,7 +19,7 @@ export default function CollectionsDashboard() {
       const [inv, esc, rem, pr] = await Promise.all([
         supabase.from("tbl_invoices").select("id, invoice_number, client, amount, due_date, status"),
         supabase.from("tbl_collection_escalations").select("*").neq("status", "resolved"),
-        supabase.from("tbl_collection_reminders").select("status, created_at"),
+        supabase.from("tbl_collection_reminders").select("status, created_at, delivered_at, failed_at, sent_at"),
         supabase.from("tbl_collection_payment_promises").select("*"),
       ]);
       setInvs(inv.data || []);
