@@ -34,6 +34,13 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
   const [promiseDate, setPromiseDate] = useState("");
   const [promiseAmt, setPromiseAmt] = useState(String(invoice?.amount ?? ""));
 
+  const cooldownLeftFor = (id: string) => {
+    const t = lastRetryAt[id];
+    if (!t) return 0;
+    const remaining = Math.max(0, Math.ceil((COOLDOWN_MS - (Date.now() - t)) / 1000));
+    return remaining;
+  };
+
   useEffect(() => {
     if (!open) return;
     refresh();
