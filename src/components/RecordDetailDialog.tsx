@@ -202,27 +202,6 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
           </tfoot>
         </table>
 
-          <tfoot>
-            <tr>
-              <td colspan="3" style="text-align:right;padding-top:12px">Subtotal</td>
-              <td style="text-align:right;padding-top:12px">£${subtotal.toLocaleString()}</td>
-            </tr>
-            ${discountPct > 0 ? `
-            <tr>
-              <td colspan="3" style="text-align:right">Discount (${discountPct}%)</td>
-              <td style="text-align:right">-£${discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            </tr>` : ""}
-            <tr>
-              <td colspan="3" style="text-align:right">VAT (${(VAT_RATE * 100).toFixed(0)}%)</td>
-              <td style="text-align:right">£${vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            </tr>
-            <tr style="border-top:2px solid #333">
-              <td colspan="3" style="text-align:right;font-weight:bold;padding-top:8px">Total (incl. VAT)</td>
-              <td style="text-align:right;font-weight:bold;font-size:18px;padding-top:8px">£${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            </tr>
-          </tfoot>
-        </table>
-
         ${record.notes ? `<div style="margin-bottom:20px"><p style="font-size:12px;color:#666;font-weight:bold">NOTES</p><p style="font-size:13px;color:#555">${record.notes}</p></div>` : ""}
 
         <div style="margin-top:60px;padding-top:20px;border-top:1px solid #eee">
