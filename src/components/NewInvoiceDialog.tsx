@@ -53,6 +53,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
         client,
         amount: total,
         status: "pending",
+        issue_date: issueDate,
         due_date: dueDate || undefined,
         items: items as any,
         approver1_id: approver1,
