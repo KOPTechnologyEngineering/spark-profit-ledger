@@ -256,16 +256,23 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
           {type === "invoice" ? (
             <>
               <Row label="Client" value={record.client} />
-              <Row label="Amount" value={`£${Number(record.amount).toLocaleString()}`} />
+              <Row label="Amount" value={`£${Number(record.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
               {(() => {
                 const items = Array.isArray(record.items) ? record.items : [];
                 const subtotal = items.reduce((s: number, i: any) => s + (i.quantity || 0) * (i.rate || 0), 0);
-                const vat = subtotal * VAT_RATE;
+                const discountPct = (record.discount_percentage as number | null | undefined) ?? 0;
+                const discountAmt = subtotal * (discountPct / 100);
+                const net = subtotal - discountAmt;
+                const vat = net * VAT_RATE;
+                const total = net + vat;
                 return (
                   <>
                     <Row label="Subtotal" value={`£${subtotal.toLocaleString()}`} />
+                    {discountPct > 0 && (
+                      <Row label={`Discount (${discountPct}%)`} value={`-£${discountAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
+                    )}
                     <Row label={`VAT (${(VAT_RATE * 100).toFixed(0)}%)`} value={`£${vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
-                    <Row label="Total (incl. VAT)" value={`£${(subtotal + vat).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
+                    <Row label="Total (incl. VAT)" value={`£${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
                   </>
                 );
               })()}
