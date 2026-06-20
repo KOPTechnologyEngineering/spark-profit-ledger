@@ -13,6 +13,7 @@ interface LineItem {
   description: string;
   quantity: number;
   rate: number;
+  discount: number;
 }
 
 export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void }) {
@@ -22,20 +23,21 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
-  const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0 }]);
+  const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0, discount: 0 }]);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [approver1, setApprover1] = useState("");
   const [approver2, setApprover2] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.rate, 0);
+  const lineNet = (item: LineItem) => item.quantity * item.rate * (1 - (item.discount || 0) / 100);
+  const subtotal = items.reduce((sum, item) => sum + lineNet(item), 0);
   const discountAmount = subtotal * (discountPercentage / 100);
   const netSubtotal = subtotal - discountAmount;
   const vat = netSubtotal * 0.2;
   const total = netSubtotal + vat;
 
-  const addItem = () => setItems([...items, { description: "", quantity: 1, rate: 0 }]);
+  const addItem = () => setItems([...items, { description: "", quantity: 1, rate: 0, discount: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: keyof LineItem, value: string | number) => {
     const updated = [...items];
