@@ -127,7 +127,8 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     let content = "";
     if (type === "invoice") {
       const items = Array.isArray(record.items) ? record.items : [];
-      const subtotal = items.reduce((s: number, i: any) => s + (i.quantity || 0) * (i.rate || 0), 0);
+      const lineNet = (i: any) => (Number(i.quantity) || 0) * (Number(i.rate) || 0) * (1 - (Number(i.discount) || 0) / 100);
+      const subtotal = items.reduce((s: number, i: any) => s + lineNet(i), 0);
       const discountPct = (record.discount_percentage as number | null | undefined) ?? 0;
       const discountAmount = subtotal * (discountPct / 100);
       const net = subtotal - discountAmount;
@@ -163,9 +164,10 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
           <thead>
             <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6">
               <th style="text-align:left">Description</th>
-              <th style="text-align:center;width:80px">Qty</th>
-              <th style="text-align:right;width:120px">Rate</th>
-              <th style="text-align:right;width:120px">Amount</th>
+              <th style="text-align:center;width:60px">Qty</th>
+              <th style="text-align:right;width:100px">Rate</th>
+              <th style="text-align:right;width:70px">Disc %</th>
+              <th style="text-align:right;width:110px">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -174,26 +176,27 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
                 <td>${i.description || ""}</td>
                 <td style="text-align:center">${i.quantity || 0}</td>
                 <td style="text-align:right">£${Number(i.rate || 0).toLocaleString()}</td>
-                <td style="text-align:right">£${(Number(i.quantity || 0) * Number(i.rate || 0)).toLocaleString()}</td>
+                <td style="text-align:right">${Number(i.discount || 0)}%</td>
+                <td style="text-align:right">£${lineNet(i).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
             `).join("")}
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="3" style="text-align:right;padding-top:12px">Subtotal</td>
-              <td style="text-align:right;padding-top:12px">£${subtotal.toLocaleString()}</td>
+              <td colspan="4" style="text-align:right;padding-top:12px">Subtotal</td>
+              <td style="text-align:right;padding-top:12px">£${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>
             ${discountPct > 0 ? `
             <tr>
-              <td colspan="3" style="text-align:right">Discount (${discountPct}%)</td>
+              <td colspan="4" style="text-align:right">Discount (${discountPct}%)</td>
               <td style="text-align:right">-£${discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>` : ""}
             <tr>
-              <td colspan="3" style="text-align:right">VAT (${(VAT_RATE * 100).toFixed(0)}%)</td>
+              <td colspan="4" style="text-align:right">VAT (${(VAT_RATE * 100).toFixed(0)}%)</td>
               <td style="text-align:right">£${vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>
             <tr style="border-top:2px solid #333">
-              <td colspan="3" style="text-align:right;font-weight:bold;padding-top:8px">Total (incl. VAT)</td>
+              <td colspan="4" style="text-align:right;font-weight:bold;padding-top:8px">Total (incl. VAT)</td>
               <td style="text-align:right;font-weight:bold;font-size:18px;padding-top:8px">£${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>
           </tfoot>
@@ -267,7 +270,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
               <Row label="Amount" value={`£${Number(record.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
               {(() => {
                 const items = Array.isArray(record.items) ? record.items : [];
-                const subtotal = items.reduce((s: number, i: any) => s + (i.quantity || 0) * (i.rate || 0), 0);
+                const subtotal = items.reduce((s: number, i: any) => s + (Number(i.quantity) || 0) * (Number(i.rate) || 0) * (1 - (Number(i.discount) || 0) / 100), 0);
                 const discountPct = (record.discount_percentage as number | null | undefined) ?? 0;
                 const discountAmt = subtotal * (discountPct / 100);
                 const net = subtotal - discountAmt;
@@ -293,7 +296,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
                   {record.items.map((item: any, idx: number) => (
                     <div key={idx} className="flex justify-between text-sm py-1 border-b border-border/50">
                       <span>{item.description}</span>
-                      <span>x{item.quantity} @ £{item.rate}</span>
+                      <span>x{item.quantity} @ £{item.rate}{Number(item.discount) > 0 ? ` (-${item.discount}%)` : ""}</span>
                     </div>
                   ))}
                 </div>

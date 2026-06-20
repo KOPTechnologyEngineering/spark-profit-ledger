@@ -13,6 +13,7 @@ interface LineItem {
   description: string;
   quantity: number;
   rate: number;
+  discount: number;
 }
 
 export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void }) {
@@ -22,20 +23,21 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
-  const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0 }]);
+  const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0, discount: 0 }]);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [approver1, setApprover1] = useState("");
   const [approver2, setApprover2] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.rate, 0);
+  const lineNet = (item: LineItem) => item.quantity * item.rate * (1 - (item.discount || 0) / 100);
+  const subtotal = items.reduce((sum, item) => sum + lineNet(item), 0);
   const discountAmount = subtotal * (discountPercentage / 100);
   const netSubtotal = subtotal - discountAmount;
   const vat = netSubtotal * 0.2;
   const total = netSubtotal + vat;
 
-  const addItem = () => setItems([...items, { description: "", quantity: 1, rate: 0 }]);
+  const addItem = () => setItems([...items, { description: "", quantity: 1, rate: 0, discount: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: keyof LineItem, value: string | number) => {
     const updated = [...items];
@@ -92,7 +94,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
     setInvoiceNumber("");
     setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
-    setItems([{ description: "", quantity: 1, rate: 0 }]);
+    setItems([{ description: "", quantity: 1, rate: 0, discount: 0 }]);
     setDiscountPercentage(0);
     setApprover1("");
     setApprover2("");
@@ -143,7 +145,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
               </Button>
             </div>
             {items.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_80px_100px_32px] gap-2 items-end">
+              <div key={i} className="grid grid-cols-[1fr_60px_90px_70px_32px] gap-2 items-end">
                 <div>
                   {i === 0 && <Label className="text-xs text-muted-foreground">Description</Label>}
                   <Input value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="Service" required />
@@ -155,6 +157,10 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
                 <div>
                   {i === 0 && <Label className="text-xs text-muted-foreground">Rate (£)</Label>}
                   <Input type="number" min={0} step={0.01} value={item.rate} onChange={(e) => updateItem(i, "rate", Number(e.target.value))} />
+                </div>
+                <div>
+                  {i === 0 && <Label className="text-xs text-muted-foreground">Disc %</Label>}
+                  <Input type="number" min={0} max={100} step={0.01} value={item.discount} onChange={(e) => updateItem(i, "discount", Number(e.target.value))} />
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(i)} disabled={items.length === 1} className="h-10 w-10">
                   <Trash2 className="h-4 w-4 text-outflow" />
