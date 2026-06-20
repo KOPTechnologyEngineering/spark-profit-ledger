@@ -23,12 +23,17 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0 }]);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
   const [approver1, setApprover1] = useState("");
   const [approver2, setApprover2] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const total = items.reduce((sum, item) => sum + item.quantity * item.rate, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.rate, 0);
+  const discountAmount = subtotal * (discountPercentage / 100);
+  const netSubtotal = subtotal - discountAmount;
+  const vat = netSubtotal * 0.2;
+  const total = netSubtotal + vat;
 
   const addItem = () => setItems([...items, { description: "", quantity: 1, rate: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
