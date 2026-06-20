@@ -112,7 +112,11 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
               <Label>Client</Label>
               <Input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Company name" required />
             </div>
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2">
+              <Label>Issue Date</Label>
+              <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
               <Label>Due Date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
