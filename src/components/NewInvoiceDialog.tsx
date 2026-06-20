@@ -20,6 +20,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const [loading, setLoading] = useState(false);
   const [client, setClient] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0 }]);
   const [approver1, setApprover1] = useState("");
@@ -52,6 +53,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
         client,
         amount: total,
         status: "pending",
+        issue_date: issueDate,
         due_date: dueDate || undefined,
         items: items as any,
         approver1_id: approver1,
@@ -82,6 +84,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const resetForm = () => {
     setClient("");
     setInvoiceNumber("");
+    setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
     setItems([{ description: "", quantity: 1, rate: 0 }]);
     setApprover1("");
@@ -109,7 +112,11 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
               <Label>Client</Label>
               <Input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Company name" required />
             </div>
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2">
+              <Label>Issue Date</Label>
+              <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
               <Label>Due Date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
