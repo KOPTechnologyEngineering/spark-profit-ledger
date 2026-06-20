@@ -23,12 +23,17 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0 }]);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
   const [approver1, setApprover1] = useState("");
   const [approver2, setApprover2] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const total = items.reduce((sum, item) => sum + item.quantity * item.rate, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.rate, 0);
+  const discountAmount = subtotal * (discountPercentage / 100);
+  const netSubtotal = subtotal - discountAmount;
+  const vat = netSubtotal * 0.2;
+  const total = netSubtotal + vat;
 
   const addItem = () => setItems([...items, { description: "", quantity: 1, rate: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
@@ -56,6 +61,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
         issue_date: issueDate,
         due_date: dueDate || undefined,
         items: items as any,
+        discount_percentage: discountPercentage,
         approver1_id: approver1,
         approver2_id: approver2,
         approver1_status: "pending",
@@ -87,6 +93,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
     setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
     setItems([{ description: "", quantity: 1, rate: 0 }]);
+    setDiscountPercentage(0);
     setApprover1("");
     setApprover2("");
   };
@@ -120,6 +127,10 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
               <Label>Due Date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label>Discount (%)</Label>
+              <Input type="number" min={0} max={100} step={0.01} value={discountPercentage} onChange={(e) => setDiscountPercentage(Number(e.target.value))} placeholder="0" />
+            </div>
           </div>
 
           <ApproverSelect approver1={approver1} approver2={approver2} onApprover1Change={setApprover1} onApprover2Change={setApprover2} />
@@ -152,9 +163,25 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
             ))}
           </div>
 
-          <div className="flex items-center justify-between rounded-lg bg-secondary p-4">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-heading text-xl font-bold text-foreground">£{total.toLocaleString()}</span>
+          <div className="rounded-lg bg-secondary p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Subtotal</span>
+              <span className="text-sm text-foreground">£{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            {discountPercentage > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Discount ({discountPercentage}%)</span>
+                <span className="text-sm text-outflow">-£{discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">VAT (20%)</span>
+              <span className="text-sm text-foreground">£{vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-border pt-2">
+              <span className="text-sm font-medium text-foreground">Total</span>
+              <span className="font-heading text-xl font-bold text-foreground">£{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
