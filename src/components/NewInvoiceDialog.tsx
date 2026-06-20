@@ -20,6 +20,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const [loading, setLoading] = useState(false);
   const [client, setClient] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0 }]);
   const [approver1, setApprover1] = useState("");
