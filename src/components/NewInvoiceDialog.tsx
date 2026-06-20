@@ -84,6 +84,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const resetForm = () => {
     setClient("");
     setInvoiceNumber("");
+    setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
     setItems([{ description: "", quantity: 1, rate: 0 }]);
     setApprover1("");
