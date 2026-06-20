@@ -128,8 +128,11 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     if (type === "invoice") {
       const items = Array.isArray(record.items) ? record.items : [];
       const subtotal = items.reduce((s: number, i: any) => s + (i.quantity || 0) * (i.rate || 0), 0);
-      const vatAmount = subtotal * VAT_RATE;
-      const total = subtotal + vatAmount;
+      const discountPct = (record.discount_percentage as number | null | undefined) ?? 0;
+      const discountAmount = subtotal * (discountPct / 100);
+      const net = subtotal - discountAmount;
+      const vatAmount = net * VAT_RATE;
+      const total = net + vatAmount;
 
       content = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;border-bottom:3px solid #10B981;padding-bottom:20px">
