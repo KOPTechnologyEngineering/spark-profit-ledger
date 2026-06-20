@@ -163,9 +163,25 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
             ))}
           </div>
 
-          <div className="flex items-center justify-between rounded-lg bg-secondary p-4">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-heading text-xl font-bold text-foreground">£{total.toLocaleString()}</span>
+          <div className="rounded-lg bg-secondary p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Subtotal</span>
+              <span className="text-sm text-foreground">£{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            {discountPercentage > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Discount ({discountPercentage}%)</span>
+                <span className="text-sm text-outflow">-£{discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">VAT (20%)</span>
+              <span className="text-sm text-foreground">£{vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-border pt-2">
+              <span className="text-sm font-medium text-foreground">Total</span>
+              <span className="font-heading text-xl font-bold text-foreground">£{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
