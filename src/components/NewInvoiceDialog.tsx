@@ -127,6 +127,10 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
               <Label>Due Date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label>Discount (%)</Label>
+              <Input type="number" min={0} max={100} step={0.01} value={discountPercentage} onChange={(e) => setDiscountPercentage(Number(e.target.value))} placeholder="0" />
+            </div>
           </div>
 
           <ApproverSelect approver1={approver1} approver2={approver2} onApprover1Change={setApprover1} onApprover2Change={setApprover2} />
