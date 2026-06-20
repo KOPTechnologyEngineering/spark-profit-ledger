@@ -61,6 +61,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
         issue_date: issueDate,
         due_date: dueDate || undefined,
         items: items as any,
+        discount_percentage: discountPercentage,
         approver1_id: approver1,
         approver2_id: approver2,
         approver1_status: "pending",
