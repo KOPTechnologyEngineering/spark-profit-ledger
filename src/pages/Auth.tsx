@@ -39,12 +39,28 @@ export default function Auth() {
         }
         toast({ title: "Welcome back!", description: "Successfully signed in." });
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data: signupData, error } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { full_name: fullName }, emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
+        // Fire-and-forget welcome email (don't block signup UX if it fails)
+        if (signupData.user?.id) {
+          supabase.functions
+            .invoke("send-transactional-email", {
+              body: {
+                templateName: "welcome",
+                recipientEmail: email,
+                idempotencyKey: `welcome-${signupData.user.id}`,
+                templateData: {
+                  recipientName: fullName || email.split("@")[0],
+                  appUrl: window.location.origin,
+                },
+              },
+            })
+            .catch((e) => console.warn("Welcome email failed", e));
+        }
         toast({ title: "Account created!", description: "Check your email to verify your account." });
       }
     } catch (error: any) {
