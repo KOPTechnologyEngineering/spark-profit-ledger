@@ -93,6 +93,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
     setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
     setItems([{ description: "", quantity: 1, rate: 0 }]);
+    setDiscountPercentage(0);
     setApprover1("");
     setApprover2("");
   };
