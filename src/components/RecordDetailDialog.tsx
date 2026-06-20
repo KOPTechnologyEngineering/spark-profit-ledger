@@ -183,6 +183,11 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
               <td colspan="3" style="text-align:right;padding-top:12px">Subtotal</td>
               <td style="text-align:right;padding-top:12px">£${subtotal.toLocaleString()}</td>
             </tr>
+            ${discountPct > 0 ? `
+            <tr>
+              <td colspan="3" style="text-align:right">Discount (${discountPct}%)</td>
+              <td style="text-align:right">-£${discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            </tr>` : ""}
             <tr>
               <td colspan="3" style="text-align:right">VAT (${(VAT_RATE * 100).toFixed(0)}%)</td>
               <td style="text-align:right">£${vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
