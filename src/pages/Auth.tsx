@@ -33,11 +33,22 @@ export default function Auth() {
       if (isLogin) {
         const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // Update last_login_at
         if (loginData.user) {
-          await supabase.from("tbl_profiles").update({ last_login_at: new Date().toISOString() } as any).eq("user_id", loginData.user.id);
+          const { data: profile } = await supabase
+            .from("tbl_profiles")
+            .select("approval_status")
+            .eq("user_id", loginData.user.id)
+            .maybeSingle();
+          const status = (profile as any)?.approval_status;
+          if (status === "pending") {
+            toast({ title: "Awaiting approval", description: "Your account is pending admin approval." });
+          } else if (status === "rejected") {
+            toast({ title: "Access denied", description: "Your account request was rejected.", variant: "destructive" });
+          } else {
+            await supabase.from("tbl_profiles").update({ last_login_at: new Date().toISOString() } as any).eq("user_id", loginData.user.id);
+            toast({ title: "Welcome back!", description: "Successfully signed in." });
+          }
         }
-        toast({ title: "Welcome back!", description: "Successfully signed in." });
       } else {
         const { data: signupData, error } = await supabase.auth.signUp({
           email,
@@ -45,7 +56,6 @@ export default function Auth() {
           options: { data: { full_name: fullName }, emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
-        // Fire-and-forget welcome email (don't block signup UX if it fails)
         if (signupData.user?.id) {
           supabase.functions
             .invoke("send-transactional-email", {
@@ -61,8 +71,9 @@ export default function Auth() {
             })
             .catch((e) => console.warn("Welcome email failed", e));
         }
-        toast({ title: "Account created!", description: "Check your email to verify your account." });
+        toast({ title: "Account created!", description: "Your account is awaiting admin approval. You'll get access once approved." });
       }
+
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
