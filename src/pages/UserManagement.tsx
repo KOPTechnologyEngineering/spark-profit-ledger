@@ -391,6 +391,36 @@ export default function UserManagement() {
         </div>
         </>
       )}
+
+      <Dialog open={!!rejectTarget} onOpenChange={(o) => { if (!o) setRejectTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading">Reject {rejectTarget?.full_name || rejectTarget?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Reason (shown to the user)</Label>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Unable to verify company affiliation. Please contact HR."
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectTarget(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!rejectTarget) return;
+                await setApproval(rejectTarget.user_id, "rejected", rejectReason);
+                setRejectTarget(null);
+              }}
+            >
+              Reject user
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
