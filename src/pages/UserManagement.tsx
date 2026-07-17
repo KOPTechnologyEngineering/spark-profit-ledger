@@ -378,6 +378,7 @@ export default function UserManagement() {
             </table>
           </div>
         </div>
+        </>
       )}
     </div>
   );
