@@ -31,14 +31,14 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const lineNet = (item: LineItem) => item.quantity * item.rate * (1 - (item.discount || 0) / 100);
+  const lineNet = (item: LineItem) => Math.max(0, item.quantity * item.rate * (1 - (item.discount || 0) / 100) - (item.discount_amount || 0));
   const subtotal = items.reduce((sum, item) => sum + lineNet(item), 0);
   const discountAmount = subtotal * (discountPercentage / 100);
   const netSubtotal = subtotal - discountAmount;
   const vat = netSubtotal * 0.2;
   const total = netSubtotal + vat;
 
-  const addItem = () => setItems([...items, { description: "", quantity: 1, rate: 0, discount: 0 }]);
+  const addItem = () => setItems([...items, { description: "", quantity: 1, rate: 0, discount: 0, discount_amount: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: keyof LineItem, value: string | number) => {
     const updated = [...items];
