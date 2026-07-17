@@ -242,7 +242,35 @@ export default function UserManagement() {
       {loading ? (
         <LoadingSpinner />
       ) : (
+        <>
+        {hasAdmin("users") && pendingUsers.length > 0 && (
+          <div className="glass-card p-4 md:p-6 space-y-3 border border-warning/30">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-warning" />
+              <h3 className="font-heading text-lg font-semibold text-foreground">Pending approvals ({pendingUsers.length})</h3>
+            </div>
+            <div className="space-y-2">
+              {pendingUsers.map((u) => (
+                <div key={u.user_id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{u.full_name || "—"}</p>
+                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => setApproval(u.user_id, "approved")} className="gap-1">
+                      <Check className="h-3.5 w-3.5" /> Approve
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setApproval(u.user_id, "rejected")} className="gap-1 text-destructive hover:text-destructive">
+                      <X className="h-3.5 w-3.5" /> Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="glass-card overflow-hidden">
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
