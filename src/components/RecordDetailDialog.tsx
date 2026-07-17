@@ -272,7 +272,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
               <Row label="Amount" value={`£${Number(record.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
               {(() => {
                 const items = Array.isArray(record.items) ? record.items : [];
-                const subtotal = items.reduce((s: number, i: any) => s + (Number(i.quantity) || 0) * (Number(i.rate) || 0) * (1 - (Number(i.discount) || 0) / 100), 0);
+                const subtotal = items.reduce((s: number, i: any) => s + Math.max(0, (Number(i.quantity) || 0) * (Number(i.rate) || 0) * (1 - (Number(i.discount) || 0) / 100) - (Number(i.discount_amount) || 0)), 0);
                 const discountPct = (record.discount_percentage as number | null | undefined) ?? 0;
                 const discountAmt = subtotal * (discountPct / 100);
                 const net = subtotal - discountAmt;
