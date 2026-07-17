@@ -69,7 +69,7 @@ export default function UserManagement() {
         const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id);
         const roleMap: Record<string, string> = {};
         userRoles.forEach((r: any) => { roleMap[r.module] = r.access; });
-        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15, is_hidden: (p as any).is_hidden ?? false, is_approver: (p as any).is_approver ?? false };
+        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15, is_hidden: (p as any).is_hidden ?? false, is_approver: (p as any).is_approver ?? false, approval_status: (p as any).approval_status ?? "approved" };
       });
       setUsers(mapped);
     }
