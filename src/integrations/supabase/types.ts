@@ -700,6 +700,9 @@ export type Database = {
       }
       tbl_profiles: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           designation: string
           email: string
@@ -715,6 +718,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           designation?: string
           email?: string
@@ -730,6 +736,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           designation?: string
           email?: string

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Shield, UserPlus, Trash2, Clock } from "lucide-react";
+import { Plus, Shield, UserPlus, Trash2, Clock, Check, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -29,7 +29,9 @@ interface UserProfile {
   session_timeout_minutes: number;
   is_hidden: boolean;
   is_approver: boolean;
+  approval_status: string;
 }
+
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -67,7 +69,7 @@ export default function UserManagement() {
         const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id);
         const roleMap: Record<string, string> = {};
         userRoles.forEach((r: any) => { roleMap[r.module] = r.access; });
-        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15, is_hidden: (p as any).is_hidden ?? false, is_approver: (p as any).is_approver ?? false };
+        return { user_id: p.user_id, full_name: p.full_name, email: p.email, is_active: p.is_active, last_login_at: (p as any).last_login_at || null, roles: roleMap, session_timeout_minutes: (p as any).session_timeout_minutes ?? 15, is_hidden: (p as any).is_hidden ?? false, is_approver: (p as any).is_approver ?? false, approval_status: (p as any).approval_status ?? "approved" };
       });
       setUsers(mapped);
     }
@@ -164,7 +166,20 @@ export default function UserManagement() {
     }
   };
 
-  const visibleUsers = users.filter((u) => !u.is_hidden);
+  const setApproval = async (userId: string, status: "approved" | "rejected") => {
+    const patch: any = { approval_status: status };
+    if (status === "approved") { patch.approved_at = new Date().toISOString(); patch.approved_by = user?.id; }
+    const { error } = await supabase.from("tbl_profiles").update(patch).eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: status === "approved" ? "User approved" : "User rejected" });
+      fetchUsers();
+    }
+  };
+
+  const visibleUsers = users.filter((u) => !u.is_hidden && u.approval_status === "approved");
+  const pendingUsers = users.filter((u) => !u.is_hidden && u.approval_status === "pending");
 
 
   const accessColor = (level: string) => {
@@ -227,7 +242,35 @@ export default function UserManagement() {
       {loading ? (
         <LoadingSpinner />
       ) : (
+        <>
+        {hasAdmin("users") && pendingUsers.length > 0 && (
+          <div className="glass-card p-4 md:p-6 space-y-3 border border-warning/30">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-warning" />
+              <h3 className="font-heading text-lg font-semibold text-foreground">Pending approvals ({pendingUsers.length})</h3>
+            </div>
+            <div className="space-y-2">
+              {pendingUsers.map((u) => (
+                <div key={u.user_id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{u.full_name || "—"}</p>
+                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => setApproval(u.user_id, "approved")} className="gap-1">
+                      <Check className="h-3.5 w-3.5" /> Approve
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setApproval(u.user_id, "rejected")} className="gap-1 text-destructive hover:text-destructive">
+                      <X className="h-3.5 w-3.5" /> Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="glass-card overflow-hidden">
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -335,6 +378,7 @@ export default function UserManagement() {
             </table>
           </div>
         </div>
+        </>
       )}
     </div>
   );
