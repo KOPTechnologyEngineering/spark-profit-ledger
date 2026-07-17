@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,9 +167,15 @@ export default function UserManagement() {
     }
   };
 
-  const setApproval = async (userId: string, status: "approved" | "rejected") => {
+  const setApproval = async (userId: string, status: "approved" | "rejected", reason?: string) => {
     const patch: any = { approval_status: status };
-    if (status === "approved") { patch.approved_at = new Date().toISOString(); patch.approved_by = user?.id; }
+    if (status === "approved") {
+      patch.approved_at = new Date().toISOString();
+      patch.approved_by = user?.id;
+      patch.rejection_reason = null;
+    } else {
+      patch.rejection_reason = reason?.trim() || null;
+    }
     const { error } = await supabase.from("tbl_profiles").update(patch).eq("user_id", userId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -177,6 +184,7 @@ export default function UserManagement() {
       fetchUsers();
     }
   };
+
 
   const visibleUsers = users.filter((u) => !u.is_hidden && u.approval_status === "approved");
   const pendingUsers = users.filter((u) => !u.is_hidden && u.approval_status === "pending");
