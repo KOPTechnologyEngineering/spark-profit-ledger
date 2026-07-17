@@ -166,7 +166,20 @@ export default function UserManagement() {
     }
   };
 
-  const visibleUsers = users.filter((u) => !u.is_hidden);
+  const setApproval = async (userId: string, status: "approved" | "rejected") => {
+    const patch: any = { approval_status: status };
+    if (status === "approved") { patch.approved_at = new Date().toISOString(); patch.approved_by = user?.id; }
+    const { error } = await supabase.from("tbl_profiles").update(patch).eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: status === "approved" ? "User approved" : "User rejected" });
+      fetchUsers();
+    }
+  };
+
+  const visibleUsers = users.filter((u) => !u.is_hidden && u.approval_status === "approved");
+  const pendingUsers = users.filter((u) => !u.is_hidden && u.approval_status === "pending");
 
 
   const accessColor = (level: string) => {
