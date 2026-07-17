@@ -127,7 +127,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     let content = "";
     if (type === "invoice") {
       const items = Array.isArray(record.items) ? record.items : [];
-      const lineNet = (i: any) => (Number(i.quantity) || 0) * (Number(i.rate) || 0) * (1 - (Number(i.discount) || 0) / 100);
+      const lineNet = (i: any) => Math.max(0, (Number(i.quantity) || 0) * (Number(i.rate) || 0) * (1 - (Number(i.discount) || 0) / 100) - (Number(i.discount_amount) || 0));
       const subtotal = items.reduce((s: number, i: any) => s + lineNet(i), 0);
       const discountPct = (record.discount_percentage as number | null | undefined) ?? 0;
       const discountAmount = subtotal * (discountPct / 100);
