@@ -21,13 +21,3 @@ export function filterByPeriod<T extends { date?: string; created_at?: string }>
     return isAfter(d, start) || d.getTime() === start.getTime();
   });
 }
-
-export function downloadCSV(filename: string, header: string, rows: string[]) {
-  const blob = new Blob([header + rows.join("\n")], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}

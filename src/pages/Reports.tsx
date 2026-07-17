@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FileText, Download, Building2, Receipt, Users, TrendingUp, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { downloadCSV } from "@/lib/date-filters";
+import { downloadCSV } from "@/lib/csv";
+import { sumAmounts } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
+import PageHeader from "@/components/PageHeader";
+import StatusBadge from "@/components/StatusBadge";
 import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 
@@ -18,12 +21,6 @@ const reports = [
   { title: "P60 End of Year Summary", description: "Employee annual tax and NI summary certificates", icon: Users, category: "Payroll", status: "ready", key: "p60" },
 ];
 
-const statusColors = {
-  ready: "bg-inflow-muted text-inflow",
-  due: "bg-warning/15 text-warning",
-  upcoming: "bg-secondary text-muted-foreground",
-};
-
 export default function Reports() {
   const { toast } = useToast();
   const [generating, setGenerating] = useState<string | null>(null);
@@ -35,41 +32,52 @@ export default function Reports() {
       if (key === "pnl" || key === "mgmt" || key === "aa") {
         const { data } = await supabase.from("tbl_transactions").select("amount, type, category, date, description, status");
         const txns = filterByDateRange(data || [], range, "date");
-        const header = "Category,Type,Description,Amount,Date,Status\n";
-        const rows = txns.map((t) => `"${t.category}","${t.type}","${t.description}",${t.amount},${t.date},${t.status}`);
-        downloadCSV(`${key}_report.csv`, header, rows);
+        downloadCSV(
+          `${key}_report.csv`,
+          ["Category", "Type", "Description", "Amount", "Date", "Status"],
+          txns.map((t) => [t.category, t.type, t.description, t.amount, t.date, t.status]),
+        );
       } else if (key === "ct600") {
         const { data } = await supabase.from("tbl_transactions").select("amount, type, category, status, date");
         const txns = filterByDateRange((data || []).filter((t) => t.status === "completed"), range, "date");
-        const revenue = txns.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
-        const expenses = txns.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
+        const revenue = sumAmounts(txns.filter((t) => t.type === "inflow"), "amount");
+        const expenses = sumAmounts(txns.filter((t) => t.type === "outflow"), "amount");
         const profit = revenue - expenses;
         const tax = Math.max(0, Math.round(profit * 0.19));
-        const header = "Item,Amount (£)\n";
-        const rows = [`Revenue,${revenue}`, `Expenses,${expenses}`, `Taxable Profit,${profit}`, `Corporation Tax (19%),${tax}`];
-        downloadCSV("ct600_report.csv", header, rows);
+        downloadCSV("ct600_report.csv", ["Item", "Amount (£)"], [
+          ["Revenue", revenue],
+          ["Expenses", expenses],
+          ["Taxable Profit", profit],
+          ["Corporation Tax (19%)", tax],
+        ]);
       } else if (key === "vat") {
         const { data } = await supabase.from("tbl_transactions").select("amount, type, date, description, category");
         const txns = filterByDateRange(data || [], range, "date");
-        const inflow = txns.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
-        const outflow = txns.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
+        const inflow = sumAmounts(txns.filter((t) => t.type === "inflow"), "amount");
+        const outflow = sumAmounts(txns.filter((t) => t.type === "outflow"), "amount");
         const outputVAT = Math.round(inflow * 0.2);
         const inputVAT = Math.round(outflow * 0.2);
-        const header = "Item,Amount (£)\n";
-        const rows = [`Total Sales,${inflow}`, `Output VAT (20%),${outputVAT}`, `Total Purchases,${outflow}`, `Input VAT (20%),${inputVAT}`, `Net VAT Payable,${outputVAT - inputVAT}`];
-        downloadCSV("vat100_return.csv", header, rows);
+        downloadCSV("vat100_return.csv", ["Item", "Amount (£)"], [
+          ["Total Sales", inflow],
+          ["Output VAT (20%)", outputVAT],
+          ["Total Purchases", outflow],
+          ["Input VAT (20%)", inputVAT],
+          ["Net VAT Payable", outputVAT - inputVAT],
+        ]);
       } else if (key === "paye" || key === "p60") {
         const { data } = await supabase.from("tbl_paye_employees").select("name, role, gross_pay, tax, ni, net_pay");
-        const emps = data || [];
-        const header = "Employee,Role,Gross Pay,Income Tax,NI,Net Pay\n";
-        const rows = emps.map((e) => `"${e.name}","${e.role}",${e.gross_pay},${e.tax},${e.ni},${e.net_pay}`);
-        downloadCSV(`${key}_report.csv`, header, rows);
+        downloadCSV(
+          `${key}_report.csv`,
+          ["Employee", "Role", "Gross Pay", "Income Tax", "NI", "Net Pay"],
+          (data || []).map((e) => [e.name, e.role, e.gross_pay, e.tax, e.ni, e.net_pay]),
+        );
       } else if (key === "cs01") {
         const { data } = await supabase.from("tbl_profiles").select("full_name, email, designation, is_active");
-        const profs = data || [];
-        const header = "Name,Email,Designation,Active\n";
-        const rows = profs.map((p: any) => `"${p.full_name}","${p.email}","${p.designation}",${p.is_active}`);
-        downloadCSV("cs01_confirmation.csv", header, rows);
+        downloadCSV(
+          "cs01_confirmation.csv",
+          ["Name", "Email", "Designation", "Active"],
+          (data || []).map((p) => [p.full_name, p.email, p.designation, p.is_active]),
+        );
       }
       toast({ title: "Report generated", description: "CSV file downloaded." });
     } catch {
@@ -80,13 +88,9 @@ export default function Reports() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground">Regulatory & Financial Reports</h1>
-          <p className="text-muted-foreground">Generate and file statutory reports</p>
-        </div>
+      <PageHeader title="Regulatory & Financial Reports" subtitle="Generate and file statutory reports">
         <DateRangePicker value={range} onChange={setRange} placeholder="Filter by date" />
-      </div>
+      </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2">
         {reports.map((report, i) => (
@@ -100,9 +104,7 @@ export default function Reports() {
                   <h3 className="font-heading text-sm font-semibold text-foreground">{report.title}</h3>
                   <p className="mt-1 text-xs text-muted-foreground">{report.description}</p>
                 </div>
-                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusColors[report.status as keyof typeof statusColors]}`}>
-                  {report.status}
-                </span>
+                <StatusBadge status={report.status} />
               </div>
               <div className="mt-3 flex items-center gap-2">
                 <span className="inline-flex rounded-md bg-accent px-2 py-0.5 text-xs text-muted-foreground">{report.category}</span>

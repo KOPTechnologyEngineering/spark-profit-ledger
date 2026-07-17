@@ -11,6 +11,8 @@ import { Plus, Shield, UserPlus, Trash2, Clock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import PageHeader from "@/components/PageHeader";
 import { motion } from "framer-motion";
 
 const modules = ["invoices", "transactions", "pnl", "vat", "paye", "reports", "users"] as const;
@@ -176,12 +178,7 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground">User Management</h1>
-          <p className="text-muted-foreground">Manage users and module-level permissions</p>
-        </div>
-
+      <PageHeader title="User Management" subtitle="Manage users and module-level permissions">
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
@@ -225,12 +222,10 @@ export default function UserManagement() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+      </PageHeader>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        </div>
+        <LoadingSpinner />
       ) : (
         <div className="glass-card overflow-hidden">
           <div className="overflow-x-auto">

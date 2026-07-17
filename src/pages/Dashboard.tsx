@@ -3,31 +3,39 @@ import { DollarSign, TrendingUp, TrendingDown, Wallet, FileText, Clock, AlertCir
 import StatCard from "@/components/StatCard";
 import CashflowChart from "@/components/CashflowChart";
 import RecentTransactions from "@/components/RecentTransactions";
+import PageHeader from "@/components/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector";
 import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { type Period, filterByPeriod } from "@/lib/date-filters";
+import { formatGBP, sumAmounts } from "@/lib/format";
+
+type TxnSummary = Pick<Tables<"tbl_transactions">, "amount" | "type" | "status" | "date">;
+type InvoiceSummary = Pick<Tables<"tbl_invoices">, "amount" | "status" | "created_at">;
 
 export default function Dashboard() {
   const [activePeriod, setActivePeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
-  const [allTxns, setAllTxns] = useState<any[]>([]);
-  const [allInvs, setAllInvs] = useState<any[]>([]);
+  const [allTxns, setAllTxns] = useState<TxnSummary[]>([]);
+  const [allInvs, setAllInvs] = useState<InvoiceSummary[]>([]);
   const [vatDue, setVatDue] = useState(0);
   const [payeMonth, setPayeMonth] = useState(0);
 
   useEffect(() => {
     const load = async () => {
-      const { data: txns } = await supabase.from("tbl_transactions").select("amount, type, status, date");
-      const { data: invs } = await supabase.from("tbl_invoices").select("amount, status, created_at");
-      const { data: vat } = await supabase.from("tbl_vat_returns").select("net_vat, status");
-      const { data: paye } = await supabase.from("tbl_paye_employees").select("gross_pay");
+      const [{ data: txns }, { data: invs }, { data: vat }, { data: paye }] = await Promise.all([
+        supabase.from("tbl_transactions").select("amount, type, status, date"),
+        supabase.from("tbl_invoices").select("amount, status, created_at"),
+        supabase.from("tbl_vat_returns").select("net_vat, status"),
+        supabase.from("tbl_paye_employees").select("gross_pay"),
+      ]);
       setAllTxns(txns || []);
       setAllInvs(invs || []);
-      setVatDue((vat || []).filter((v) => v.status === "due").reduce((s, v) => s + Number(v.net_vat), 0));
-      setPayeMonth((paye || []).reduce((s, p) => s + Number(p.gross_pay), 0));
+      setVatDue(sumAmounts((vat || []).filter((v) => v.status === "due"), "net_vat"));
+      setPayeMonth(sumAmounts(paye || [], "gross_pay"));
     };
     load();
   }, []);
@@ -36,10 +44,10 @@ export default function Dashboard() {
   const approved = filtered.filter((t) => t.status === "completed");
   const pending = filtered.filter((t) => t.status === "pending");
 
-  const revenue = approved.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
-  const expenses = approved.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
-  const pendingRevenue = pending.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
-  const pendingExpenses = pending.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
+  const revenue = sumAmounts(approved.filter((t) => t.type === "inflow"), "amount");
+  const expenses = sumAmounts(approved.filter((t) => t.type === "outflow"), "amount");
+  const pendingRevenue = sumAmounts(pending.filter((t) => t.type === "inflow"), "amount");
+  const pendingExpenses = sumAmounts(pending.filter((t) => t.type === "outflow"), "amount");
   const profit = revenue - expenses;
 
   const filteredInvs = filterByDateRange(filterByPeriod(allInvs, activePeriod), range, "created_at");
@@ -48,22 +56,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Financial overview for your business</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <PeriodSelector value={activePeriod} onChange={setActivePeriod} />
-          <DateRangePicker value={range} onChange={setRange} />
-        </div>
-      </div>
+      <PageHeader title="Dashboard" subtitle="Financial overview for your business">
+        <PeriodSelector value={activePeriod} onChange={setActivePeriod} />
+        <DateRangePicker value={range} onChange={setRange} />
+      </PageHeader>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Approved Revenue" value={`£${revenue.toLocaleString()}`} change={pendingRevenue > 0 ? `£${pendingRevenue.toLocaleString()} pending` : undefined} changeType="positive" icon={DollarSign} variant="inflow" />
-        <StatCard title="Approved Expenses" value={`£${expenses.toLocaleString()}`} change={pendingExpenses > 0 ? `£${pendingExpenses.toLocaleString()} pending` : undefined} changeType="negative" icon={TrendingDown} variant="outflow" />
-        <StatCard title="Net Profit" value={`£${profit.toLocaleString()}`} changeType={profit >= 0 ? "positive" : "negative"} icon={TrendingUp} />
-        <StatCard title="Cash Balance" value={`£${(revenue - expenses).toLocaleString()}`} change="Approved only" changeType="neutral" icon={Wallet} />
+        <StatCard title="Approved Revenue" value={formatGBP(revenue)} change={pendingRevenue > 0 ? `${formatGBP(pendingRevenue)} pending` : undefined} changeType="positive" icon={DollarSign} variant="inflow" />
+        <StatCard title="Approved Expenses" value={formatGBP(expenses)} change={pendingExpenses > 0 ? `${formatGBP(pendingExpenses)} pending` : undefined} changeType="negative" icon={TrendingDown} variant="outflow" />
+        <StatCard title="Net Profit" value={formatGBP(profit)} changeType={profit >= 0 ? "positive" : "negative"} icon={TrendingUp} />
+        <StatCard title="Cash Balance" value={formatGBP(profit)} change="Approved only" changeType="neutral" icon={Wallet} />
       </motion.div>
 
       {(pendingRevenue > 0 || pendingExpenses > 0 || pendingInv > 0) && (
@@ -73,8 +75,8 @@ export default function Dashboard() {
             <p className="text-sm font-medium text-foreground">Pending Approvals</p>
             <p className="text-xs text-muted-foreground mt-1">
               {pendingInv > 0 && `${pendingInv} invoice(s) pending. `}
-              {pendingRevenue > 0 && `£${pendingRevenue.toLocaleString()} inflow pending. `}
-              {pendingExpenses > 0 && `£${pendingExpenses.toLocaleString()} outflow pending. `}
+              {pendingRevenue > 0 && `${formatGBP(pendingRevenue)} inflow pending. `}
+              {pendingExpenses > 0 && `${formatGBP(pendingExpenses)} outflow pending. `}
               Values above reflect only fully approved records.
             </p>
           </div>
@@ -99,11 +101,11 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp className="h-4 w-4" /> VAT Due</div>
-                <span className="font-heading font-semibold text-foreground">£{vatDue.toLocaleString()}</span>
+                <span className="font-heading font-semibold text-foreground">{formatGBP(vatDue)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground"><DollarSign className="h-4 w-4" /> PAYE This Month</div>
-                <span className="font-heading font-semibold text-foreground">£{payeMonth.toLocaleString()}</span>
+                <span className="font-heading font-semibold text-foreground">{formatGBP(payeMonth)}</span>
               </div>
             </div>
           </div>

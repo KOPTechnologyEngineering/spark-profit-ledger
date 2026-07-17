@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { daysOverdue, ageBracket } from "@/lib/collections";
-import { downloadCSV } from "@/lib/date-filters";
+import { downloadCSV } from "@/lib/csv";
 import DateRangePicker from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
@@ -63,9 +63,11 @@ export default function CollectionsReports() {
   const exportCSV = () => {
     if (!data.length) return;
     const keys = Object.keys(data[0]);
-    const header = keys.join(",") + "\n";
-    const rows = data.map((r) => keys.map((k) => JSON.stringify(r[k] ?? "")).join(","));
-    downloadCSV(`${report}-report.csv`, header, rows);
+    downloadCSV(
+      `${report}-report.csv`,
+      keys,
+      data.map((r) => keys.map((k) => (typeof r[k] === "object" && r[k] !== null ? JSON.stringify(r[k]) : r[k]))),
+    );
   };
 
   return (

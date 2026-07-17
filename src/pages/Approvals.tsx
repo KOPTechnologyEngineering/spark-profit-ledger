@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import PageHeader from "@/components/PageHeader";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
+import { formatGBP } from "@/lib/format";
 import { CheckCircle, Clock } from "lucide-react";
 
 interface PendingItem {
@@ -14,7 +17,7 @@ interface PendingItem {
   status: string;
   date: string;
   approverRole: string;
-  raw: any;
+  raw: Tables<"tbl_invoices"> | Tables<"tbl_transactions">;
 }
 
 export default function Approvals() {
@@ -40,7 +43,7 @@ export default function Approvals() {
 
     const mapped: PendingItem[] = [];
 
-    (invoices || []).forEach((inv: any) => {
+    (invoices || []).forEach((inv) => {
       const isPending =
         (inv.approver1_id === user.id && inv.approver1_status === "pending") ||
         (inv.approver2_id === user.id && inv.approver2_status === "pending");
@@ -58,7 +61,7 @@ export default function Approvals() {
       });
     });
 
-    (transactions || []).forEach((txn: any) => {
+    (transactions || []).forEach((txn) => {
       const isPending =
         (txn.approver1_id === user.id && txn.approver1_status === "pending") ||
         (txn.approver2_id === user.id && txn.approver2_status === "pending");
@@ -87,10 +90,7 @@ export default function Approvals() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl font-bold text-foreground">Approvals</h1>
-        <p className="text-muted-foreground mt-1">Items pending your approval</p>
-      </div>
+      <PageHeader title="Approvals" subtitle="Items pending your approval" />
 
       {loading ? (
         <p className="text-muted-foreground">Loading…</p>
@@ -125,7 +125,7 @@ export default function Approvals() {
                     {item.type}
                   </Badge>
                   <span className="text-sm font-semibold text-foreground">
-                    £{Number(item.amount).toLocaleString()}
+                    {formatGBP(item.amount)}
                   </span>
                 </div>
               </CardContent>
