@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Shield, UserPlus, Trash2, Clock } from "lucide-react";
+import { Plus, Shield, UserPlus, Trash2, Clock, Check, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -29,7 +29,9 @@ interface UserProfile {
   session_timeout_minutes: number;
   is_hidden: boolean;
   is_approver: boolean;
+  approval_status: string;
 }
+
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
