@@ -95,7 +95,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
     setInvoiceNumber("");
     setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
-    setItems([{ description: "", quantity: 1, rate: 0, discount: 0 }]);
+    setItems([{ description: "", quantity: 1, rate: 0, discount: 0, discount_amount: 0 }]);
     setDiscountPercentage(0);
     setApprover1("");
     setApprover2("");
