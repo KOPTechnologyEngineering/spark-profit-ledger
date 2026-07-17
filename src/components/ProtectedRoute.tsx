@@ -8,6 +8,7 @@ import { Clock, XCircle } from "lucide-react";
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, signOut } = useAuth();
   const [status, setStatus] = useState<"loading" | "approved" | "pending" | "rejected">("loading");
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session) { setStatus("loading"); return; }
@@ -15,12 +16,13 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     (async () => {
       const { data } = await supabase
         .from("tbl_profiles")
-        .select("approval_status")
+        .select("approval_status, rejection_reason")
         .eq("user_id", session.user.id)
         .maybeSingle();
       if (cancelled) return;
       const s = (data as any)?.approval_status ?? "pending";
       setStatus(s === "approved" ? "approved" : s === "rejected" ? "rejected" : "pending");
+      setRejectionReason((data as any)?.rejection_reason ?? null);
     })();
     return () => { cancelled = true; };
   }, [session]);
@@ -51,6 +53,12 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
               ? "Your account request was rejected. Please contact an administrator."
               : "Your account has been created and is pending approval from an administrator. You'll be notified once approved."}
           </p>
+          {rejected && rejectionReason && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-left">
+              <p className="text-xs font-semibold uppercase tracking-wide text-destructive mb-1">Reason from admin</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{rejectionReason}</p>
+            </div>
+          )}
           <Button variant="outline" onClick={signOut} className="w-full">Sign out</Button>
         </div>
       </div>

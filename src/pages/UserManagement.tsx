@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +45,8 @@ export default function UserManagement() {
     Object.fromEntries(modules.map((m) => [m, "view"]))
   );
   const [addLoading, setAddLoading] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<UserProfile | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const { toast } = useToast();
   const { hasAdmin } = useUserRoles();
   const { user } = useAuth();
@@ -166,9 +169,15 @@ export default function UserManagement() {
     }
   };
 
-  const setApproval = async (userId: string, status: "approved" | "rejected") => {
+  const setApproval = async (userId: string, status: "approved" | "rejected", reason?: string) => {
     const patch: any = { approval_status: status };
-    if (status === "approved") { patch.approved_at = new Date().toISOString(); patch.approved_by = user?.id; }
+    if (status === "approved") {
+      patch.approved_at = new Date().toISOString();
+      patch.approved_by = user?.id;
+      patch.rejection_reason = null;
+    } else {
+      patch.rejection_reason = reason?.trim() || null;
+    }
     const { error } = await supabase.from("tbl_profiles").update(patch).eq("user_id", userId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -177,6 +186,7 @@ export default function UserManagement() {
       fetchUsers();
     }
   };
+
 
   const visibleUsers = users.filter((u) => !u.is_hidden && u.approval_status === "approved");
   const pendingUsers = users.filter((u) => !u.is_hidden && u.approval_status === "pending");
@@ -260,9 +270,10 @@ export default function UserManagement() {
                     <Button size="sm" onClick={() => setApproval(u.user_id, "approved")} className="gap-1">
                       <Check className="h-3.5 w-3.5" /> Approve
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setApproval(u.user_id, "rejected")} className="gap-1 text-destructive hover:text-destructive">
+                    <Button size="sm" variant="outline" onClick={() => { setRejectTarget(u); setRejectReason(""); }} className="gap-1 text-destructive hover:text-destructive">
                       <X className="h-3.5 w-3.5" /> Reject
                     </Button>
+
                   </div>
                 </div>
               ))}
@@ -380,6 +391,36 @@ export default function UserManagement() {
         </div>
         </>
       )}
+
+      <Dialog open={!!rejectTarget} onOpenChange={(o) => { if (!o) setRejectTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading">Reject {rejectTarget?.full_name || rejectTarget?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Reason (shown to the user)</Label>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Unable to verify company affiliation. Please contact HR."
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectTarget(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!rejectTarget) return;
+                await setApproval(rejectTarget.user_id, "rejected", rejectReason);
+                setRejectTarget(null);
+              }}
+            >
+              Reject user
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
