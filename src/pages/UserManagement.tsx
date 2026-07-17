@@ -182,8 +182,15 @@ export default function UserManagement() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      await supabase.from("tbl_user_approval_audit" as any).insert({
+        target_user_id: userId,
+        actor_user_id: user?.id,
+        action: status,
+        reason: status === "rejected" ? (reason?.trim() || null) : null,
+      });
       toast({ title: status === "approved" ? "User approved" : "User rejected" });
       fetchUsers();
+      fetchAuditLog();
     }
   };
 
