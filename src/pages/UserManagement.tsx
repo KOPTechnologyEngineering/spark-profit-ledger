@@ -45,6 +45,8 @@ export default function UserManagement() {
     Object.fromEntries(modules.map((m) => [m, "view"]))
   );
   const [addLoading, setAddLoading] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<UserProfile | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const { toast } = useToast();
   const { hasAdmin } = useUserRoles();
   const { user } = useAuth();
@@ -268,9 +270,10 @@ export default function UserManagement() {
                     <Button size="sm" onClick={() => setApproval(u.user_id, "approved")} className="gap-1">
                       <Check className="h-3.5 w-3.5" /> Approve
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setApproval(u.user_id, "rejected")} className="gap-1 text-destructive hover:text-destructive">
+                    <Button size="sm" variant="outline" onClick={() => { setRejectTarget(u); setRejectReason(""); }} className="gap-1 text-destructive hover:text-destructive">
                       <X className="h-3.5 w-3.5" /> Reject
                     </Button>
+
                   </div>
                 </div>
               ))}
