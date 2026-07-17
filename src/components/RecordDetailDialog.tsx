@@ -298,7 +298,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
                   {record.items.map((item: any, idx: number) => (
                     <div key={idx} className="flex justify-between text-sm py-1 border-b border-border/50">
                       <span>{item.description}</span>
-                      <span>x{item.quantity} @ £{item.rate}{Number(item.discount) > 0 ? ` (-${item.discount}%)` : ""}</span>
+                      <span>x{item.quantity} @ £{item.rate}{Number(item.discount) > 0 ? ` (-${item.discount}%)` : ""}{Number(item.discount_amount) > 0 ? ` (-£${Number(item.discount_amount).toFixed(2)})` : ""}</span>
                     </div>
                   ))}
                 </div>
