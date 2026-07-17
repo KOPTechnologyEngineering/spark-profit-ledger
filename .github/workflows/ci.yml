@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Uses `npm install`, not `npm ci`: the committed package-lock.json is
+      # stale (missing many deps that package.json declares — the repo installs
+      # via bun.lock in practice), so `npm ci` would fail. Regenerating the
+      # lockfile, or switching this to bun, would let us pin to `npm ci`.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # Hard gates — these must pass. All green on main today.
+      - name: Typecheck
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Build
+        run: npm run build
+
+      # Informational only for now: the repo has pre-existing lint debt
+      # (mostly @typescript-eslint/no-explicit-any). Flip to a hard gate
+      # once that backlog is cleared.
+      - name: Lint (non-blocking)
+        run: npm run lint
+        continue-on-error: true
