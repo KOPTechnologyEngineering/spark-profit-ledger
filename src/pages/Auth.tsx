@@ -70,6 +70,17 @@ export default function Auth() {
               },
             })
             .catch((e) => console.warn("Welcome email failed", e));
+
+          supabase.functions
+            .invoke("notify-admins-new-signup", {
+              body: {
+                newUserId: signupData.user.id,
+                newUserEmail: email,
+                newUserName: fullName || email.split("@")[0],
+                appUrl: window.location.origin,
+              },
+            })
+            .catch((e) => console.warn("Admin notification failed", e));
         }
         toast({ title: "Account created!", description: "Your account is awaiting admin approval. You'll get access once approved." });
       }
