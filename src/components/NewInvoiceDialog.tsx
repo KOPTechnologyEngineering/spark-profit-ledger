@@ -146,7 +146,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
               </Button>
             </div>
             {items.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_60px_90px_70px_32px] gap-2 items-end">
+              <div key={i} className="grid grid-cols-[1fr_50px_80px_60px_80px_32px] gap-2 items-end">
                 <div>
                   {i === 0 && <Label className="text-xs text-muted-foreground">Description</Label>}
                   <Input value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="Service" required />
@@ -162,6 +162,10 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
                 <div>
                   {i === 0 && <Label className="text-xs text-muted-foreground">Disc %</Label>}
                   <Input type="number" min={0} max={100} step={0.01} value={item.discount} onChange={(e) => updateItem(i, "discount", Number(e.target.value))} />
+                </div>
+                <div>
+                  {i === 0 && <Label className="text-xs text-muted-foreground">Disc £</Label>}
+                  <Input type="number" min={0} step={0.01} value={item.discount_amount} onChange={(e) => updateItem(i, "discount_amount", Number(e.target.value))} />
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(i)} disabled={items.length === 1} className="h-10 w-10">
                   <Trash2 className="h-4 w-4 text-outflow" />
