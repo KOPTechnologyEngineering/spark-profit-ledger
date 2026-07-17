@@ -80,7 +80,24 @@ export default function UserManagement() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchAuditLog = async () => {
+    const { data } = await supabase
+      .from("tbl_user_approval_audit" as any)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (!data) return;
+    const rows = data as any[];
+    const ids = Array.from(new Set(rows.flatMap((r) => [r.target_user_id, r.actor_user_id]).filter(Boolean)));
+    let profileMap: Record<string, { full_name: string; email: string }> = {};
+    if (ids.length) {
+      const { data: profs } = await supabase.from("tbl_profiles").select("user_id, full_name, email").in("user_id", ids);
+      (profs || []).forEach((p: any) => { profileMap[p.user_id] = { full_name: p.full_name, email: p.email }; });
+    }
+    setAuditLog(rows.map((r) => ({ ...r, target: profileMap[r.target_user_id], actor: profileMap[r.actor_user_id] })));
+  };
+
+  useEffect(() => { fetchUsers(); fetchAuditLog(); }, []);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
