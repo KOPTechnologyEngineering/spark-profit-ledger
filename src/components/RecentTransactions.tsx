@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { formatGBP } from "@/lib/format";
+
+type TransactionRow = Tables<"tbl_transactions">;
 
 export default function RecentTransactions() {
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
 
   useEffect(() => {
     supabase.from("tbl_transactions").select("*").order("date", { ascending: false }).limit(6).then(({ data }) => {
@@ -29,7 +33,7 @@ export default function RecentTransactions() {
               </div>
             </div>
             <span className={`font-heading text-sm font-semibold ${tx.type === 'inflow' ? 'text-inflow' : 'text-outflow'}`}>
-              {tx.type === 'inflow' ? '+' : '-'}£{Number(tx.amount).toLocaleString()}
+              {tx.type === 'inflow' ? '+' : '-'}{formatGBP(tx.amount)}
             </span>
           </div>
         ))}

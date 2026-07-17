@@ -2,13 +2,48 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
+import PageHeader from "@/components/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector";
-import { type Period, filterByPeriod, downloadCSV } from "@/lib/date-filters";
+import SummaryTile from "@/components/SummaryTile";
+import { type Period, filterByPeriod } from "@/lib/date-filters";
+import { downloadCSV } from "@/lib/csv";
+import { formatGBP } from "@/lib/format";
+
+type TxnSummary = Pick<Tables<"tbl_transactions">, "amount" | "type" | "category" | "date">;
+
+interface BreakdownItem {
+  label: string;
+  amount: number;
+}
+
+function CategoryBreakdown({ title, items, total, tone }: { title: string; items: BreakdownItem[]; total: number; tone: "inflow" | "outflow" }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={tone === "outflow" ? { delay: 0.1 } : undefined} className="glass-card p-6">
+      <h3 className="font-heading text-lg font-semibold text-foreground mb-4">{title}</h3>
+      {items.length === 0 ? <p className="text-sm text-muted-foreground">No {tone === "inflow" ? "revenue" : "expense"} data</p> : (
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div key={item.label} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <span className="text-sm text-muted-foreground truncate sm:max-w-[40%]">{item.label}</span>
+              <div className="flex items-center gap-3 sm:flex-1 sm:justify-end">
+                <div className="h-2 flex-1 sm:w-24 sm:flex-none overflow-hidden rounded-full bg-secondary">
+                  <div className={`h-full rounded-full ${tone === "inflow" ? "bg-inflow" : "bg-outflow"}`} style={{ width: `${(item.amount / total) * 100}%` }} />
+                </div>
+                <span className={`font-heading text-sm font-semibold whitespace-nowrap ${tone === "inflow" ? "text-inflow" : "text-outflow"}`}>{formatGBP(item.amount)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
 export default function ProfitLoss() {
   const [period, setPeriod] = useState<Period>("Monthly");
-  const [allTxns, setAllTxns] = useState<any[]>([]);
+  const [allTxns, setAllTxns] = useState<TxnSummary[]>([]);
 
   useEffect(() => {
     supabase.from("tbl_transactions").select("amount, type, category, date").then(({ data }) => setAllTxns(data || []));
@@ -23,89 +58,42 @@ export default function ProfitLoss() {
     map[t.category] = (map[t.category] || 0) + Number(t.amount);
   });
 
-  const revenue = Object.entries(revMap).map(([label, amount]) => ({ label, amount }));
-  const expenses = Object.entries(expMap).map(([label, amount]) => ({ label, amount }));
+  const revenue: BreakdownItem[] = Object.entries(revMap).map(([label, amount]) => ({ label, amount }));
+  const expenses: BreakdownItem[] = Object.entries(expMap).map(([label, amount]) => ({ label, amount }));
   const totalRevenue = revenue.reduce((s, r) => s + r.amount, 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const netProfit = totalRevenue - totalExpenses;
 
   const exportCSV = () => {
-    const header = "Category,Type,Amount\n";
-    const rows = [
-      ...revenue.map((r) => `"${r.label}",Revenue,${r.amount}`),
-      ...expenses.map((e) => `"${e.label}",Expense,${e.amount}`),
-      `Net Profit,,${netProfit}`,
-    ];
-    downloadCSV("profit_loss.csv", header, rows);
+    downloadCSV("profit_loss.csv", ["Category", "Type", "Amount"], [
+      ...revenue.map((r) => [r.label, "Revenue", r.amount]),
+      ...expenses.map((e) => [e.label, "Expense", e.amount]),
+      ["Net Profit", "", netProfit],
+    ]);
   };
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground">Profit & Loss</h1>
-          <p className="text-muted-foreground">Calculated from all transactions</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export</Button>
-          <PeriodSelector value={period} onChange={setPeriod} />
-        </div>
-      </div>
+      <PageHeader title="Profit & Loss" subtitle="Calculated from all transactions">
+        <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export</Button>
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </PageHeader>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <div className="glass-card glow-green gradient-inflow p-6">
-          <p className="text-sm text-muted-foreground">Total Revenue</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-inflow">£{totalRevenue.toLocaleString()}</p>
-        </div>
-        <div className="glass-card glow-red gradient-outflow p-6">
-          <p className="text-sm text-muted-foreground">Total Expenses</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-outflow">£{totalExpenses.toLocaleString()}</p>
-        </div>
-        <div className={`glass-card p-6 ${netProfit >= 0 ? 'glow-green' : 'glow-red'}`}>
-          <p className="text-sm text-muted-foreground">Net Profit</p>
-          <p className={`mt-1 font-heading text-2xl font-bold ${netProfit >= 0 ? 'text-inflow' : 'text-outflow'}`}>£{netProfit.toLocaleString()}</p>
-          {totalRevenue > 0 && <p className="mt-1 text-xs text-muted-foreground">Margin: {((netProfit / totalRevenue) * 100).toFixed(1)}%</p>}
-        </div>
+        <SummaryTile label="Total Revenue" value={formatGBP(totalRevenue)} tone="inflow" className="glow-green gradient-inflow" />
+        <SummaryTile label="Total Expenses" value={formatGBP(totalExpenses)} tone="outflow" className="glow-red gradient-outflow" />
+        <SummaryTile
+          label="Net Profit"
+          value={formatGBP(netProfit)}
+          tone={netProfit >= 0 ? "inflow" : "outflow"}
+          className={netProfit >= 0 ? "glow-green" : "glow-red"}
+          footnote={totalRevenue > 0 ? `Margin: ${((netProfit / totalRevenue) * 100).toFixed(1)}%` : undefined}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6">
-          <h3 className="font-heading text-lg font-semibold text-foreground mb-4">Revenue Breakdown</h3>
-          {revenue.length === 0 ? <p className="text-sm text-muted-foreground">No revenue data</p> : (
-            <div className="space-y-3">
-              {revenue.map((item) => (
-                <div key={item.label} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <span className="text-sm text-muted-foreground truncate sm:max-w-[40%]">{item.label}</span>
-                  <div className="flex items-center gap-3 sm:flex-1 sm:justify-end">
-                    <div className="h-2 flex-1 sm:w-24 sm:flex-none overflow-hidden rounded-full bg-secondary">
-                      <div className="h-full rounded-full bg-inflow" style={{ width: `${(item.amount / totalRevenue) * 100}%` }} />
-                    </div>
-                    <span className="font-heading text-sm font-semibold text-inflow whitespace-nowrap">£{item.amount.toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="glass-card p-6">
-          <h3 className="font-heading text-lg font-semibold text-foreground mb-4">Expense Breakdown</h3>
-          {expenses.length === 0 ? <p className="text-sm text-muted-foreground">No expense data</p> : (
-            <div className="space-y-3">
-              {expenses.map((item) => (
-                <div key={item.label} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <span className="text-sm text-muted-foreground truncate sm:max-w-[40%]">{item.label}</span>
-                  <div className="flex items-center gap-3 sm:flex-1 sm:justify-end">
-                    <div className="h-2 flex-1 sm:w-24 sm:flex-none overflow-hidden rounded-full bg-secondary">
-                      <div className="h-full rounded-full bg-outflow" style={{ width: `${(item.amount / totalExpenses) * 100}%` }} />
-                    </div>
-                    <span className="font-heading text-sm font-semibold text-outflow whitespace-nowrap">£{item.amount.toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </motion.div>
+        <CategoryBreakdown title="Revenue Breakdown" items={revenue} total={totalRevenue} tone="inflow" />
+        <CategoryBreakdown title="Expense Breakdown" items={expenses} total={totalExpenses} tone="outflow" />
       </div>
 
       <div className="glass-card p-6">
@@ -113,15 +101,15 @@ export default function ProfitLoss() {
         <div className="space-y-2">
           <div className="flex justify-between border-b border-border py-2">
             <span className="font-medium text-foreground">Gross Revenue</span>
-            <span className="font-heading font-bold text-inflow">£{totalRevenue.toLocaleString()}</span>
+            <span className="font-heading font-bold text-inflow">{formatGBP(totalRevenue)}</span>
           </div>
           <div className="flex justify-between border-b border-border py-2">
             <span className="font-medium text-foreground">Total Operating Expenses</span>
-            <span className="font-heading font-bold text-outflow">(£{totalExpenses.toLocaleString()})</span>
+            <span className="font-heading font-bold text-outflow">({formatGBP(totalExpenses)})</span>
           </div>
           <div className="flex justify-between pt-2">
             <span className="text-lg font-bold text-foreground">Net Profit / (Loss)</span>
-            <span className={`font-heading text-lg font-bold ${netProfit >= 0 ? 'text-inflow' : 'text-outflow'}`}>£{netProfit.toLocaleString()}</span>
+            <span className={`font-heading text-lg font-bold ${netProfit >= 0 ? 'text-inflow' : 'text-outflow'}`}>{formatGBP(netProfit)}</span>
           </div>
         </div>
       </div>

@@ -1,15 +1,24 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { CheckCircle, Clock, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PageHeader from "@/components/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector";
-import { type Period, filterByPeriod, downloadCSV } from "@/lib/date-filters";
+import StatusBadge from "@/components/StatusBadge";
+import SummaryTile from "@/components/SummaryTile";
+import { type Period, filterByPeriod } from "@/lib/date-filters";
+import { downloadCSV } from "@/lib/csv";
+import { formatGBP, sumAmounts } from "@/lib/format";
+
+type TxnSummary = Pick<Tables<"tbl_transactions">, "amount" | "type" | "date">;
+type VatReturnRow = Tables<"tbl_vat_returns">;
 
 export default function VAT() {
   const [period, setPeriod] = useState<Period>("Monthly");
-  const [allTxns, setAllTxns] = useState<any[]>([]);
-  const [vatReturns, setVatReturns] = useState<any[]>([]);
+  const [allTxns, setAllTxns] = useState<TxnSummary[]>([]);
+  const [vatReturns, setVatReturns] = useState<VatReturnRow[]>([]);
 
   useEffect(() => {
     supabase.from("tbl_transactions").select("amount, type, date").then(({ data }) => setAllTxns(data || []));
@@ -17,44 +26,33 @@ export default function VAT() {
   }, []);
 
   const filtered = filterByPeriod(allTxns, period);
-  const inflow = filtered.filter((t) => t.type === "inflow").reduce((s, t) => s + Number(t.amount), 0);
-  const outflow = filtered.filter((t) => t.type === "outflow").reduce((s, t) => s + Number(t.amount), 0);
+  const inflow = sumAmounts(filtered.filter((t) => t.type === "inflow"), "amount");
+  const outflow = sumAmounts(filtered.filter((t) => t.type === "outflow"), "amount");
   const outputVAT = Math.round(inflow * 0.2);
   const inputVAT = Math.round(outflow * 0.2);
   const netVAT = outputVAT - inputVAT;
 
   const exportCSV = () => {
-    const header = "Item,Amount (£)\n";
-    const rows = [`Total Sales,${inflow}`, `Output VAT (20%),${outputVAT}`, `Total Purchases,${outflow}`, `Input VAT (20%),${inputVAT}`, `Net VAT,${netVAT}`];
-    downloadCSV("vat_summary.csv", header, rows);
+    downloadCSV("vat_summary.csv", ["Item", "Amount (£)"], [
+      ["Total Sales", inflow],
+      ["Output VAT (20%)", outputVAT],
+      ["Total Purchases", outflow],
+      ["Input VAT (20%)", inputVAT],
+      ["Net VAT", netVAT],
+    ]);
   };
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground">VAT Management</h1>
-          <p className="text-muted-foreground">Track and file your VAT returns</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export</Button>
-          <PeriodSelector value={period} onChange={setPeriod} />
-        </div>
-      </div>
+      <PageHeader title="VAT Management" subtitle="Track and file your VAT returns">
+        <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export</Button>
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </PageHeader>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <div className="glass-card p-6">
-          <p className="text-sm text-muted-foreground">Output VAT (on sales)</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-foreground">£{outputVAT.toLocaleString()}</p>
-        </div>
-        <div className="glass-card p-6">
-          <p className="text-sm text-muted-foreground">Input VAT (on purchases)</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-foreground">£{inputVAT.toLocaleString()}</p>
-        </div>
-        <div className="glass-card glow-red gradient-outflow p-6">
-          <p className="text-sm text-muted-foreground">Net VAT Payable</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-outflow">£{netVAT.toLocaleString()}</p>
-        </div>
+        <SummaryTile label="Output VAT (on sales)" value={formatGBP(outputVAT)} />
+        <SummaryTile label="Input VAT (on purchases)" value={formatGBP(inputVAT)} />
+        <SummaryTile label="Net VAT Payable" value={formatGBP(netVAT)} tone="outflow" className="glow-red gradient-outflow" />
       </div>
 
       <div className="glass-card p-0 overflow-hidden">
@@ -74,29 +72,28 @@ export default function VAT() {
                     {q.status === 'filed' ? <CheckCircle className="h-5 w-5 text-inflow" /> : <Clock className="h-5 w-5 text-warning" />}
                     <span className="font-medium text-foreground">{q.quarter}</span>
                   </div>
-                  <span className={`md:hidden inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${q.status === 'filed' ? 'bg-inflow-muted text-inflow' : 'bg-warning/15 text-warning'}`}>{q.status}</span>
+                  <StatusBadge status={q.status} className="md:hidden" />
                 </div>
                 <div className="flex items-center gap-4 sm:gap-8 flex-wrap">
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Output</p>
-                    <p className="font-heading text-sm font-semibold text-foreground">£{Number(q.output_vat).toLocaleString()}</p>
+                    <p className="font-heading text-sm font-semibold text-foreground">{formatGBP(q.output_vat)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Input</p>
-                    <p className="font-heading text-sm font-semibold text-foreground">£{Number(q.input_vat).toLocaleString()}</p>
+                    <p className="font-heading text-sm font-semibold text-foreground">{formatGBP(q.input_vat)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Net</p>
-                    <p className="font-heading text-sm font-semibold text-outflow">£{Number(q.net_vat).toLocaleString()}</p>
+                    <p className="font-heading text-sm font-semibold text-outflow">{formatGBP(q.net_vat)}</p>
                   </div>
-                  <span className={`hidden md:inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${q.status === 'filed' ? 'bg-inflow-muted text-inflow' : 'bg-warning/15 text-warning'}`}>{q.status}</span>
+                  <StatusBadge status={q.status} className="hidden md:inline-flex" />
                   <Button variant="ghost" size="sm" aria-label="View return">
                     <Eye className="h-4 w-4" />
                     <span className="hidden sm:inline ml-1">View</span>
                   </Button>
                 </div>
               </motion.div>
-
             ))}
           </div>
         )}

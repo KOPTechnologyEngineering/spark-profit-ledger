@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Plus, Trash2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
-import { downloadCSV } from "@/lib/date-filters";
+import PageHeader from "@/components/PageHeader";
+import SummaryTile from "@/components/SummaryTile";
+import { downloadCSV } from "@/lib/csv";
+import { formatGBP, sumAmounts } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -54,6 +58,8 @@ function calcUKDeductions(grossAnnual: number) {
 
 const emptyForm = { name: "", designation: "", grade: "", grossAnnual: "" };
 
+type EmployeeRow = Tables<"tbl_paye_employees">;
+
 export default function PAYE() {
   const { user } = useAuth();
   const { hasAdmin, hasEdit } = useUserRoles();
@@ -61,23 +67,22 @@ export default function PAYE() {
   const canDelete = hasAdmin("paye");
   const isAdmin = hasAdmin("paye");
 
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [totals, setTotals] = useState({ gross: 0, tax: 0, ni: 0, net: 0 });
+  const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
+  const totals = {
+    gross: sumAmounts(employees, "gross_pay"),
+    tax: sumAmounts(employees, "tax"),
+    ni: sumAmounts(employees, "ni"),
+    net: sumAmounts(employees, "net_pay"),
+  };
+
   const fetchEmployees = async () => {
     const { data } = await supabase.from("tbl_paye_employees").select("*").order("name");
-    const emps = data || [];
-    setEmployees(emps);
-    setTotals({
-      gross: emps.reduce((s, e) => s + Number(e.gross_pay), 0),
-      tax: emps.reduce((s, e) => s + Number(e.tax), 0),
-      ni: emps.reduce((s, e) => s + Number(e.ni), 0),
-      net: emps.reduce((s, e) => s + Number(e.net_pay), 0),
-    });
+    setEmployees(data || []);
   };
 
   useEffect(() => { fetchEmployees(); }, []);
@@ -88,7 +93,7 @@ export default function PAYE() {
     setOpen(true);
   };
 
-  const openEdit = (emp: any) => {
+  const openEdit = (emp: EmployeeRow) => {
     setEditId(emp.id);
     setForm({
       name: emp.name,
@@ -144,29 +149,23 @@ export default function PAYE() {
   };
 
   const exportCSV = () => {
-    const header = "Employee,Designation,Grade,Gross Annual,Monthly Gross,Income Tax,NI,Net Pay\n";
-    const rows = employees.map((e) =>
-      `"${e.name}","${e.designation || e.role}","${e.grade}",${e.gross_annual},${e.gross_pay},${e.tax},${e.ni},${e.net_pay}`
+    downloadCSV(
+      "paye_payroll.csv",
+      ["Employee", "Designation", "Grade", "Gross Annual", "Monthly Gross", "Income Tax", "NI", "Net Pay"],
+      employees.map((e) => [e.name, e.designation || e.role, e.grade, e.gross_annual, e.gross_pay, e.tax, e.ni, e.net_pay]),
     );
-    downloadCSV("paye_payroll.csv", header, rows);
   };
 
   const preview = form.grossAnnual ? calcUKDeductions(parseFloat(form.grossAnnual) || 0) : null;
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground">PAYE Management</h1>
-          <p className="text-muted-foreground">Employee payroll and tax deductions</p>
-        </div>
-        <div className="flex gap-2">
-          {canEdit && (
-            <Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Add Employee</Button>
-          )}
-          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
-        </div>
-      </div>
+      <PageHeader title="PAYE Management" subtitle="Employee payroll and tax deductions">
+        {canEdit && (
+          <Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Add Employee</Button>
+        )}
+        <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+      </PageHeader>
 
       {/* Add / Edit Dialog */}
       <Dialog open={open} onOpenChange={(v) => { if (!v) { setEditId(null); setForm(emptyForm); } setOpen(v); }}>
@@ -201,10 +200,10 @@ export default function PAYE() {
             {preview && parseFloat(form.grossAnnual) > 0 && (
               <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-1 text-sm">
                 <p className="font-semibold text-foreground mb-2">Monthly Breakdown (auto-calculated)</p>
-                <div className="flex justify-between"><span className="text-muted-foreground">Gross Pay</span><span className="text-foreground font-medium">£{preview.gross_pay.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Income Tax</span><span className="text-outflow">-£{preview.tax.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">National Insurance</span><span className="text-outflow">-£{preview.ni.toLocaleString()}</span></div>
-                <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="font-semibold text-foreground">Net Pay</span><span className="font-bold text-inflow">£{preview.net_pay.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Gross Pay</span><span className="text-foreground font-medium">{formatGBP(preview.gross_pay)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Income Tax</span><span className="text-outflow">-{formatGBP(preview.tax)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">National Insurance</span><span className="text-outflow">-{formatGBP(preview.ni)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="font-semibold text-foreground">Net Pay</span><span className="font-bold text-inflow">{formatGBP(preview.net_pay)}</span></div>
               </div>
             )}
             <Button className="w-full" onClick={handleSave} disabled={saving}>{saving ? "Saving…" : editId ? "Update Employee" : "Add Employee"}</Button>
@@ -213,22 +212,10 @@ export default function PAYE() {
       </Dialog>
 
       <div className="grid gap-6 md:grid-cols-4">
-        <div className="glass-card p-6">
-          <p className="text-sm text-muted-foreground">Total Monthly Gross</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-foreground">£{totals.gross.toLocaleString()}</p>
-        </div>
-        <div className="glass-card glow-red gradient-outflow p-6">
-          <p className="text-sm text-muted-foreground">Income Tax</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-outflow">£{totals.tax.toLocaleString()}</p>
-        </div>
-        <div className="glass-card gradient-outflow p-6">
-          <p className="text-sm text-muted-foreground">National Insurance</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-outflow">£{totals.ni.toLocaleString()}</p>
-        </div>
-        <div className="glass-card glow-green gradient-inflow p-6">
-          <p className="text-sm text-muted-foreground">Total Net Pay</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-inflow">£{totals.net.toLocaleString()}</p>
-        </div>
+        <SummaryTile label="Total Monthly Gross" value={formatGBP(totals.gross)} />
+        <SummaryTile label="Income Tax" value={formatGBP(totals.tax)} tone="outflow" className="glow-red gradient-outflow" />
+        <SummaryTile label="National Insurance" value={formatGBP(totals.ni)} tone="outflow" className="gradient-outflow" />
+        <SummaryTile label="Total Net Pay" value={formatGBP(totals.net)} tone="inflow" className="glow-green gradient-inflow" />
       </div>
 
       <div className="glass-card overflow-hidden">
@@ -259,11 +246,11 @@ export default function PAYE() {
                     <td className="px-6 py-4 text-sm font-medium text-foreground">{emp.name}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{emp.designation || emp.role}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{emp.grade || "—"}</td>
-                    <td className="px-6 py-4 text-right font-heading text-sm text-muted-foreground">£{Number(emp.gross_annual || 0).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-right font-heading text-sm font-semibold text-foreground">£{Number(emp.gross_pay).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-right font-heading text-sm text-outflow">£{Number(emp.tax).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-right font-heading text-sm text-outflow">£{Number(emp.ni).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-right font-heading text-sm font-semibold text-inflow">£{Number(emp.net_pay).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-right font-heading text-sm text-muted-foreground">{formatGBP(emp.gross_annual)}</td>
+                    <td className="px-6 py-4 text-right font-heading text-sm font-semibold text-foreground">{formatGBP(emp.gross_pay)}</td>
+                    <td className="px-6 py-4 text-right font-heading text-sm text-outflow">{formatGBP(emp.tax)}</td>
+                    <td className="px-6 py-4 text-right font-heading text-sm text-outflow">{formatGBP(emp.ni)}</td>
+                    <td className="px-6 py-4 text-right font-heading text-sm font-semibold text-inflow">{formatGBP(emp.net_pay)}</td>
                     {(canDelete || isAdmin) && (
                       <td className="px-6 py-4 text-right space-x-1">
                         {isAdmin && (
