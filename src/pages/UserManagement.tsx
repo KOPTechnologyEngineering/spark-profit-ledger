@@ -36,6 +36,7 @@ interface UserProfile {
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -79,7 +80,24 @@ export default function UserManagement() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchAuditLog = async () => {
+    const { data } = await supabase
+      .from("tbl_user_approval_audit" as any)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (!data) return;
+    const rows = data as any[];
+    const ids = Array.from(new Set(rows.flatMap((r) => [r.target_user_id, r.actor_user_id]).filter(Boolean)));
+    let profileMap: Record<string, { full_name: string; email: string }> = {};
+    if (ids.length) {
+      const { data: profs } = await supabase.from("tbl_profiles").select("user_id, full_name, email").in("user_id", ids);
+      (profs || []).forEach((p: any) => { profileMap[p.user_id] = { full_name: p.full_name, email: p.email }; });
+    }
+    setAuditLog(rows.map((r) => ({ ...r, target: profileMap[r.target_user_id], actor: profileMap[r.actor_user_id] })));
+  };
+
+  useEffect(() => { fetchUsers(); fetchAuditLog(); }, []);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,8 +200,15 @@ export default function UserManagement() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      await supabase.from("tbl_user_approval_audit" as any).insert({
+        target_user_id: userId,
+        actor_user_id: user?.id,
+        action: status,
+        reason: status === "rejected" ? (reason?.trim() || null) : null,
+      });
       toast({ title: status === "approved" ? "User approved" : "User rejected" });
       fetchUsers();
+      fetchAuditLog();
     }
   };
 
@@ -389,6 +414,39 @@ export default function UserManagement() {
             </table>
           </div>
         </div>
+        {hasAdmin("users") && (
+          <div className="glass-card p-4 md:p-6 space-y-3">
+            <h3 className="font-heading text-lg font-semibold text-foreground">Approval audit log</h3>
+            {auditLog.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No approval decisions recorded yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
+                      <th className="px-3 py-2 text-left">When</th>
+                      <th className="px-3 py-2 text-left">User</th>
+                      <th className="px-3 py-2 text-left">Action</th>
+                      <th className="px-3 py-2 text-left">By</th>
+                      <th className="px-3 py-2 text-left">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLog.map((r) => (
+                      <tr key={r.id} className="border-b border-border/50">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
+                        <td className="px-3 py-2">{r.target?.full_name || r.target?.email || r.target_user_id.slice(0, 8)}</td>
+                        <td className={`px-3 py-2 capitalize font-medium ${r.action === "approved" ? "text-primary" : "text-destructive"}`}>{r.action}</td>
+                        <td className="px-3 py-2">{r.actor?.full_name || r.actor?.email || "—"}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{r.reason || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
         </>
       )}
 

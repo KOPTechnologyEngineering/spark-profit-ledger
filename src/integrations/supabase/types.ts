@@ -815,6 +815,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tbl_user_approval_audit: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       tbl_user_roles: {
         Row: {
           access: Database["public"]["Enums"]["access_level"]
