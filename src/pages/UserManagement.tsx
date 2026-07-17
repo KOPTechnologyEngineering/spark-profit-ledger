@@ -414,6 +414,39 @@ export default function UserManagement() {
             </table>
           </div>
         </div>
+        {hasAdmin("users") && (
+          <div className="glass-card p-4 md:p-6 space-y-3">
+            <h3 className="font-heading text-lg font-semibold text-foreground">Approval audit log</h3>
+            {auditLog.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No approval decisions recorded yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
+                      <th className="px-3 py-2 text-left">When</th>
+                      <th className="px-3 py-2 text-left">User</th>
+                      <th className="px-3 py-2 text-left">Action</th>
+                      <th className="px-3 py-2 text-left">By</th>
+                      <th className="px-3 py-2 text-left">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLog.map((r) => (
+                      <tr key={r.id} className="border-b border-border/50">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
+                        <td className="px-3 py-2">{r.target?.full_name || r.target?.email || r.target_user_id.slice(0, 8)}</td>
+                        <td className={`px-3 py-2 capitalize font-medium ${r.action === "approved" ? "text-primary" : "text-destructive"}`}>{r.action}</td>
+                        <td className="px-3 py-2">{r.actor?.full_name || r.actor?.email || "—"}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{r.reason || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
         </>
       )}
 
