@@ -36,6 +36,7 @@ interface UserProfile {
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
