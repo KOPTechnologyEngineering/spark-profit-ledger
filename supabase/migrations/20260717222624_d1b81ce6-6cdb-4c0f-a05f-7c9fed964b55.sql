@@ -1,0 +1,1 @@
+ALTER TABLE public.tbl_profiles ADD COLUMN IF NOT EXISTS rejection_reason TEXT;

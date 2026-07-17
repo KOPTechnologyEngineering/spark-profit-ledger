@@ -712,6 +712,7 @@ export type Database = {
           is_approver: boolean
           is_hidden: boolean
           last_login_at: string | null
+          rejection_reason: string | null
           session_timeout_minutes: number
           signature_url: string
           updated_at: string
@@ -730,6 +731,7 @@ export type Database = {
           is_approver?: boolean
           is_hidden?: boolean
           last_login_at?: string | null
+          rejection_reason?: string | null
           session_timeout_minutes?: number
           signature_url?: string
           updated_at?: string
@@ -748,6 +750,7 @@ export type Database = {
           is_approver?: boolean
           is_hidden?: boolean
           last_login_at?: string | null
+          rejection_reason?: string | null
           session_timeout_minutes?: number
           signature_url?: string
           updated_at?: string
