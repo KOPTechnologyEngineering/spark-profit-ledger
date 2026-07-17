@@ -14,6 +14,7 @@ interface LineItem {
   quantity: number;
   rate: number;
   discount: number;
+  discount_amount: number;
 }
 
 export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void }) {
