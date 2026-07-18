@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 export default function ProfileMenu() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -94,8 +92,10 @@ export default function ProfileMenu() {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={() => navigate("/approvals")}>
-            <ClipboardCheck className="h-4 w-4 mr-2" /> Pending Approvals
+          <DropdownMenuItem asChild>
+            <a href="/approvals" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+              <ClipboardCheck className="h-4 w-4 mr-2" /> Pending Approvals
+            </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setOpen(true)}>
