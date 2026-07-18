@@ -42,8 +42,9 @@ const TRANSACTION_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "category", label: "Category", type: "string", defaultValue: "Other" },
   { key: "status", label: "Status", type: "enum", enumValues: ["completed", "pending", "overdue", "rejected"], defaultValue: "completed" },
   { key: "date", label: "Date", type: "date", defaultValue: new Date().toISOString().split("T")[0] },
+  { key: "organization", label: "Organization", type: "string" },
 ];
-const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15"];
+const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15", "Example Ltd"];
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
