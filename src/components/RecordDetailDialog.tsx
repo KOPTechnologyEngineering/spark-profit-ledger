@@ -156,20 +156,20 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
           </div>
           <div style="text-align:right">
             <h2 style="margin:0;font-size:24px;color:#333">INVOICE</h2>
-            <p style="color:#666;margin:4px 0">${record.invoice_number}</p>
+            <p style="color:#666;margin:4px 0">${esc(record.invoice_number)}</p>
           </div>
         </div>
 
         <div style="display:flex;justify-content:space-between;margin-bottom:24px">
           <div>
-            <p style="margin:2px 0"><strong>Bill To:</strong> ${record.client}</p>
-            <p style="margin:2px 0"><strong>Created By:</strong> ${record.created_by_name || "—"}</p>
-            ${creatorProfile?.designation ? `<p style="margin:2px 0;color:#555;font-size:13px">${creatorProfile.designation}</p>` : ""}
+            <p style="margin:2px 0"><strong>Bill To:</strong> ${esc(record.client)}</p>
+            <p style="margin:2px 0"><strong>Created By:</strong> ${esc(record.created_by_name || "—")}</p>
+            ${creatorProfile?.designation ? `<p style="margin:2px 0;color:#555;font-size:13px">${esc(creatorProfile.designation)}</p>` : ""}
           </div>
           <div style="text-align:right">
-            <p style="margin:2px 0"><strong>Date:</strong> ${createdDate}</p>
-            <p style="margin:2px 0"><strong>Due:</strong> ${record.due_date || "—"}</p>
-            <p style="margin:2px 0"><strong>Status:</strong> ${record.status}</p>
+            <p style="margin:2px 0"><strong>Date:</strong> ${esc(createdDate)}</p>
+            <p style="margin:2px 0"><strong>Due:</strong> ${esc(record.due_date || "—")}</p>
+            <p style="margin:2px 0"><strong>Status:</strong> ${esc(record.status)}</p>
           </div>
         </div>
 
