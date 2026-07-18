@@ -82,7 +82,18 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
               <p className="text-sm text-foreground whitespace-pre-wrap">{rejectionReason}</p>
             </div>
           )}
-          <Button variant="outline" onClick={signOut} className="w-full">Sign out</Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              onClick={fetchStatus}
+              disabled={refreshing}
+              className="w-full"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Checking status..." : "Refresh status"}
+            </Button>
+            <Button variant="outline" onClick={signOut} className="w-full">Sign out</Button>
+          </div>
         </div>
       </div>
     );
