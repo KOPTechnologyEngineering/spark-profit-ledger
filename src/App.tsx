@@ -54,7 +54,9 @@ const App = () => (
               <Route path="/approvals" element={<Approvals />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/organizations" element={<Organizations />} />
               <Route path="/collections" element={<CollectionsLayout />}>
+
                 <Route index element={<CollectionsDashboard />} />
                 <Route path="queue" element={<ChaseQueue />} />
                 <Route path="rules" element={<AutomationRules />} />
