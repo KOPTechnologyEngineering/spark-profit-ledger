@@ -13,8 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import PageHeader from "@/components/PageHeader";
 import SummaryTile from "@/components/SummaryTile";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import FilterPills from "@/components/FilterPills";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 type OrgRow = Tables<"tbl_organizations">;
 type OrgType = "customer" | "vendor" | "both";
@@ -40,6 +41,7 @@ const typeStyles: Record<OrgType, string> = {
 
 export default function Organizations() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [rows, setRows] = useState<OrgRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -56,7 +58,7 @@ export default function Organizations() {
       .select("*")
       .is("deleted_at", null)
       .order("name", { ascending: true });
-    if (error) toast.error(error.message);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     setRows((data || []) as OrgRow[]);
     setLoading(false);
   };
@@ -80,7 +82,7 @@ export default function Organizations() {
       phone: org.phone || "",
       address: org.address || "",
       vat_number: org.vat_number || "",
-      nature_of_business: (org as any).nature_of_business || "",
+      nature_of_business: org.nature_of_business || "",
       notes: org.notes || "",
     });
     setDialogOpen(true);
@@ -88,7 +90,7 @@ export default function Organizations() {
 
   const handleSave = async () => {
     if (!user) return;
-    if (!form.name.trim()) return toast.error("Name is required");
+    if (!form.name.trim()) return toast({ title: "Error", description: "Name is required", variant: "destructive" });
     setSaving(true);
     const payload = {
       name: form.name.trim(),
@@ -104,8 +106,8 @@ export default function Organizations() {
       ? await supabase.from("tbl_organizations").update(payload).eq("id", editing.id)
       : await supabase.from("tbl_organizations").insert({ ...payload, user_id: user.id });
     setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(editing ? "Organization updated" : "Organization added");
+    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    toast({ title: editing ? "Organization updated" : "Organization added" });
     setDialogOpen(false);
     fetchOrgs();
   };
@@ -116,8 +118,8 @@ export default function Organizations() {
       .from("tbl_organizations")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", org.id);
-    if (error) return toast.error(error.message);
-    toast.success("Organization removed");
+    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    toast({ title: "Organization removed" });
     fetchOrgs();
   };
 
@@ -161,17 +163,7 @@ export default function Organizations() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Select value={typeFilter} onValueChange={(v: typeof typeFilter) => setTypeFilter(v)}>
-            <SelectTrigger className="sm:w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
-              <SelectItem value="customer">Customers</SelectItem>
-              <SelectItem value="vendor">Vendors</SelectItem>
-              <SelectItem value="both">Both</SelectItem>
-            </SelectContent>
-          </Select>
+          <FilterPills options={typeFilters} value={typeFilter} onChange={(v) => setTypeFilter(v)} />
         </div>
 
         {loading ? (
@@ -208,7 +200,7 @@ export default function Organizations() {
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{org.email || "—"}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.phone || "—"}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.vat_number || "—"}</TableCell>
-                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">{(org as any).nature_of_business || "—"}</TableCell>
+                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">{org.nature_of_business || "—"}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button size="icon" variant="ghost" onClick={() => openEdit(org)}>
                         <Pencil className="h-4 w-4" />
