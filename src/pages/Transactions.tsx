@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import PageHeader from "@/components/PageHeader";
