@@ -35,6 +35,25 @@ jobs:
       - name: Build
         run: bun run build
 
+      # E2E smoke test: logs in against the real build and confirms the
+      # dashboard renders, rather than the app getting stuck on
+      # ProtectedRoute's approval-status check -- the exact failure class
+      # behind two production outages (a bad env var, then a bad query
+      # param baked into the bundle; neither was catchable by the steps
+      # above, since both were runtime-only failures against the real
+      # backend). Skips gracefully (passes, doesn't fail the build) until
+      # E2E_TEST_EMAIL/E2E_TEST_PASSWORD secrets are added for a dedicated,
+      # already-approved test account -- add them to turn this into a real
+      # gate.
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: E2E smoke test
+        run: bunx playwright test
+        env:
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+
       # Informational only for now: the repo has pre-existing lint debt
       # (mostly @typescript-eslint/no-explicit-any). Flip to a hard gate
       # once that backlog is cleared.
