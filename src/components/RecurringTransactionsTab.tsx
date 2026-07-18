@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, Pause, Play } from "lucide-react";
+import { Pencil, Trash2, Pause, Play, RefreshCw, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import RecurringTransactionDialog from "@/components/RecurringTransactionDialog";
@@ -8,14 +8,26 @@ import { formatGBP } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
+type RunLog = {
+  id: string;
+  run_at: string;
+  triggered_by: string;
+  processed: number;
+  created: number;
+  error: string | null;
+};
+
 export default function RecurringTransactionsTab() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
+  const [lastRun, setLastRun] = useState<RunLog | null>(null);
+  const [triggering, setTriggering] = useState(false);
   const { toast } = useToast();
   const { hasEdit, hasAdmin } = useUserRoles();
   const canEdit = hasEdit("transactions");
   const canDelete = hasAdmin("transactions");
+  const canRun = hasAdmin("transactions");
 
   const fetchItems = async () => {
     setLoading(true);
@@ -27,7 +39,38 @@ export default function RecurringTransactionsTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  const fetchLastRun = async () => {
+    const { data } = await supabase
+      .from("tbl_recurring_run_log")
+      .select("*")
+      .order("run_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLastRun((data as RunLog) || null);
+  };
+
+  useEffect(() => { fetchItems(); if (canRun) fetchLastRun(); }, [canRun]);
+
+  const runNow = async () => {
+    setTriggering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-recurring-transactions", {
+        body: { triggered_by: "manual" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "Recurring processor ran",
+        description: `Processed ${data?.processed ?? 0} schedule(s); created ${data?.created ?? 0} transaction(s).`,
+      });
+      await Promise.all([fetchItems(), fetchLastRun()]);
+    } catch (err: any) {
+      toast({ title: "Run failed", description: err.message, variant: "destructive" });
+      await fetchLastRun();
+    } finally {
+      setTriggering(false);
+    }
+  };
 
   const toggleActive = async (item: any) => {
     const { error } = await supabase
@@ -47,6 +90,32 @@ export default function RecurringTransactionsTab() {
 
   return (
     <div className="space-y-4">
+      {canRun && (
+        <div className="glass-card flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">Recurring processor</p>
+            {lastRun ? (
+              <p className="text-xs text-muted-foreground">
+                Last run: {new Date(lastRun.run_at).toLocaleString()} · {lastRun.triggered_by} · processed {lastRun.processed}, created {lastRun.created}
+                {lastRun.error && (
+                  <span className="ml-2 text-outflow">· Error: {lastRun.error}</span>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">No runs recorded yet.</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={fetchLastRun} disabled={triggering}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+            </Button>
+            <Button size="sm" onClick={runNow} disabled={triggering}>
+              <PlayCircle className="h-4 w-4 mr-1" /> {triggering ? "Running..." : "Run now"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-end">
         {canEdit && <RecurringTransactionDialog onSaved={fetchItems} />}
       </div>
