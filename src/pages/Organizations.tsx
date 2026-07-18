@@ -262,6 +262,14 @@ export default function Organizations() {
                 <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <div className="sm:col-span-2">
+                <Label>Nature of business</Label>
+                <Input
+                  placeholder="e.g. Software consultancy, Retail, Construction"
+                  value={form.nature_of_business}
+                  onChange={(e) => setForm({ ...form, nature_of_business: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
                 <Label>Address</Label>
                 <Textarea rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
               </div>
