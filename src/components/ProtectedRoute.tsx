@@ -28,9 +28,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       url.searchParams.set("select", "approval_status,rejection_reason");
       url.searchParams.set("user_id", "eq." + session.user.id);
       url.searchParams.set("limit", "1");
-      url.searchParams.set("_", Date.now().toString());
 
-      const res = await fetch(url.toString(), {
+      const res = await fetch(`${url.toString()}#${Date.now()}`, {
         headers: {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${session.access_token}`,
