@@ -206,24 +206,23 @@ export default function UserManagement() {
         action: status,
         reason: status === "rejected" ? (reason?.trim() || null) : null,
       });
-      if (status === "rejected") {
-        const target = users.find((u) => u.user_id === userId);
-        if (target?.email) {
-          supabase.functions
-            .invoke("send-transactional-email", {
-              body: {
-                templateName: "account-rejected",
-                recipientEmail: target.email,
-                idempotencyKey: `account-rejected-${userId}-${Date.now()}`,
-                templateData: {
-                  recipientName: target.full_name || target.email.split("@")[0],
-                  rejectionReason: reason?.trim() || null,
-                  appUrl: window.location.origin,
-                },
+      const target = users.find((u) => u.user_id === userId);
+      if (target?.email) {
+        const isApproved = status === "approved";
+        supabase.functions
+          .invoke("send-transactional-email", {
+            body: {
+              templateName: isApproved ? "account-approved" : "account-rejected",
+              recipientEmail: target.email,
+              idempotencyKey: `account-${status}-${userId}-${Date.now()}`,
+              templateData: {
+                recipientName: target.full_name || target.email.split("@")[0],
+                ...(isApproved ? {} : { rejectionReason: reason?.trim() || null }),
+                appUrl: window.location.origin,
               },
-            })
-            .catch((e) => console.warn("Rejection email failed", e));
-        }
+            },
+          })
+          .catch((e) => console.warn(`${status} email failed`, e));
       }
       toast({ title: status === "approved" ? "User approved" : "User rejected" });
       fetchUsers();
