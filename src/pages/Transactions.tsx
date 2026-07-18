@@ -50,6 +50,7 @@ export default function Transactions() {
   const [editing, setEditing] = useState<TransactionRow | null>(null);
   const [recurringDetail, setRecurringDetail] = useState<Tables<"tbl_recurring_transactions"> | null>(null);
   const [recurringDetailLoading, setRecurringDetailLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("transactions");
 
   const openRecurringDetail = async (id: string) => {
     setRecurringDetailLoading(true);
