@@ -26,6 +26,7 @@ const emptyForm = {
   phone: "",
   address: "",
   vat_number: "",
+  nature_of_business: "",
   notes: "",
 };
 
