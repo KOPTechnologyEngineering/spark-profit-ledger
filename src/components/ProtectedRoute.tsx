@@ -22,13 +22,14 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     if (!session) return;
     setRefreshing(true);
     try {
-      // Bypass any browser/service-worker cache by calling the REST endpoint directly
-      // with cache: "no-store" and a cache-busting query parameter.
+      // Bypass any browser/service-worker cache by calling the REST endpoint
+      // directly with cache: "no-store". No cache-busting query parameter:
+      // PostgREST treats unknown query params as column filters, so appending
+      // one (e.g. _=<timestamp>) makes every request fail with HTTP 400.
       const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/tbl_profiles`);
       url.searchParams.set("select", "approval_status,rejection_reason");
       url.searchParams.set("user_id", "eq." + session.user.id);
       url.searchParams.set("limit", "1");
-      url.searchParams.set("_", Date.now().toString());
 
       const res = await fetch(url.toString(), {
         headers: {
