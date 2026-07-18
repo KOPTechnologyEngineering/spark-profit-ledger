@@ -62,12 +62,12 @@ export function filterByDateRange<T extends Record<string, any>>(
   if (!range?.from) return items;
   const from = new Date(range.from);
   from.setHours(0, 0, 0, 0);
-  const to = range.to ? new Date(range.to) : new Date(range.from);
-  to.setHours(23, 59, 59, 999);
+  const to = range.to ? new Date(range.to) : null;
+  if (to) to.setHours(23, 59, 59, 999);
   return items.filter((item) => {
     const raw = item[dateKey] || (item as any).created_at;
     if (!raw) return false;
     const d = new Date(raw);
-    return d >= from && d <= to;
+    return d >= from && (to ? d <= to : true);
   });
 }
