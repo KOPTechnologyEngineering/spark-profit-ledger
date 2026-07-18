@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import PageMeta from "@/components/PageMeta";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -114,7 +115,8 @@ export default function Auth() {
   const title = mode === "login" ? "Sign in to your account" : mode === "signup" ? "Create your account" : "Reset your password";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <PageMeta title="Sign in | KOP Ledger" description="Sign in to KOP Ledger to manage invoices, transactions, VAT, PAYE and collections." path="/auth" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -235,6 +237,6 @@ export default function Auth() {
           </div>
         </div>
       </motion.div>
-    </div>
+    </main>
   );
 }

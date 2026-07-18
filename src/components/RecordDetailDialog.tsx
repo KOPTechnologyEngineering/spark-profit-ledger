@@ -128,7 +128,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
       return `
         <div style="text-align:center;min-width:200px">
           <p style="font-size:11px;color:#666;margin-bottom:4px">${esc(label)}</p>
-          ${profile?.signature_url ? `<img src="${esc(profile.signature_url)}" style="max-height:50px;margin:0 auto 4px" />` : `<div style="border-bottom:1px solid #333;width:160px;margin:30px auto 4px"></div>`}
+          ${profile?.signature_url ? `<img src="${esc(profile.signature_url)}" alt="${esc(profile.full_name || "User")} signature for document approval" style="max-height:50px;margin:0 auto 4px" />` : `<div style="border-bottom:1px solid #333;width:160px;margin:30px auto 4px"></div>`}
           <p style="font-weight:bold;margin:2px 0">${esc(profile?.full_name || "—")}</p>
           <p style="font-size:12px;color:#555;margin:0">${esc(profile?.designation || "")}</p>
           <p style="font-size:11px;color:#888;margin:2px 0">Status: ${esc(status)}</p>

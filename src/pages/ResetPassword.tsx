@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import PageMeta from "@/components/PageMeta";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -50,7 +51,8 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <PageMeta title="Reset password | KOP Ledger" description="Set a new password for your KOP Ledger account." path="/reset-password" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -117,6 +119,6 @@ export default function ResetPassword() {
           </form>
         </div>
       </motion.div>
-    </div>
+    </main>
   );
 }

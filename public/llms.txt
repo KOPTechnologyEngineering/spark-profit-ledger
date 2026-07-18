@@ -1,0 +1,8 @@
+# KOP Ledger
+
+> KOP Ledger is a web application that helps startups and SMEs manage invoicing, transactions, VAT, PAYE, and accounts-receivable collections in one place.
+
+## Pages
+
+- [Home](/): Product overview and sign-in entry point.
+- [Sign in](/auth): Sign in or create a KOP Ledger account.
