@@ -307,6 +307,14 @@ export default function Transactions() {
                   <p className="font-medium text-foreground">{recurringDetail.last_run_date || "—"}</p>
                 </div>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => viewFutureTransactions(recurringDetail.id)}
+              >
+                View future transactions <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           )}
         </DialogContent>
