@@ -4,6 +4,7 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/collections";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 const STATUSES = ["active", "broken", "paid", "renegotiated", "escalated"];
 
@@ -14,10 +15,14 @@ export default function PaymentPromises() {
   const [filter, setFilter] = useState("all");
 
   const load = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tbl_collection_payment_promises")
       .select("*")
       .order("promised_date", { ascending: true });
+    if (error) {
+      toast.error(friendlyErrorMessage(error, "Couldn't load payment promises. Please try again."));
+      return;
+    }
     // Auto-mark broken
     const today = new Date().toISOString().slice(0, 10);
     const broken = (data || []).filter((p) => p.status === "active" && p.promised_date < today);
@@ -41,7 +46,7 @@ export default function PaymentPromises() {
   const updateStatus = async (p: any, status: string) => {
     await supabase.from("tbl_collection_payment_promises").update({ status }).eq("id", p.id);
     await logActivity({ invoice_id: p.invoice_id, action: `promise_${status}` });
-    toast.success("Updated");
+    toast.success("Payment promise updated");
     load();
   };
 

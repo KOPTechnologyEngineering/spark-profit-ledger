@@ -5,6 +5,7 @@ import { Upload, Download, AlertCircle, CheckCircle2 } from "lucide-react";
 import { downloadCSV } from "@/lib/csv";
 import { normalizeHeader, parseImportRows, type ImportColumn, type ParsedImportRow } from "@/lib/import";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 export type { ImportColumn };
 
@@ -55,7 +56,7 @@ export default function ImportDialog({ title, triggerLabel = "Import CSV", colum
     const { error } = await onImport(validRows.map((r) => r.data));
     setImporting(false);
     if (error) {
-      toast({ title: "Import failed", description: error, variant: "destructive" });
+      toast({ title: "Import failed", description: friendlyErrorMessage(error, "Please check your file and try again."), variant: "destructive" });
       return;
     }
     toast({

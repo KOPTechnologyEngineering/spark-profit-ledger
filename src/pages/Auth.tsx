@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { motion } from "framer-motion";
 import PageMeta from "@/components/PageMeta";
 
@@ -106,7 +107,8 @@ export default function Auth() {
         setMode("login");
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const title = mode === "login" ? "Couldn't sign in" : mode === "signup" ? "Couldn't create account" : "Couldn't send reset email";
+      toast({ title, description: friendlyErrorMessage(error), variant: "destructive" });
     } finally {
       setLoading(false);
     }

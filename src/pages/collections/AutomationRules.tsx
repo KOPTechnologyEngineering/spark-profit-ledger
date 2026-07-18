@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/collections";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 const DEFAULT_STEPS = [
   { offset: -7, label: "7 days before due", template: "due_soon" },
@@ -33,7 +34,7 @@ export default function AutomationRules() {
   const load = async () => {
     const { data, error } = await supabase.from("tbl_collection_rules").select("*").order("created_at", { ascending: false });
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyErrorMessage(error, "Couldn't load automation rules. Please try again."));
       return;
     }
     setRules(data || []);

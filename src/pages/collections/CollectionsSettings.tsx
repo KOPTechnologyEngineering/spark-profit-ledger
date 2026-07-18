@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 const DEFAULTS = {
   default_sender_email: "",
@@ -52,7 +53,7 @@ export default function CollectionsSettings() {
       if (error) throw error;
       toast.success(`Test email queued for ${email}`);
     } catch (e: any) {
-      toast.error(e?.message || "Failed to send test email");
+      toast.error(friendlyErrorMessage(e, "Couldn't send the test email. Please try again."));
     } finally {
       setSendingTest(false);
     }
@@ -63,7 +64,7 @@ export default function CollectionsSettings() {
     (async () => {
       const { data, error } = await supabase.from("tbl_collection_settings").select("*").eq("user_id", user.id).maybeSingle();
       if (error) {
-        toast.error(error.message);
+        toast.error(friendlyErrorMessage(error, "Couldn't load collections settings. Please try again."));
         return;
       }
       if (data) {
@@ -84,13 +85,13 @@ export default function CollectionsSettings() {
     if (id) {
       const { error } = await supabase.from("tbl_collection_settings").update(payload).eq("id", id);
       if (error) {
-        toast.error(error.message);
+        toast.error(friendlyErrorMessage(error, "Couldn't save collections settings. Please try again."));
         return;
       }
     } else {
       const { data, error } = await supabase.from("tbl_collection_settings").insert(payload).select().single();
       if (error) {
-        toast.error(error.message);
+        toast.error(friendlyErrorMessage(error, "Couldn't save collections settings. Please try again."));
         return;
       }
       if (data) setId(data.id);

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,7 @@ export default function UserManagement() {
     const { error: rolesErr } = await supabase.from("tbl_user_roles").delete().eq("user_id", userId);
     const { error: profileErr } = await supabase.from("tbl_profiles").delete().eq("user_id", userId);
     if (rolesErr || profileErr) {
-      toast({ title: "Error", description: (rolesErr || profileErr)!.message, variant: "destructive" });
+      toast({ title: "Couldn't delete user", description: friendlyErrorMessage(rolesErr || profileErr), variant: "destructive" });
     } else {
       toast({ title: "User deleted" });
       fetchUsers();
@@ -71,7 +72,7 @@ export default function UserManagement() {
     const { data: profiles, error: profilesError } = await supabase.from("tbl_profiles").select("*");
     const { data: roles, error: rolesError } = await supabase.from("tbl_user_roles").select("*");
     if (profilesError || rolesError) {
-      toast({ title: "Error", description: (profilesError || rolesError)?.message, variant: "destructive" });
+      toast({ title: "Couldn't load users", description: friendlyErrorMessage(profilesError || rolesError), variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -95,7 +96,7 @@ export default function UserManagement() {
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load approval history", description: friendlyErrorMessage(error), variant: "destructive" });
       return;
     }
     if (!data) return;
@@ -105,7 +106,7 @@ export default function UserManagement() {
     if (ids.length) {
       const { data: profs, error: profsError } = await supabase.from("tbl_profiles").select("user_id, full_name, email").in("user_id", ids);
       if (profsError) {
-        toast({ title: "Error", description: profsError.message, variant: "destructive" });
+        toast({ title: "Couldn't load approval history", description: friendlyErrorMessage(profsError), variant: "destructive" });
         return;
       }
       (profs || []).forEach((p: any) => { profileMap[p.user_id] = { full_name: p.full_name, email: p.email }; });
@@ -146,7 +147,7 @@ export default function UserManagement() {
       setNewRoles(Object.fromEntries(modules.map((m) => [m, "view"])));
       fetchUsers();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't create user", description: friendlyErrorMessage(error), variant: "destructive" });
     } finally {
       setAddLoading(false);
     }
@@ -159,7 +160,7 @@ export default function UserManagement() {
       .eq("user_id", userId)
       .eq("module", module as any);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't update permission", description: friendlyErrorMessage(error), variant: "destructive" });
     } else {
       // If both invoices and transactions are none, auto-disable approver
       if (module === "invoices" || module === "transactions") {
@@ -172,7 +173,7 @@ export default function UserManagement() {
           }
         }
       }
-      toast({ title: "Updated", description: `Permission updated for ${module}` });
+      toast({ title: "Permission updated", description: `Access to ${module} has been updated.` });
       fetchUsers();
     }
   };
@@ -183,9 +184,9 @@ export default function UserManagement() {
       .update({ session_timeout_minutes: minutes } as any)
       .eq("user_id", userId);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't update session timeout", description: friendlyErrorMessage(error), variant: "destructive" });
     } else {
-      toast({ title: "Updated", description: `Session timeout set to ${minutes} min` });
+      toast({ title: "Session timeout updated", description: `Set to ${minutes} minutes.` });
       fetchUsers();
     }
   };
@@ -196,9 +197,9 @@ export default function UserManagement() {
       .update({ is_approver: checked } as any)
       .eq("user_id", userId);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't update approver status", description: friendlyErrorMessage(error), variant: "destructive" });
     } else {
-      toast({ title: "Updated", description: `Approver status updated` });
+      toast({ title: "Approver status updated", description: checked ? "This user can now approve records." : "This user can no longer approve records." });
       fetchUsers();
     }
   };
@@ -214,7 +215,11 @@ export default function UserManagement() {
     }
     const { error } = await supabase.from("tbl_profiles").update(patch).eq("user_id", userId);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: status === "approved" ? "Couldn't approve user" : "Couldn't reject user",
+        description: friendlyErrorMessage(error),
+        variant: "destructive",
+      });
     } else {
       await supabase.from("tbl_user_approval_audit" as any).insert({
         target_user_id: userId,
@@ -241,7 +246,10 @@ export default function UserManagement() {
           })
           .catch((e) => console.warn(`${status} email failed`, e));
       }
-      toast({ title: status === "approved" ? "User approved" : "User rejected" });
+      toast({
+        title: status === "approved" ? "User approved" : "User rejected",
+        description: status === "approved" ? "They now have access to the app." : "They have been notified of the decision.",
+      });
       fetchUsers();
       fetchAuditLog();
     }

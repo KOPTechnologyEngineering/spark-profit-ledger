@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { motion } from "framer-motion";
 import PageMeta from "@/components/PageMeta";
 
@@ -33,7 +34,7 @@ export default function ResetPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast({ title: "Passwords don't match", variant: "destructive" });
+      toast({ title: "Passwords don't match", description: "Please make sure both password fields are the same.", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -44,7 +45,7 @@ export default function ResetPassword() {
       await supabase.auth.signOut();
       navigate("/auth", { replace: true });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't update password", description: friendlyErrorMessage(error), variant: "destructive" });
     } finally {
       setLoading(false);
     }

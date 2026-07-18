@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Paperclip, X, FileText, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Attachment {
@@ -33,7 +34,7 @@ export default function AttachmentUpload({ attachments, onAttachmentsChange }: A
       const path = `${user.id}/${Date.now()}_${file.name}`;
       const { error } = await supabase.storage.from("transaction-attachments").upload(path, file);
       if (error) {
-        toast({ title: "Upload failed", description: `${file.name}: ${error.message}`, variant: "destructive" });
+        toast({ title: "Upload failed", description: `Couldn't upload "${file.name}". ${friendlyErrorMessage(error, "Please try again.")}`, variant: "destructive" });
         continue;
       }
       newAttachments.push({ name: file.name, path, type: file.type });

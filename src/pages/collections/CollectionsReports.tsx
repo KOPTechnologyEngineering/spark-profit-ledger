@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { daysOverdue, ageBracket } from "@/lib/collections";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { downloadCSV } from "@/lib/csv";
 import DateRangePicker from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
@@ -64,7 +65,7 @@ export default function CollectionsReports() {
         rows = r || [];
       }
       if (error) {
-        toast.error(error.message);
+        toast.error(friendlyErrorMessage(error, "Couldn't load this report. Please try again."));
         return;
       }
       setData(rows);
