@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
     })
   }
   const isServiceRole = bearer === supabaseServiceKey
+  let callerUserId: string | null = null
   if (!isServiceRole) {
     const authClient = createClient(supabaseUrl, supabaseServiceKey)
     const { data: userData, error: userErr } = await authClient.auth.getUser(bearer)
@@ -68,7 +69,56 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    callerUserId = userData.user.id
+
+    // Authorization: end-user callers may only invoke templates they are
+    // explicitly permitted to send. Everything else (auth flow emails,
+    // admin notifications, diagnostics) must be invoked with the service
+    // role from a trusted server context.
+    const requestedTemplate =
+      (await req.clone().json().catch(() => ({}))).templateName ||
+      (await req.clone().json().catch(() => ({}))).template_name
+
+    // Templates that require invoices edit/admin access to send.
+    const invoiceEditorTemplates = new Set(['chase-reminder'])
+
+    if (!requestedTemplate || !invoiceEditorTemplates.has(requestedTemplate)) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: template not allowed for this caller' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    // Verify caller is approved AND has invoices edit/admin access.
+    const authzClient = createClient(supabaseUrl, supabaseServiceKey)
+    const { data: profile } = await authzClient
+      .from('tbl_profiles')
+      .select('approval_status')
+      .eq('user_id', callerUserId)
+      .maybeSingle()
+    if (profile?.approval_status !== 'approved') {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const { data: role } = await authzClient
+      .from('tbl_user_roles')
+      .select('access')
+      .eq('user_id', callerUserId)
+      .eq('module', 'invoices')
+      .maybeSingle()
+    if (!role || !['edit', 'admin'].includes(role.access)) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
   }
+
 
   // Parse request body
   let templateName: string
