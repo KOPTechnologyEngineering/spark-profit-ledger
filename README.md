@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# KOP Ledger
 
 TODO: Document your project here
