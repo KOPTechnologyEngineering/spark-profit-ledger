@@ -170,12 +170,15 @@ export default function Transactions() {
         onUpdated={fetchTransactions}
         onEdit={!viewOnly ? () => { setEditing(selected); setSelected(null); } : undefined}
       />
-      <AddTransactionDialog
-        record={editing}
-        open={!!editing}
-        onOpenChange={(o) => !o && setEditing(null)}
-        onCreated={fetchTransactions}
-      />
+      {editing && (
+        <AddTransactionDialog
+          key={editing.id}
+          record={editing}
+          open
+          onOpenChange={(o) => !o && setEditing(null)}
+          onCreated={fetchTransactions}
+        />
+      )}
     </div>
   );
 }
