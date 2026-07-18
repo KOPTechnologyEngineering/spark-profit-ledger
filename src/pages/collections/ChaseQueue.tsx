@@ -36,6 +36,12 @@ export default function ChaseQueue() {
       supabase.from("tbl_invoices").select("id, invoice_number, client, amount, due_date, status, notes"),
       supabase.from("tbl_collection_email_templates").select("*").eq("type", "overdue").eq("is_active", true).limit(1),
     ]);
+    const firstError = items.error || invs.error || templates.error;
+    if (firstError) {
+      toast.error(firstError.message);
+      setLoading(false);
+      return;
+    }
     setItems(items.data || []);
     const map: Record<string, any> = {};
     (invs.data || []).forEach((i) => (map[i.id] = i));

@@ -17,6 +17,7 @@ import { downloadCSV } from "@/lib/csv";
 import { formatGBP } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useToast } from "@/hooks/use-toast";
 
 type InvoiceRow = Tables<"tbl_invoices">;
 
@@ -45,10 +46,16 @@ export default function Invoices() {
   const viewOnly = !hasEdit("invoices");
   const canImport = hasAdmin("invoices");
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const fetchInvoices = async () => {
     setLoading(true);
-    const { data } = await supabase.from("tbl_invoices").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("tbl_invoices").select("*").order("created_at", { ascending: false });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
     setInvoices(data || []);
     setLoading(false);
   };

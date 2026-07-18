@@ -18,7 +18,11 @@ export default function Escalations() {
   const [editing, setEditing] = useState<any>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("tbl_collection_escalations").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("tbl_collection_escalations").select("*").order("created_at", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setList(data || []);
   };
 

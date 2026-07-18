@@ -31,7 +31,11 @@ export default function AutomationRules() {
   const [editing, setEditing] = useState<any>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("tbl_collection_rules").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("tbl_collection_rules").select("*").order("created_at", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setRules(data || []);
   };
 

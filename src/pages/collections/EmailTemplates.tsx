@@ -33,7 +33,11 @@ export default function EmailTemplates() {
   const [preview, setPreview] = useState<any>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("tbl_collection_email_templates").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("tbl_collection_email_templates").select("*").order("created_at", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setTemplates(data || []);
   };
 
