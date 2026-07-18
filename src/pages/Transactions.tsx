@@ -42,6 +42,8 @@ export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
   const [search, setSearch] = useState("");
   const [allTransactions, setAllTransactions] = useState<TransactionRow[]>([]);
+  const [recurringList, setRecurringList] = useState<{ id: string; description: string }[]>([]);
+  const [recurringFilter, setRecurringFilter] = useState<string>("all"); // "all" | "any" | "<id>"
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [editing, setEditing] = useState<TransactionRow | null>(null);
@@ -51,6 +53,14 @@ export default function Transactions() {
   const viewOnly = !hasEdit("transactions");
   const canImport = hasAdmin("transactions");
   const { user } = useAuth();
+
+  const fetchRecurring = async () => {
+    const { data } = await supabase
+      .from("tbl_recurring_transactions")
+      .select("id, description")
+      .order("description", { ascending: true });
+    setRecurringList(data || []);
+  };
 
   const fetchTransactions = async () => {
     setLoading(true);
