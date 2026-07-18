@@ -20,16 +20,17 @@ interface AttachmentUploadProps {
 export default function AttachmentUpload({ attachments, onAttachmentsChange }: AttachmentUploadProps) {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !user) return;
     setUploading(true);
 
     const newAttachments: Attachment[] = [];
 
     for (const file of Array.from(files)) {
-      const path = `${Date.now()}_${file.name}`;
+      const path = `${user.id}/${Date.now()}_${file.name}`;
       const { error } = await supabase.storage.from("transaction-attachments").upload(path, file);
       if (error) {
         toast({ title: "Upload failed", description: `${file.name}: ${error.message}`, variant: "destructive" });
