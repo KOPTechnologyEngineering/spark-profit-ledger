@@ -145,9 +145,6 @@ export default function RecurringTransactionsTab() {
                   {!r.is_active && " · Paused"}
                 </p>
               </div>
-                  {!r.is_active && " · Paused"}
-                </p>
-              </div>
               <div className="flex items-center gap-3">
                 <span className={`font-heading text-sm font-bold ${r.type === "inflow" ? "text-inflow" : "text-outflow"}`}>
                   {r.type === "inflow" ? "+" : "-"}{formatGBP(r.amount)}
