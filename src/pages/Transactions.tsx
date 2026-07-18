@@ -6,6 +6,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
@@ -26,6 +27,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 type TransactionRow = Tables<"tbl_transactions">;
+
+type RunDetailRow = Tables<"tbl_recurring_run_details"> & {
+  tbl_recurring_run_log: Pick<Tables<"tbl_recurring_run_log">, "run_at" | "triggered_by" | "error"> | null;
+};
 
 const typeFilters = ["all", "inflow", "outflow"] as const;
 
