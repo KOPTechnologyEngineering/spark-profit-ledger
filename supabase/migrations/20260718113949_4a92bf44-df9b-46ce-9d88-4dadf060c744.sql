@@ -1,0 +1,2 @@
+ALTER TABLE public.tbl_transactions ADD COLUMN IF NOT EXISTS recurring_transaction_id UUID REFERENCES public.tbl_recurring_transactions(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_tbl_transactions_recurring_id ON public.tbl_transactions(recurring_transaction_id);
