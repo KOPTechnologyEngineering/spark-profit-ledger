@@ -415,6 +415,16 @@ export default function Transactions() {
                 View future transactions <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
 
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={exportScheduleCSV}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Export CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportSchedulePDF}>
+                  <FileText className="mr-2 h-4 w-4" /> Export PDF
+                </Button>
+              </div>
+
+
               {canViewRunHistory && (
                 <div className="pt-2">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Run history</p>
