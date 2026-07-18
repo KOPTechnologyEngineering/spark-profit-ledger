@@ -14,6 +14,7 @@ import { template as chaseReminder } from './chase-reminder.tsx'
 import { template as welcome } from './welcome.tsx'
 import { template as adminApprovalRequest } from './admin-approval-request.tsx'
 import { template as accountRejected } from './account-rejected.tsx'
+import { template as accountApproved } from './account-approved.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'test-delivery': testDelivery,
@@ -21,4 +22,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
   'admin-approval-request': adminApprovalRequest,
   'account-rejected': accountRejected,
+  'account-approved': accountApproved,
 }
