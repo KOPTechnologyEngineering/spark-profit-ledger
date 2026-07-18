@@ -41,6 +41,7 @@ export default function Transactions() {
   const [allTransactions, setAllTransactions] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TransactionRow | null>(null);
+  const [editing, setEditing] = useState<TransactionRow | null>(null);
   const [period, setPeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit, hasAdmin } = useUserRoles();
@@ -161,7 +162,20 @@ export default function Transactions() {
         </div>
       )}
 
-      <RecordDetailDialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)} record={selected} type="transaction" onUpdated={fetchTransactions} />
+      <RecordDetailDialog
+        open={!!selected}
+        onOpenChange={(o) => !o && setSelected(null)}
+        record={selected}
+        type="transaction"
+        onUpdated={fetchTransactions}
+        onEdit={!viewOnly ? () => { setEditing(selected); setSelected(null); } : undefined}
+      />
+      <AddTransactionDialog
+        record={editing}
+        open={!!editing}
+        onOpenChange={(o) => !o && setEditing(null)}
+        onCreated={fetchTransactions}
+      />
     </div>
   );
 }

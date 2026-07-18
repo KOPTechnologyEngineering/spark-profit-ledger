@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Printer, CheckCircle, XCircle, FileText, Image, Trash2 } from "lucide-react";
+import { Download, Printer, CheckCircle, XCircle, FileText, Image, Pencil, Trash2 } from "lucide-react";
 import { useProfiles, Profile } from "@/hooks/useProfiles";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
@@ -13,11 +13,13 @@ interface RecordDetailDialogProps {
   record: any;
   type: "invoice" | "transaction";
   onUpdated?: () => void;
+  /** When provided, shows an Edit button — but only to the record's creator (RLS only permits owners to update record fields). */
+  onEdit?: () => void;
 }
 
 const VAT_RATE = 0.2;
 
-export default function RecordDetailDialog({ open, onOpenChange, record, type, onUpdated }: RecordDetailDialogProps) {
+export default function RecordDetailDialog({ open, onOpenChange, record, type, onUpdated, onEdit }: RecordDetailDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const profiles = useProfiles();
@@ -355,6 +357,11 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-1" /> Print
             </Button>
+            {onEdit && user?.id === record.user_id && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Pencil className="h-4 w-4 mr-1" /> Edit
+              </Button>
+            )}
             {canApprove && (
               <>
                 <Button size="sm" className="ml-auto bg-inflow hover:bg-inflow/90" onClick={() => handleApprove("approved")}>

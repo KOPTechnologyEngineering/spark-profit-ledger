@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,20 @@ interface LineItem {
   discount_amount: number;
 }
 
-export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void }) {
-  const [open, setOpen] = useState(false);
+interface NewInvoiceDialogProps {
+  onCreated?: () => void;
+  /** When set, the dialog edits this invoice instead of creating one. Editing resets the record to pending and re-triggers approval. */
+  record?: any;
+  /** Controlled open state — required in edit mode (there is no trigger button). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function NewInvoiceDialog({ onCreated, record, open: controlledOpen, onOpenChange }: NewInvoiceDialogProps) {
+  const isEdit = !!record;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [client, setClient] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -30,6 +42,30 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
   const [approver2, setApprover2] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (open && record) {
+      setClient(record.client || "");
+      setInvoiceNumber(record.invoice_number || "");
+      setIssueDate(record.issue_date || new Date().toISOString().split("T")[0]);
+      setDueDate(record.due_date || "");
+      setDiscountPercentage(Number(record.discount_percentage) || 0);
+      const items = Array.isArray(record.items) ? record.items : [];
+      setItems(
+        items.length > 0
+          ? items.map((i: any) => ({
+              description: i.description || "",
+              quantity: Number(i.quantity) || 1,
+              rate: Number(i.rate) || 0,
+              discount: Number(i.discount) || 0,
+              discount_amount: Number(i.discount_amount) || 0,
+            }))
+          : [{ description: "", quantity: 1, rate: 0, discount: 0, discount_amount: 0 }],
+      );
+      setApprover1(record.approver1_id || "");
+      setApprover2(record.approver2_id || "");
+    }
+  }, [open, record]);
 
   const lineNet = (item: LineItem) => Math.max(0, item.quantity * item.rate * (1 - (item.discount || 0) / 100) - (item.discount_amount || 0));
   const subtotal = items.reduce((sum, item) => sum + lineNet(item), 0);
@@ -55,8 +91,7 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
     }
     setLoading(true);
     try {
-      const { error } = await supabase.from("tbl_invoices").insert({
-        user_id: user.id,
+      const fields = {
         invoice_number: invoiceNumber,
         client,
         amount: total,
@@ -69,17 +104,28 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
         approver2_id: approver2,
         approver1_status: "pending",
         approver2_status: "pending",
-        created_by_name: user.user_metadata?.full_name || user.email || "",
-      } as any);
-      if (error) throw error;
+      };
+
+      if (isEdit) {
+        const { error } = await supabase.from("tbl_invoices").update(fields as any).eq("id", record.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("tbl_invoices").insert({
+          user_id: user.id,
+          created_by_name: user.user_metadata?.full_name || user.email || "",
+          ...fields,
+        } as any);
+        if (error) throw error;
+      }
 
       // Create notifications for approvers
+      const verb = isEdit ? "was updated and needs your re-approval" : "needs your approval";
       await supabase.from("tbl_notifications").insert([
-        { user_id: approver1, title: "Approval Required", message: `Invoice ${invoiceNumber} needs your approval (£${total.toLocaleString()})`, link: "/approvals" },
-        { user_id: approver2, title: "Approval Required", message: `Invoice ${invoiceNumber} needs your approval (£${total.toLocaleString()})`, link: "/approvals" },
+        { user_id: approver1, title: "Approval Required", message: `Invoice ${invoiceNumber} ${verb} (£${total.toLocaleString()})`, link: "/approvals" },
+        { user_id: approver2, title: "Approval Required", message: `Invoice ${invoiceNumber} ${verb} (£${total.toLocaleString()})`, link: "/approvals" },
       ] as any);
 
-      toast({ title: "Invoice created", description: `${invoiceNumber} sent for approval` });
+      toast({ title: isEdit ? "Invoice updated" : "Invoice created", description: `${invoiceNumber} sent for ${isEdit ? "re-approval" : "approval"}` });
       setOpen(false);
       resetForm();
       onCreated?.();
@@ -103,14 +149,16 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" /> New Invoice
-        </Button>
-      </DialogTrigger>
+      {!isEdit && (
+        <DialogTrigger asChild>
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" /> New Invoice
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-heading">Create New Invoice</DialogTitle>
+          <DialogTitle className="font-heading">{isEdit ? `Edit Invoice ${record.invoice_number}` : "Create New Invoice"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
@@ -195,8 +243,12 @@ export default function NewInvoiceDialog({ onCreated }: { onCreated?: () => void
             </div>
           </div>
 
+          {isEdit && (
+            <p className="text-xs text-muted-foreground">Saving changes resets this invoice to pending and sends it back to both approvers.</p>
+          )}
+
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating..." : "Submit for Approval"}
+            {loading ? "Saving..." : isEdit ? "Save & Resubmit for Approval" : "Submit for Approval"}
           </Button>
         </form>
       </DialogContent>
