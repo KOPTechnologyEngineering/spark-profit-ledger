@@ -162,6 +162,20 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>Organization (vendor)</Label>
+            <Select value={organizationId || NO_ORG} onValueChange={(v) => setOrganizationId(v === NO_ORG ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_ORG}>None</SelectItem>
+                {vendors.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}{o.org_type === "both" ? " (customer/vendor)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Saving..." : isEdit ? "Update" : "Create Recurring"}
           </Button>
