@@ -137,8 +137,9 @@ export default function Organizations() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SummaryTile label="Total" value={String(rows.length)} />
-        <SummaryTile label="Customers" value={String(customerCount)} tone="positive" />
-        <SummaryTile label="Vendors" value={String(vendorCount)} tone="negative" />
+        <SummaryTile label="Customers" value={String(customerCount)} tone="inflow" />
+        <SummaryTile label="Vendors" value={String(vendorCount)} tone="outflow" />
+
       </div>
 
 
