@@ -247,6 +247,60 @@ export default function Transactions() {
           onCreated={fetchTransactions}
         />
       )}
+
+      <Dialog open={!!recurringDetail} onOpenChange={(o) => !o && setRecurringDetail(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recurring schedule</DialogTitle>
+          </DialogHeader>
+          {recurringDetailLoading || !recurringDetail?.description ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Description</p>
+                <p className="font-medium text-foreground">{recurringDetail.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Type</p>
+                  <p className={`font-medium ${recurringDetail.type === 'inflow' ? 'text-inflow' : 'text-outflow'}`}>
+                    {recurringDetail.type === 'inflow' ? '+' : '-'}{formatGBP(Number(recurringDetail.amount))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Category</p>
+                  <p className="font-medium text-foreground">{recurringDetail.category || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Frequency</p>
+                  <p className="font-medium text-foreground capitalize">{recurringDetail.frequency}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Status</p>
+                  <p className="font-medium text-foreground">{recurringDetail.is_active ? "Active" : "Paused"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Next due</p>
+                  <p className="font-medium text-foreground">{recurringDetail.next_run_date || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">End date</p>
+                  <p className="font-medium text-foreground">{recurringDetail.end_date || "No end"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Start date</p>
+                  <p className="font-medium text-foreground">{recurringDetail.start_date || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Last run</p>
+                  <p className="font-medium text-foreground">{recurringDetail.last_run_date || "—"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
