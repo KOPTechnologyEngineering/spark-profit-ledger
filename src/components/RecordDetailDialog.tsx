@@ -260,7 +260,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
       `;
     }
 
-    w.document.write(`<html><head><title>${type}</title><style>body{font-family:Arial,sans-serif;padding:40px;color:#333}table{border-collapse:collapse;width:100%}th{text-align:left}</style></head><body>${content}</body></html>`);
+    w.document.write(`<html><head><title>${esc(type)}</title><style>body{font-family:Arial,sans-serif;padding:40px;color:#333}table{border-collapse:collapse;width:100%}th{text-align:left}</style></head><body>${content}</body></html>`);
     w.document.close();
     w.print();
   };
