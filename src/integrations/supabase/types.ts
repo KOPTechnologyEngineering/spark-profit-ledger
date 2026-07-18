@@ -779,6 +779,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tbl_recurring_run_log: {
+        Row: {
+          created: number
+          error: string | null
+          id: string
+          processed: number
+          run_at: string
+          triggered_by: string
+        }
+        Insert: {
+          created?: number
+          error?: string | null
+          id?: string
+          processed?: number
+          run_at?: string
+          triggered_by?: string
+        }
+        Update: {
+          created?: number
+          error?: string | null
+          id?: string
+          processed?: number
+          run_at?: string
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       tbl_recurring_transactions: {
         Row: {
           amount: number
