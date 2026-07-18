@@ -193,16 +193,33 @@ export default function Transactions() {
 
   const handleImportTransactions = async (rows: Record<string, string | number>[]) => {
     if (!user) return { error: "Not signed in" };
-    const payload = rows.map((r) => ({
-      user_id: user.id,
-      description: String(r.description),
-      amount: Number(r.amount),
-      type: String(r.type),
-      category: String(r.category),
-      status: String(r.status),
-      date: String(r.date),
-      created_by_name: user.user_metadata?.full_name || user.email || "",
-    }));
+    const nameToId = new Map<string, string>();
+    Object.entries(orgMap).forEach(([id, name]) => nameToId.set(name.trim().toLowerCase(), id));
+    const missing: string[] = [];
+    const payload = rows.map((r) => {
+      let organization_id: string | null = null;
+      const orgName = r.organization ? String(r.organization).trim() : "";
+      if (orgName) {
+        const id = nameToId.get(orgName.toLowerCase());
+        if (!id) missing.push(orgName);
+        else organization_id = id;
+      }
+      return {
+        user_id: user.id,
+        description: String(r.description),
+        amount: Number(r.amount),
+        type: String(r.type),
+        category: String(r.category),
+        status: String(r.status),
+        date: String(r.date),
+        organization_id,
+        created_by_name: user.user_metadata?.full_name || user.email || "",
+      };
+    });
+    if (missing.length) {
+      const uniq = Array.from(new Set(missing));
+      return { error: `Unknown organization${uniq.length > 1 ? "s" : ""}: ${uniq.join(", ")}. Add them in Organizations first.` };
+    }
     const { error } = await supabase.from("tbl_transactions").insert(payload as never);
     if (!error) fetchTransactions();
     return { error: error?.message };
