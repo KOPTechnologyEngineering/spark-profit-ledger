@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Shield, UserPlus, Trash2, Clock, Check, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -295,8 +296,21 @@ export default function UserManagement() {
       {loading ? (
         <LoadingSpinner />
       ) : (
-        <>
-        {hasAdmin("users") && pendingUsers.length > 0 && (
+        <Tabs defaultValue="users" className="space-y-6">
+        {hasAdmin("users") && (
+          <TabsList>
+            <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="pending" className="gap-2">
+              Pending Approvals
+              {pendingUsers.length > 0 && (
+                <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-semibold text-warning">{pendingUsers.length}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="audit">Audit Log</TabsTrigger>
+          </TabsList>
+        )}
+        <TabsContent value="pending" className="mt-0">
+        {pendingUsers.length > 0 ? (
           <div className="glass-card p-4 md:p-6 space-y-3 border border-warning/30">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-warning" />
@@ -322,7 +336,11 @@ export default function UserManagement() {
               ))}
             </div>
           </div>
+        ) : (
+          <div className="glass-card p-8 text-center text-sm text-muted-foreground">No pending sign-ups.</div>
         )}
+        </TabsContent>
+        <TabsContent value="users" className="mt-0">
         <div className="glass-card overflow-hidden">
 
           <div className="overflow-x-auto">
@@ -432,7 +450,8 @@ export default function UserManagement() {
             </table>
           </div>
         </div>
-        {hasAdmin("users") && (
+        </TabsContent>
+        <TabsContent value="audit" className="mt-0">
           <div className="glass-card p-4 md:p-6 space-y-3">
             <h3 className="font-heading text-lg font-semibold text-foreground">Approval audit log</h3>
             {auditLog.length === 0 ? (
@@ -464,8 +483,8 @@ export default function UserManagement() {
               </div>
             )}
           </div>
-        )}
-        </>
+        </TabsContent>
+        </Tabs>
       )}
 
       <Dialog open={!!rejectTarget} onOpenChange={(o) => { if (!o) setRejectTarget(null); }}>
