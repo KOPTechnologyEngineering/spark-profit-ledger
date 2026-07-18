@@ -178,12 +178,15 @@ export default function Invoices() {
         onUpdated={fetchInvoices}
         onEdit={!viewOnly ? () => { setEditing(selected); setSelected(null); } : undefined}
       />
-      <NewInvoiceDialog
-        record={editing}
-        open={!!editing}
-        onOpenChange={(o) => !o && setEditing(null)}
-        onCreated={fetchInvoices}
-      />
+      {editing && (
+        <NewInvoiceDialog
+          key={editing.id}
+          record={editing}
+          open
+          onOpenChange={(o) => !o && setEditing(null)}
+          onCreated={fetchInvoices}
+        />
+      )}
     </div>
   );
 }

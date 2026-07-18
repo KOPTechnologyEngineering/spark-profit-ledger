@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "
 
 interface AddTransactionDialogProps {
   onCreated?: () => void;
-  /** When set, the dialog edits this transaction instead of creating one. Editing resets the record to pending and re-triggers approval. */
+  /** When set, the dialog edits this transaction instead of creating one. Editing resets the record to pending and re-triggers approval. Mount the component only while editing (state initializes from the record once, at mount). */
   record?: any;
   /** Controlled open state — required in edit mode (there is no trigger button). */
   open?: boolean;
@@ -28,29 +28,16 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const [loading, setLoading] = useState(false);
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState<"inflow" | "outflow">("inflow");
-  const [category, setCategory] = useState("Revenue");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [approver1, setApprover1] = useState("");
-  const [approver2, setApprover2] = useState("");
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [description, setDescription] = useState(record?.description || "");
+  const [amount, setAmount] = useState(record ? String(record.amount ?? "") : "");
+  const [type, setType] = useState<"inflow" | "outflow">(record?.type === "outflow" ? "outflow" : "inflow");
+  const [category, setCategory] = useState(record?.category || "Revenue");
+  const [date, setDate] = useState(record?.date || new Date().toISOString().split("T")[0]);
+  const [approver1, setApprover1] = useState(record?.approver1_id || "");
+  const [approver2, setApprover2] = useState(record?.approver2_id || "");
+  const [attachments, setAttachments] = useState<any[]>(Array.isArray(record?.attachments) ? record.attachments : []);
   const { user } = useAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (open && record) {
-      setDescription(record.description || "");
-      setAmount(String(record.amount ?? ""));
-      setType(record.type === "outflow" ? "outflow" : "inflow");
-      setCategory(record.category || "Revenue");
-      setDate(record.date || new Date().toISOString().split("T")[0]);
-      setApprover1(record.approver1_id || "");
-      setApprover2(record.approver2_id || "");
-      setAttachments(Array.isArray(record.attachments) ? record.attachments : []);
-    }
-  }, [open, record]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

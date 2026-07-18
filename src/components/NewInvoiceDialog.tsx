@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,11 +19,23 @@ interface LineItem {
 
 interface NewInvoiceDialogProps {
   onCreated?: () => void;
-  /** When set, the dialog edits this invoice instead of creating one. Editing resets the record to pending and re-triggers approval. */
+  /** When set, the dialog edits this invoice instead of creating one. Editing resets the record to pending and re-triggers approval. Mount the component only while editing (state initializes from the record once, at mount). */
   record?: any;
   /** Controlled open state — required in edit mode (there is no trigger button). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+}
+
+function itemsFromRecord(record: any): LineItem[] {
+  const items = Array.isArray(record?.items) ? record.items : [];
+  if (items.length === 0) return [{ description: "", quantity: 1, rate: 0, discount: 0, discount_amount: 0 }];
+  return items.map((i: any) => ({
+    description: i.description || "",
+    quantity: Number(i.quantity) || 1,
+    rate: Number(i.rate) || 0,
+    discount: Number(i.discount) || 0,
+    discount_amount: Number(i.discount_amount) || 0,
+  }));
 }
 
 export default function NewInvoiceDialog({ onCreated, record, open: controlledOpen, onOpenChange }: NewInvoiceDialogProps) {
@@ -32,40 +44,16 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const [loading, setLoading] = useState(false);
-  const [client, setClient] = useState("");
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState("");
-  const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, rate: 0, discount: 0, discount_amount: 0 }]);
-  const [discountPercentage, setDiscountPercentage] = useState(0);
-  const [approver1, setApprover1] = useState("");
-  const [approver2, setApprover2] = useState("");
+  const [client, setClient] = useState(record?.client || "");
+  const [invoiceNumber, setInvoiceNumber] = useState(record?.invoice_number || "");
+  const [issueDate, setIssueDate] = useState(record?.issue_date || new Date().toISOString().split("T")[0]);
+  const [dueDate, setDueDate] = useState(record?.due_date || "");
+  const [items, setItems] = useState<LineItem[]>(itemsFromRecord(record));
+  const [discountPercentage, setDiscountPercentage] = useState(Number(record?.discount_percentage) || 0);
+  const [approver1, setApprover1] = useState(record?.approver1_id || "");
+  const [approver2, setApprover2] = useState(record?.approver2_id || "");
   const { user } = useAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (open && record) {
-      setClient(record.client || "");
-      setInvoiceNumber(record.invoice_number || "");
-      setIssueDate(record.issue_date || new Date().toISOString().split("T")[0]);
-      setDueDate(record.due_date || "");
-      setDiscountPercentage(Number(record.discount_percentage) || 0);
-      const items = Array.isArray(record.items) ? record.items : [];
-      setItems(
-        items.length > 0
-          ? items.map((i: any) => ({
-              description: i.description || "",
-              quantity: Number(i.quantity) || 1,
-              rate: Number(i.rate) || 0,
-              discount: Number(i.discount) || 0,
-              discount_amount: Number(i.discount_amount) || 0,
-            }))
-          : [{ description: "", quantity: 1, rate: 0, discount: 0, discount_amount: 0 }],
-      );
-      setApprover1(record.approver1_id || "");
-      setApprover2(record.approver2_id || "");
-    }
-  }, [open, record]);
 
   const lineNet = (item: LineItem) => Math.max(0, item.quantity * item.rate * (1 - (item.discount || 0) / 100) - (item.discount_amount || 0));
   const subtotal = items.reduce((sum, item) => sum + lineNet(item), 0);
