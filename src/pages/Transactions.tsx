@@ -59,6 +59,15 @@ export default function Transactions() {
     setRecurringDetail(data ?? null);
     setRecurringDetailLoading(false);
   };
+
+  const viewFutureTransactions = (id: string) => {
+    setRecurringDetail(null);
+    setActiveTab("transactions");
+    setRecurringFilter(id);
+    setPeriod("All");
+    setRange({ from: new Date(), to: undefined });
+  };
+
   const [period, setPeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit, hasAdmin } = useUserRoles();
