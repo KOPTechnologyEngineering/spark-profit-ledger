@@ -80,6 +80,7 @@ export default function Organizations() {
       phone: org.phone || "",
       address: org.address || "",
       vat_number: org.vat_number || "",
+      nature_of_business: (org as any).nature_of_business || "",
       notes: org.notes || "",
     });
     setDialogOpen(true);
