@@ -97,6 +97,7 @@ export default function Organizations() {
       phone: form.phone.trim() || null,
       address: form.address.trim() || null,
       vat_number: form.vat_number.trim() || null,
+      nature_of_business: form.nature_of_business.trim() || null,
       notes: form.notes.trim() || null,
     };
     const { error } = editing
