@@ -209,7 +209,7 @@ export default function Organizations() {
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.phone || "—"}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.vat_number || "—"}</TableCell>
                     <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">{(org as any).nature_of_business || "—"}</TableCell>
-                    <TableCell className="text-right space-x-1"></TableCell>
+                    <TableCell className="text-right space-x-1">
                       <Button size="icon" variant="ghost" onClick={() => openEdit(org)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
