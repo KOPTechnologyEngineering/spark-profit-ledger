@@ -37,8 +37,21 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
   const [approver1, setApprover1] = useState(record?.approver1_id || "");
   const [approver2, setApprover2] = useState(record?.approver2_id || "");
   const [attachments, setAttachments] = useState<any[]>(Array.isArray(record?.attachments) ? record.attachments : []);
+  const [organizationId, setOrganizationId] = useState<string>(record?.organization_id || "");
+  const [vendors, setVendors] = useState<{ id: string; name: string; org_type: string }[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("tbl_organizations")
+      .select("id, name, org_type")
+      .in("org_type", ["vendor", "both"])
+      .is("deleted_at", null)
+      .order("name", { ascending: true })
+      .then(({ data }) => setVendors((data as any) || []));
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
