@@ -25,9 +25,9 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Auth: verify_jwt=true only validates JWT shape, so the public anon key
+// satisfies it. To prevent open-relay abuse we additionally require the
+// caller to be either a real authenticated user OR the service_role key.
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -47,6 +47,27 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // Reject callers that only present the anon key (no authenticated user).
+  const authHeader = req.headers.get('Authorization') || ''
+  const bearer = authHeader.replace(/^Bearer\s+/i, '')
+  if (!bearer) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+  const isServiceRole = bearer === supabaseServiceKey
+  if (!isServiceRole) {
+    const authClient = createClient(supabaseUrl, supabaseServiceKey)
+    const { data: userData, error: userErr } = await authClient.auth.getUser(bearer)
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
   }
 
   // Parse request body
