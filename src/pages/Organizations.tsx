@@ -192,6 +192,7 @@ export default function Organizations() {
                   <TableHead className="hidden md:table-cell">Email</TableHead>
                   <TableHead className="hidden lg:table-cell">Phone</TableHead>
                   <TableHead className="hidden lg:table-cell">VAT number</TableHead>
+                  <TableHead className="hidden xl:table-cell">Nature of business</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
