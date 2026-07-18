@@ -21,6 +21,47 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // AuthZ: this function has verify_jwt=false (so it can run as a scheduled/
+  // cron job in future without a user session), so without an explicit check
+  // any anonymous caller who finds the URL could trigger it repeatedly,
+  // creating duplicate transactions. Today the only real caller is the
+  // "Run Now" button in RecurringTransactionsTab.tsx, gated client-side on
+  // hasAdmin("transactions") — accept either that (a real user session with
+  // the transactions-admin role) or the service-role key (for a future
+  // server-to-server/cron trigger, e.g. via pg_cron's net.http_post, which
+  // presents the service key rather than a user session).
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  if (token !== serviceRoleKey) {
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: role } = await supabase
+      .from("tbl_user_roles")
+      .select("access")
+      .eq("user_id", userData.user.id)
+      .eq("module", "transactions")
+      .eq("access", "admin")
+      .maybeSingle();
+    if (!role) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   let triggeredBy = "cron";
   try {
     const body = await req.json();
@@ -48,12 +89,17 @@ Deno.serve(async (req) => {
       perSchedule.set(r.id, 0);
       let runDate: string = r.next_run_date;
       while (runDate <= today && (!r.end_date || runDate <= r.end_date)) {
-        const { data: existing } = await supabase
+        const { data: existing, error: lookupErr } = await supabase
           .from("tbl_transactions")
           .select("id")
           .eq("recurring_transaction_id", r.id)
           .eq("date", runDate)
           .maybeSingle();
+
+        // If the lookup itself failed, don't fall through to "not found" --
+        // that would insert a duplicate transaction on a merely transient
+        // DB error instead of skipping this run and retrying next time.
+        if (lookupErr) throw lookupErr;
 
         if (!existing) {
           const { error: insErr } = await supabase.from("tbl_transactions").insert({
