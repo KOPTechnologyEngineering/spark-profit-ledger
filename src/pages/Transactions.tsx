@@ -326,7 +326,10 @@ export default function Transactions() {
                           </button>
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground">{tx.category} · {tx.date} · {tx.created_by_name || "—"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {tx.category} · {tx.date} · {tx.created_by_name || "—"}
+                        {tx.organization_id && orgMap[tx.organization_id] && ` · ${orgMap[tx.organization_id]}`}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
