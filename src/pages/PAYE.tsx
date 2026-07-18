@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 const ISE_GRADES = [
   "Grade 1 – Trainee / Entry Level",
@@ -71,6 +71,7 @@ const PAYE_IMPORT_SAMPLE = ["Jane Smith", "Accountant", ISE_GRADES[2], 45000];
 
 export default function PAYE() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { hasAdmin, hasEdit } = useUserRoles();
   const canEdit = hasEdit("paye");
   const canDelete = hasAdmin("paye");
@@ -136,12 +137,12 @@ export default function PAYE() {
 
   const handleSave = async () => {
     if (!form.name || !form.grossAnnual || !form.grade) {
-      toast.error("Please fill in all required fields");
+      toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
       return;
     }
     const annual = parseFloat(form.grossAnnual);
     if (isNaN(annual) || annual <= 0) {
-      toast.error("Enter a valid gross annual pay");
+      toast({ title: "Error", description: "Enter a valid gross annual pay", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -162,8 +163,8 @@ export default function PAYE() {
       ({ error } = await supabase.from("tbl_paye_employees").insert({ user_id: user!.id, ...payload }));
     }
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success(editId ? "Employee updated" : "Employee added");
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: editId ? "Employee updated" : "Employee added" });
     setForm(emptyForm);
     setEditId(null);
     setOpen(false);
@@ -173,8 +174,8 @@ export default function PAYE() {
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete employee "${name}"?`)) return;
     const { error } = await supabase.from("tbl_paye_employees").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Employee deleted");
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Employee deleted" });
     fetchEmployees();
   };
 
