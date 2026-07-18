@@ -19,6 +19,7 @@ type RunLog = {
 
 export default function RecurringTransactionsTab() {
   const [items, setItems] = useState<any[]>([]);
+  const [orgMap, setOrgMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
   const [lastRun, setLastRun] = useState<RunLog | null>(null);
