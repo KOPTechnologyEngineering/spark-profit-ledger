@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +50,9 @@ export default function UserManagement() {
   const [rejectTarget, setRejectTarget] = useState<UserProfile | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const { toast } = useToast();
-  const { hasAdmin } = useUserRoles();
+  const { hasAdmin, loading: rolesLoading } = useUserRoles();
+  const [activeTab, setActiveTab] = useState("users");
+  const autoSwitchedToPending = useRef(false);
   const { user } = useAuth();
 
   const deleteUser = async (userId: string) => {
@@ -235,6 +237,15 @@ export default function UserManagement() {
   const visibleUsers = users.filter((u) => !u.is_hidden && u.approval_status === "approved");
   const pendingUsers = users.filter((u) => !u.is_hidden && u.approval_status === "pending");
 
+  // On first load only: if sign-ups are waiting, open the Pending Approvals tab
+  // so they aren't hidden behind a click. Never yanks the tab afterwards.
+  useEffect(() => {
+    if (loading || rolesLoading || autoSwitchedToPending.current) return;
+    autoSwitchedToPending.current = true;
+    if (hasAdmin("users") && pendingUsers.length > 0) setActiveTab("pending");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, rolesLoading]);
+
 
   const accessColor = (level: string) => {
     switch (level) {
@@ -296,7 +307,7 @@ export default function UserManagement() {
       {loading ? (
         <LoadingSpinner />
       ) : (
-        <Tabs defaultValue="users" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         {hasAdmin("users") && (
           <TabsList>
             <TabsTrigger value="users">User Management</TabsTrigger>
