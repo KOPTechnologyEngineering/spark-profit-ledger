@@ -14,7 +14,10 @@ jobs:
       # Install with bun, matching how Lovable/Vercel build this project.
       # bun.lock is the maintained, in-sync lockfile; --frozen-lockfile gives a
       # strict, reproducible install and fails if the lockfile drifts from
-      # package.json. (The committed package-lock.json is stale and unused.)
+      # package.json. Don't use npm/package-lock.json here or locally -- it's
+      # not maintained and drifts from package.json (see removed
+      # package-lock.json; a stale copy caused local builds to fail on a
+      # dependency npm's install skipped).
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
