@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
 const frequencies = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const;
+const NO_ORG = "__none__";
 
 interface Props {
   onSaved?: () => void;
