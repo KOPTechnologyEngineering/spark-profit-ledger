@@ -86,11 +86,16 @@ export default function Transactions() {
     return { error: error?.message };
   };
 
-  useEffect(() => { fetchTransactions(); }, []);
+  useEffect(() => { fetchTransactions(); fetchRecurring(); }, []);
 
   const periodFiltered = filterByDateRange(filterByPeriod(allTransactions, period), range, "date");
   const filtered = periodFiltered
     .filter((t) => typeFilter === "all" || t.type === typeFilter)
+    .filter((t) => {
+      if (recurringFilter === "all") return true;
+      if (recurringFilter === "any") return !!t.recurring_transaction_id;
+      return t.recurring_transaction_id === recurringFilter;
+    })
     .filter((t) => !search || t.description?.toLowerCase().includes(search.toLowerCase()));
 
   const totalInflow = sumAmounts(periodFiltered.filter((t) => t.type === "inflow"), "amount");
