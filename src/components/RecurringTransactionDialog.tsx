@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
 const frequencies = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const;
@@ -94,11 +95,18 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
         } as any);
         if (error) throw error;
       }
-      toast({ title: isEdit ? "Recurring updated" : "Recurring created" });
+      toast({
+        title: isEdit ? "Recurring transaction updated" : "Recurring transaction created",
+        description: isEdit ? "Your changes have been saved." : "It will run automatically on schedule.",
+      });
       setOpen(false);
       onSaved?.();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: isEdit ? "Couldn't update recurring transaction" : "Couldn't create recurring transaction",
+        description: friendlyErrorMessage(err),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

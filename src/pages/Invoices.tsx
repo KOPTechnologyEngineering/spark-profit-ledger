@@ -18,6 +18,7 @@ import { formatGBP } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 type InvoiceRow = Tables<"tbl_invoices">;
 
@@ -52,7 +53,7 @@ export default function Invoices() {
     setLoading(true);
     const { data, error } = await supabase.from("tbl_invoices").select("*").order("created_at", { ascending: false });
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load invoices", description: friendlyErrorMessage(error), variant: "destructive" });
       setLoading(false);
       return;
     }

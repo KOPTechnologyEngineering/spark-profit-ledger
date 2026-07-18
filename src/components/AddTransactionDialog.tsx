@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import ApproverSelect from "@/components/ApproverSelect";
 import AttachmentUpload from "@/components/AttachmentUpload";
 
@@ -100,7 +101,11 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
       resetForm();
       onCreated?.();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: isEdit ? "Couldn't update transaction" : "Couldn't add transaction",
+        description: friendlyErrorMessage(error, "Please check the details and try again."),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

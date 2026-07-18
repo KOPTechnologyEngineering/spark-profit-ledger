@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 const ISE_GRADES = [
   "Grade 1 – Trainee / Entry Level",
@@ -124,7 +125,7 @@ export default function PAYE() {
   const fetchEmployees = async () => {
     const { data, error } = await supabase.from("tbl_paye_employees").select("*").order("name");
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load employees", description: friendlyErrorMessage(error), variant: "destructive" });
       return;
     }
     setEmployees(data || []);
@@ -172,12 +173,12 @@ export default function PAYE() {
 
   const handleSave = async () => {
     if (!form.name || !form.grossAnnual || !form.grade) {
-      toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
+      toast({ title: "Missing required fields", description: "Please fill in the employee's name, grade and gross annual pay.", variant: "destructive" });
       return;
     }
     const annual = parseFloat(form.grossAnnual);
     if (isNaN(annual) || annual <= 0) {
-      toast({ title: "Error", description: "Enter a valid gross annual pay", variant: "destructive" });
+      toast({ title: "Invalid gross annual pay", description: "Please enter a gross annual pay greater than zero.", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -198,7 +199,14 @@ export default function PAYE() {
       ({ error } = await supabase.from("tbl_paye_employees").insert({ user_id: user!.id, ...payload }));
     }
     setSaving(false);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    if (error) {
+      toast({
+        title: editId ? "Couldn't update employee" : "Couldn't add employee",
+        description: friendlyErrorMessage(error),
+        variant: "destructive",
+      });
+      return;
+    }
     toast({ title: editId ? "Employee updated" : "Employee added" });
     setForm(emptyForm);
     setEditId(null);
@@ -209,7 +217,7 @@ export default function PAYE() {
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete employee "${name}"?`)) return;
     const { error } = await supabase.from("tbl_paye_employees").delete().eq("id", id);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast({ title: "Couldn't delete employee", description: friendlyErrorMessage(error), variant: "destructive" }); return; }
     toast({ title: "Employee deleted" });
     fetchEmployees();
   };

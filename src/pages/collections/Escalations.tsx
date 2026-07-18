@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ESCALATION_LEVELS, logActivity } from "@/lib/collections";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 const STATUS_OPTIONS = ["open", "in_progress", "resolved", "cancelled"];
 
@@ -20,7 +21,7 @@ export default function Escalations() {
   const load = async () => {
     const { data, error } = await supabase.from("tbl_collection_escalations").select("*").order("created_at", { ascending: false });
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyErrorMessage(error, "Couldn't load escalations. Please try again."));
       return;
     }
     setList(data || []);
@@ -36,7 +37,7 @@ export default function Escalations() {
       .update({ status: form.status, level: form.level, resolution_notes: form.resolution_notes })
       .eq("id", editing.id);
     await logActivity({ invoice_id: editing.invoice_id, action: "escalation_updated", detail: form.status });
-    toast.success("Updated");
+    toast.success("Escalation updated");
     setEditing(null);
     load();
   };

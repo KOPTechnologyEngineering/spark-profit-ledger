@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { TEMPLATE_TYPES, renderTemplate, logActivity } from "@/lib/collections";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 const SAMPLE_VARS = {
   customer_name: "Acme Ltd",
@@ -35,7 +36,7 @@ export default function EmailTemplates() {
   const load = async () => {
     const { data, error } = await supabase.from("tbl_collection_email_templates").select("*").order("created_at", { ascending: false });
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyErrorMessage(error, "Couldn't load email templates. Please try again."));
       return;
     }
     setTemplates(data || []);
@@ -61,7 +62,7 @@ export default function EmailTemplates() {
   const remove = async (t: any) => {
     if (!confirm("Delete this template?")) return;
     await supabase.from("tbl_collection_email_templates").delete().eq("id", t.id);
-    toast.success("Deleted");
+    toast.success("Template deleted");
     load();
   };
 

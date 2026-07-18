@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { logActivity, STATUS_LABELS, STATUS_COLORS, daysOverdue } from "@/lib/collections";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { RefreshCw, Clock, CheckCircle2, XCircle, Mail } from "lucide-react";
 
 const COOLDOWN_MS = 10_000;
@@ -60,7 +61,7 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
   };
 
   const recordPromise = async () => {
-    if (!promiseDate) return toast.error("Pick a date");
+    if (!promiseDate) return toast.error("Please choose a promise date");
     await supabase.from("tbl_collection_payment_promises").insert({
       user_id: user!.id,
       invoice_id: item.invoice_id,
@@ -212,6 +213,10 @@ export default function ChaseDetailDialog({ item, invoice, open, onClose, onChan
         .eq("chase_item_id", item.id)
         .order("created_at", { ascending: false }),
     ]);
+    if (act.error || rem.error) {
+      toast.error(friendlyErrorMessage(act.error || rem.error, "Couldn't load the latest chase activity. Please try again."));
+      return;
+    }
     setActivity(act.data || []);
     const remRows = rem.data || [];
     setReminders(remRows);

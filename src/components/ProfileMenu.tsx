@@ -9,6 +9,7 @@ import { Settings, LogOut, Upload, Trash2, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 export default function ProfileMenu() {
   const { user, signOut } = useAuth();
@@ -47,7 +48,7 @@ export default function ProfileMenu() {
       .eq("user_id", user.id);
     setLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't update profile", description: friendlyErrorMessage(error), variant: "destructive" });
     } else {
       toast({ title: "Profile updated" });
       setOpen(false);
@@ -63,7 +64,7 @@ export default function ProfileMenu() {
 
     const { error } = await supabase.storage.from("signatures").upload(path, file, { upsert: true });
     if (error) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      toast({ title: "Upload failed", description: friendlyErrorMessage(error, "Couldn't upload your signature. Please try again."), variant: "destructive" });
       setUploading(false);
       return;
     }
@@ -72,7 +73,7 @@ export default function ProfileMenu() {
       .from("signatures")
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
     if (signErr || !signed?.signedUrl) {
-      toast({ title: "Upload failed", description: signErr?.message || "Could not sign URL", variant: "destructive" });
+      toast({ title: "Upload failed", description: friendlyErrorMessage(signErr, "Couldn't finish preparing your signature. Please try again."), variant: "destructive" });
       setUploading(false);
       return;
     }

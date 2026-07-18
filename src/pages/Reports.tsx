@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { downloadCSV } from "@/lib/csv";
 import { sumAmounts } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
 import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
@@ -84,11 +85,11 @@ export default function Reports() {
           (data || []).map((p) => [p.full_name, p.email, p.designation, p.is_active]),
         );
       }
-      toast({ title: "Report generated", description: "CSV file downloaded." });
+      toast({ title: "Report generated", description: "Your CSV file has been downloaded." });
     } catch (e) {
       toast({
-        title: "Error generating report",
-        description: e instanceof Error ? e.message : undefined,
+        title: "Couldn't generate report",
+        description: friendlyErrorMessage(e, "Please try again in a moment."),
         variant: "destructive",
       });
     }

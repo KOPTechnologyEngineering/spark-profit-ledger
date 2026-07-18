@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { Download, Printer, CheckCircle, XCircle, FileText, Image, Pencil, Trash2 } from "lucide-react";
 import { useProfiles, Profile } from "@/hooks/useProfiles";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -69,9 +70,16 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
 
     const { error } = await supabase.from(table).update(updates).eq("id", record.id);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: action === "approved" ? "Couldn't approve" : "Couldn't reject",
+        description: friendlyErrorMessage(error),
+        variant: "destructive",
+      });
     } else {
-      toast({ title: action === "approved" ? "Approved" : "Rejected", description: `Record has been ${action}.` });
+      toast({
+        title: action === "approved" ? "Approved" : "Rejected",
+        description: `This ${type} has been ${action}.`,
+      });
       onUpdated?.();
       onOpenChange(false);
     }
@@ -82,9 +90,9 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     const table = type === "invoice" ? "tbl_invoices" : "tbl_transactions";
     const { error } = await supabase.from(table).delete().eq("id", record.id);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't delete", description: friendlyErrorMessage(error), variant: "destructive" });
     } else {
-      toast({ title: "Deleted", description: "Record has been deleted." });
+      toast({ title: "Deleted", description: `This ${type} has been deleted.` });
       onUpdated?.();
       onOpenChange(false);
     }

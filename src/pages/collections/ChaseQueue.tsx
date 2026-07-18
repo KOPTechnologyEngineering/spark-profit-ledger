@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors";
 import {
   CHASE_STATUSES,
   STATUS_LABELS,
@@ -38,7 +39,7 @@ export default function ChaseQueue() {
     ]);
     const firstError = items.error || invs.error || templates.error;
     if (firstError) {
-      toast.error(firstError.message);
+      toast.error(friendlyErrorMessage(firstError, "Couldn't load the chase queue. Please try again."));
       setLoading(false);
       return;
     }
@@ -157,7 +158,7 @@ export default function ChaseQueue() {
       });
       toast.success(`Reminder sent to ${recipient}`);
     } catch (err: any) {
-      const msg = err?.message || "Send failed";
+      const msg = friendlyErrorMessage(err, "Sending failed. Please try again.");
       await supabase
         .from("tbl_collection_reminders")
         .update({ status: "failed", failed_at: new Date().toISOString(), error: msg })

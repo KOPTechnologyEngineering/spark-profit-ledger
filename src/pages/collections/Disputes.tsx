@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DISPUTE_REASONS, logActivity } from "@/lib/collections";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 const STATUSES = ["open", "under_review", "awaiting_customer", "resolved", "rejected", "cancelled"];
 
@@ -20,7 +21,7 @@ export default function Disputes() {
   const load = async () => {
     const { data, error } = await supabase.from("tbl_collection_disputes").select("*").order("created_at", { ascending: false });
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyErrorMessage(error, "Couldn't load disputes. Please try again."));
       return;
     }
     setList(data || []);
@@ -40,7 +41,7 @@ export default function Disputes() {
       await supabase.from("tbl_collection_chase_items").update({ status: "overdue" }).eq("id", editing.chase_item_id);
     }
     await logActivity({ invoice_id: editing.invoice_id, action: "dispute_updated", detail: form.status });
-    toast.success("Updated");
+    toast.success("Dispute updated");
     setEditing(null);
     load();
   };

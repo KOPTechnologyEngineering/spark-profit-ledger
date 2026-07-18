@@ -27,6 +27,7 @@ import { formatGBP, sumAmounts } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 type TransactionRow = Tables<"tbl_transactions">;
 
@@ -184,7 +185,7 @@ export default function Transactions() {
       .select("id, description")
       .order("description", { ascending: true });
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load recurring transactions", description: friendlyErrorMessage(error), variant: "destructive" });
       return;
     }
     setRecurringList(data || []);
@@ -194,7 +195,7 @@ export default function Transactions() {
     setLoading(true);
     const { data, error } = await supabase.from("tbl_transactions").select("*").order("date", { ascending: false });
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load transactions", description: friendlyErrorMessage(error), variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -239,7 +240,7 @@ export default function Transactions() {
   const fetchOrgs = async () => {
     const { data, error } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load organizations", description: friendlyErrorMessage(error), variant: "destructive" });
       return;
     }
     const m: Record<string, string> = {};

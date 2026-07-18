@@ -6,6 +6,7 @@ import RecurringTransactionDialog from "@/components/RecurringTransactionDialog"
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { formatGBP } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 type RunLog = {
@@ -37,7 +38,7 @@ export default function RecurringTransactionsTab() {
       .select("*")
       .order("next_run_date", { ascending: true });
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load recurring transactions", description: friendlyErrorMessage(error), variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -53,7 +54,7 @@ export default function RecurringTransactionsTab() {
       .limit(1)
       .maybeSingle();
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load last run details", description: friendlyErrorMessage(error), variant: "destructive" });
       return;
     }
     setLastRun((data as RunLog) || null);
@@ -62,7 +63,7 @@ export default function RecurringTransactionsTab() {
   const fetchOrgs = async () => {
     const { data, error } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load organizations", description: friendlyErrorMessage(error), variant: "destructive" });
       return;
     }
     const m: Record<string, string> = {};
@@ -86,7 +87,7 @@ export default function RecurringTransactionsTab() {
       });
       await Promise.all([fetchItems(), fetchLastRun()]);
     } catch (err: any) {
-      toast({ title: "Run failed", description: err.message, variant: "destructive" });
+      toast({ title: "Recurring processor didn't run", description: friendlyErrorMessage(err), variant: "destructive" });
       await fetchLastRun();
     } finally {
       setTriggering(false);
@@ -98,14 +99,14 @@ export default function RecurringTransactionsTab() {
       .from("tbl_recurring_transactions")
       .update({ is_active: !item.is_active })
       .eq("id", item.id);
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) toast({ title: "Couldn't update schedule", description: friendlyErrorMessage(error), variant: "destructive" });
     else fetchItems();
   };
 
   const remove = async (id: string) => {
     if (!confirm("Delete this recurring transaction?")) return;
     const { error } = await supabase.from("tbl_recurring_transactions").delete().eq("id", id);
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) toast({ title: "Couldn't delete recurring transaction", description: friendlyErrorMessage(error), variant: "destructive" });
     else fetchItems();
   };
 

@@ -16,6 +16,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import FilterPills from "@/components/FilterPills";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 
 type OrgRow = Tables<"tbl_organizations">;
 type OrgType = "customer" | "vendor" | "both";
@@ -58,7 +59,7 @@ export default function Organizations() {
       .select("*")
       .is("deleted_at", null)
       .order("name", { ascending: true });
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) toast({ title: "Couldn't load organizations", description: friendlyErrorMessage(error), variant: "destructive" });
     setRows((data || []) as OrgRow[]);
     setLoading(false);
   };
@@ -90,7 +91,7 @@ export default function Organizations() {
 
   const handleSave = async () => {
     if (!user) return;
-    if (!form.name.trim()) return toast({ title: "Error", description: "Name is required", variant: "destructive" });
+    if (!form.name.trim()) return toast({ title: "Name required", description: "Please enter an organization name.", variant: "destructive" });
     setSaving(true);
     const payload = {
       name: form.name.trim(),
@@ -106,7 +107,13 @@ export default function Organizations() {
       ? await supabase.from("tbl_organizations").update(payload).eq("id", editing.id)
       : await supabase.from("tbl_organizations").insert({ ...payload, user_id: user.id });
     setSaving(false);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) {
+      return toast({
+        title: editing ? "Couldn't update organization" : "Couldn't add organization",
+        description: friendlyErrorMessage(error),
+        variant: "destructive",
+      });
+    }
     toast({ title: editing ? "Organization updated" : "Organization added" });
     setDialogOpen(false);
     fetchOrgs();
@@ -118,7 +125,7 @@ export default function Organizations() {
       .from("tbl_organizations")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", org.id);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Couldn't remove organization", description: friendlyErrorMessage(error), variant: "destructive" });
     toast({ title: "Organization removed" });
     fetchOrgs();
   };

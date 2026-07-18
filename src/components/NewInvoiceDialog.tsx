@@ -7,6 +7,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyErrorMessage } from "@/lib/errors";
 import ApproverSelect from "@/components/ApproverSelect";
 
 interface LineItem {
@@ -118,7 +119,11 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
       resetForm();
       onCreated?.();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: isEdit ? "Couldn't update invoice" : "Couldn't create invoice",
+        description: friendlyErrorMessage(error, "Please check the details and try again."),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
