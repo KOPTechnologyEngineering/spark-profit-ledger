@@ -217,6 +217,7 @@ export default function UserManagement() {
             body: {
               templateName: isApproved ? "account-approved" : "account-rejected",
               recipientEmail: target.email,
+              targetUserId: userId,
               idempotencyKey: `account-${status}-${userId}-${Date.now()}`,
               templateData: {
                 recipientName: target.full_name || target.email.split("@")[0],

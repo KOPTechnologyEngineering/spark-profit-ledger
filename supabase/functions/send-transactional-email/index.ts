@@ -70,19 +70,76 @@ Deno.serve(async (req) => {
       })
     }
     callerUserId = userData.user.id
+    const callerEmail = (userData.user.email || '').toLowerCase()
 
     // Authorization: end-user callers may only invoke templates they are
-    // explicitly permitted to send. Everything else (auth flow emails,
-    // admin notifications, diagnostics) must be invoked with the service
-    // role from a trusted server context.
-    const requestedTemplate =
-      (await req.clone().json().catch(() => ({}))).templateName ||
-      (await req.clone().json().catch(() => ({}))).template_name
+    // explicitly permitted to send, each gated as narrowly as the equivalent
+    // action they can already take directly against the database. Everything
+    // else (diagnostics, templates with no per-caller rule below) must be
+    // invoked with the service role from a trusted server context.
+    const authzBody = await req.clone().json().catch(() => ({} as Record<string, unknown>))
+    const requestedTemplate = (authzBody.templateName || authzBody.template_name) as string | undefined
+    const requestedRecipient = String(authzBody.recipientEmail || authzBody.recipient_email || '').toLowerCase()
+    const targetUserId = (authzBody.targetUserId || authzBody.target_user_id) as string | undefined
 
-    // Templates that require invoices edit/admin access to send.
-    const invoiceEditorTemplates = new Set(['chase-reminder'])
+    const authzClient = createClient(supabaseUrl, supabaseServiceKey)
+    let authorized = false
 
-    if (!requestedTemplate || !invoiceEditorTemplates.has(requestedTemplate)) {
+    if (requestedTemplate === 'welcome') {
+      // Self-service: a brand-new signup is still 'pending' at this point,
+      // so no role check applies — a user may only email themselves their
+      // own welcome email.
+      authorized = !!requestedRecipient && requestedRecipient === callerEmail
+    } else if (requestedTemplate === 'account-approved' || requestedTemplate === 'account-rejected') {
+      // Same role that already gates the approve/reject buttons in
+      // UserManagement.tsx and the tbl_user_approval_audit insert policy.
+      // The target is looked up by user_id, not the caller-supplied email —
+      // tbl_profiles.email has no unique constraint and is user-editable via
+      // RLS, so matching by email string alone would let the target spoof it.
+      const { data: callerProfile } = await authzClient
+        .from('tbl_profiles')
+        .select('approval_status')
+        .eq('user_id', callerUserId)
+        .maybeSingle()
+      const { data: callerRole } = await authzClient
+        .from('tbl_user_roles')
+        .select('access')
+        .eq('user_id', callerUserId)
+        .eq('module', 'users')
+        .maybeSingle()
+
+      if (callerProfile?.approval_status === 'approved' && callerRole?.access === 'admin' && targetUserId) {
+        const expectedStatus = requestedTemplate === 'account-approved' ? 'approved' : 'rejected'
+        const { data: targetProfile } = await authzClient
+          .from('tbl_profiles')
+          .select('email, approval_status')
+          .eq('user_id', targetUserId)
+          .maybeSingle()
+        authorized =
+          !!targetProfile &&
+          targetProfile.approval_status === expectedStatus &&
+          (targetProfile.email || '').toLowerCase() === requestedRecipient
+      }
+    } else {
+      // Templates that require invoices edit/admin access to send.
+      const invoiceEditorTemplates = new Set(['chase-reminder', 'test-delivery'])
+      if (requestedTemplate && invoiceEditorTemplates.has(requestedTemplate)) {
+        const { data: profile } = await authzClient
+          .from('tbl_profiles')
+          .select('approval_status')
+          .eq('user_id', callerUserId)
+          .maybeSingle()
+        const { data: role } = await authzClient
+          .from('tbl_user_roles')
+          .select('access')
+          .eq('user_id', callerUserId)
+          .eq('module', 'invoices')
+          .maybeSingle()
+        authorized = profile?.approval_status === 'approved' && !!role && ['edit', 'admin'].includes(role.access)
+      }
+    }
+
+    if (!authorized) {
       return new Response(
         JSON.stringify({ error: 'Forbidden: template not allowed for this caller' }),
         {
@@ -91,38 +148,13 @@ Deno.serve(async (req) => {
         }
       )
     }
-
-    // Verify caller is approved AND has invoices edit/admin access.
-    const authzClient = createClient(supabaseUrl, supabaseServiceKey)
-    const { data: profile } = await authzClient
-      .from('tbl_profiles')
-      .select('approval_status')
-      .eq('user_id', callerUserId)
-      .maybeSingle()
-    if (profile?.approval_status !== 'approved') {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-    const { data: role } = await authzClient
-      .from('tbl_user_roles')
-      .select('access')
-      .eq('user_id', callerUserId)
-      .eq('module', 'invoices')
-      .maybeSingle()
-    if (!role || !['edit', 'admin'].includes(role.access)) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
   }
 
 
   // Parse request body
   let templateName: string
   let recipientEmail: string
+  let chaseItemId: string | undefined
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
@@ -130,6 +162,7 @@ Deno.serve(async (req) => {
     const body = await req.json()
     templateName = body.templateName || body.template_name
     recipientEmail = body.recipientEmail || body.recipient_email
+    chaseItemId = body.chaseItemId || body.chase_item_id
     messageId = crypto.randomUUID()
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
@@ -169,6 +202,38 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // chase-reminder's recipient is re-derived server-side from the chase item
+  // rather than trusted from the request body — recipientEmail here could be
+  // set to anything via a raw API call regardless of what's actually stored
+  // (and shown to other users) on that chase item.
+  if (templateName === 'chase-reminder') {
+    if (!chaseItemId) {
+      return new Response(
+        JSON.stringify({ error: 'chaseItemId is required for chase-reminder' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+    const chaseItemClient = createClient(supabaseUrl, supabaseServiceKey)
+    const { data: chaseItem, error: chaseItemError } = await chaseItemClient
+      .from('tbl_collection_chase_items')
+      .select('customer_email')
+      .eq('id', chaseItemId)
+      .maybeSingle()
+    if (chaseItemError || !chaseItem?.customer_email) {
+      return new Response(
+        JSON.stringify({ error: 'Chase item not found or has no recipient on file' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+    recipientEmail = chaseItem.customer_email
   }
 
   // Resolve effective recipient: template-level `to` takes precedence over
