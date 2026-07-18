@@ -141,6 +141,10 @@ export default function RecurringTransactionsTab() {
                 <p className="text-xs text-muted-foreground capitalize">
                   {r.frequency} · {r.category} · Next: {r.next_run_date}
                   {r.end_date && ` · Ends: ${r.end_date}`}
+                  {r.organization_id && orgMap[r.organization_id] && ` · ${orgMap[r.organization_id]}`}
+                  {!r.is_active && " · Paused"}
+                </p>
+              </div>
                   {!r.is_active && " · Paused"}
                 </p>
               </div>
