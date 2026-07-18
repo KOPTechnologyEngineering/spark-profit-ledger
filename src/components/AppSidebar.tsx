@@ -9,7 +9,6 @@ import {
   ClipboardList,
   LogOut,
   Shield,
-  ClipboardCheck,
   Mail,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +23,6 @@ const navItems = [
   { label: "Profit & Loss", icon: TrendingUp, path: "/pnl", module: "pnl" },
   { label: "VAT", icon: Receipt, path: "/vat", module: "vat" },
   { label: "PAYE", icon: Users, path: "/paye", module: "paye" },
-  { label: "Approvals", icon: ClipboardCheck, path: "/approvals", module: null },
   { label: "Reports", icon: ClipboardList, path: "/reports", module: "reports" },
   { label: "User Management", icon: Shield, path: "/users", module: "users" },
 ];
