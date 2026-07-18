@@ -1165,6 +1165,7 @@ export type Database = {
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
+          enqueued_at: string
           message: Json
           msg_id: number
           read_ct: number
