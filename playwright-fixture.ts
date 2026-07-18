@@ -1,3 +1,3 @@
-// Re-export the base fixture from the package
-// Override or extend test/expect here if needed
-export { test, expect } from "lovable-agent-playwright-config/fixture";
+// Re-export the base fixture. Override or extend test/expect here if needed
+// (e.g. a custom `authenticatedPage` fixture once more E2E tests exist).
+export { test, expect } from "@playwright/test";
