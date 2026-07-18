@@ -163,7 +163,9 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
             <div className="space-y-2">
               <Label>Date</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
           </div>
+
 
           <div className="space-y-2">
             <Label>Organization (vendor)</Label>
