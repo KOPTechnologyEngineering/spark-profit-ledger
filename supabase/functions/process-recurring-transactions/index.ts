@@ -41,17 +41,22 @@ Deno.serve(async (req) => {
     let runDate: string = r.next_run_date;
     // Generate one transaction per missed occurrence up to today
     while (runDate <= today && (!r.end_date || runDate <= r.end_date)) {
-      const { error: insErr } = await supabase.from("tbl_transactions").insert({
-        user_id: r.user_id,
-        description: r.description,
-        amount: r.amount,
-        type: r.type,
-        category: r.category,
-        status: "completed",
-        date: runDate,
-        created_by_name: r.created_by_name || "Recurring",
-        recurring_transaction_id: r.id,
-      });
+      const { error: insErr } = await supabase
+        .from("tbl_transactions")
+        .upsert(
+          {
+            user_id: r.user_id,
+            description: r.description,
+            amount: r.amount,
+            type: r.type,
+            category: r.category,
+            status: "completed",
+            date: runDate,
+            created_by_name: r.created_by_name || "Recurring",
+            recurring_transaction_id: r.id,
+          },
+          { onConflict: "recurring_transaction_id,date", ignoreDuplicates: true },
+        );
       if (insErr) {
         console.error("insert failed", insErr);
         break;
