@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowDownLeft, ArrowUpRight, Search, Download } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Search, Download, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -50,6 +50,7 @@ export default function Transactions() {
   const [editing, setEditing] = useState<TransactionRow | null>(null);
   const [recurringDetail, setRecurringDetail] = useState<Tables<"tbl_recurring_transactions"> | null>(null);
   const [recurringDetailLoading, setRecurringDetailLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("transactions");
 
   const openRecurringDetail = async (id: string) => {
     setRecurringDetailLoading(true);
@@ -58,6 +59,15 @@ export default function Transactions() {
     setRecurringDetail(data ?? null);
     setRecurringDetailLoading(false);
   };
+
+  const viewFutureTransactions = (id: string) => {
+    setRecurringDetail(null);
+    setActiveTab("transactions");
+    setRecurringFilter(id);
+    setPeriod("All");
+    setRange({ from: new Date(), to: undefined });
+  };
+
   const [period, setPeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit, hasAdmin } = useUserRoles();
@@ -137,7 +147,7 @@ export default function Transactions() {
         <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={fetchTransactions} /></div>
       </PageHeader>
 
-      <Tabs defaultValue="transactions" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
@@ -297,6 +307,14 @@ export default function Transactions() {
                   <p className="font-medium text-foreground">{recurringDetail.last_run_date || "—"}</p>
                 </div>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => viewFutureTransactions(recurringDetail.id)}
+              >
+                View future transactions <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           )}
         </DialogContent>
