@@ -74,6 +74,7 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
         approver1_status: "pending",
         approver2_status: "pending",
         attachments: attachments,
+        organization_id: organizationId || null,
       };
 
       if (isEdit) {
