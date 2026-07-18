@@ -147,7 +147,7 @@ export default function Transactions() {
         <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={fetchTransactions} /></div>
       </PageHeader>
 
-      <Tabs defaultValue="transactions" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
