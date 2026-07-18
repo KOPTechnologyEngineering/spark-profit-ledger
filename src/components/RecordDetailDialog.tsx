@@ -103,9 +103,20 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     URL.revokeObjectURL(url);
   };
 
+  const escapeHtml = (v: unknown): string => {
+    if (v === null || v === undefined) return "";
+    return String(v)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  };
+
   const handlePrint = () => {
     const w = window.open("", "_blank");
     if (!w) return;
+    const esc = escapeHtml;
 
     const createdDate = record.created_at ? new Date(record.created_at).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
 
