@@ -67,8 +67,16 @@ export default function ProfileMenu() {
       setUploading(false);
       return;
     }
-    const { data: urlData } = supabase.storage.from("signatures").getPublicUrl(path);
-    setSignatureUrl(urlData.publicUrl);
+    // Bucket is private — create a long-lived signed URL (10 years).
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("signatures")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (signErr || !signed?.signedUrl) {
+      toast({ title: "Upload failed", description: signErr?.message || "Could not sign URL", variant: "destructive" });
+      setUploading(false);
+      return;
+    }
+    setSignatureUrl(signed.signedUrl);
     setUploading(false);
     toast({ title: "Signature uploaded" });
   };
