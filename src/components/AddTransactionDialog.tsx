@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,20 @@ import AttachmentUpload from "@/components/AttachmentUpload";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
 
-export default function AddTransactionDialog({ onCreated }: { onCreated?: () => void }) {
-  const [open, setOpen] = useState(false);
+interface AddTransactionDialogProps {
+  onCreated?: () => void;
+  /** When set, the dialog edits this transaction instead of creating one. Editing resets the record to pending and re-triggers approval. */
+  record?: any;
+  /** Controlled open state — required in edit mode (there is no trigger button). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function AddTransactionDialog({ onCreated, record, open: controlledOpen, onOpenChange }: AddTransactionDialogProps) {
+  const isEdit = !!record;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -27,6 +39,19 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
   const { user } = useAuth();
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (open && record) {
+      setDescription(record.description || "");
+      setAmount(String(record.amount ?? ""));
+      setType(record.type === "outflow" ? "outflow" : "inflow");
+      setCategory(record.category || "Revenue");
+      setDate(record.date || new Date().toISOString().split("T")[0]);
+      setApprover1(record.approver1_id || "");
+      setApprover2(record.approver2_id || "");
+      setAttachments(Array.isArray(record.attachments) ? record.attachments : []);
+    }
+  }, [open, record]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -36,8 +61,7 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
     }
     setLoading(true);
     try {
-      const { error } = await supabase.from("tbl_transactions").insert({
-        user_id: user.id,
+      const fields = {
         description,
         amount: Number(amount),
         type,
@@ -48,17 +72,28 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
         approver2_id: approver2,
         approver1_status: "pending",
         approver2_status: "pending",
-        created_by_name: user.user_metadata?.full_name || user.email || "",
         attachments: attachments,
-      } as any);
-      if (error) throw error;
+      };
 
+      if (isEdit) {
+        const { error } = await supabase.from("tbl_transactions").update(fields as any).eq("id", record.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("tbl_transactions").insert({
+          user_id: user.id,
+          created_by_name: user.user_metadata?.full_name || user.email || "",
+          ...fields,
+        } as any);
+        if (error) throw error;
+      }
+
+      const verb = isEdit ? "was updated and needs your re-approval" : "needs your approval";
       await supabase.from("tbl_notifications").insert([
-        { user_id: approver1, title: "Approval Required", message: `Transaction "${description}" needs your approval (£${Number(amount).toLocaleString()})`, link: "/approvals" },
-        { user_id: approver2, title: "Approval Required", message: `Transaction "${description}" needs your approval (£${Number(amount).toLocaleString()})`, link: "/approvals" },
+        { user_id: approver1, title: "Approval Required", message: `Transaction "${description}" ${verb} (£${Number(amount).toLocaleString()})`, link: "/approvals" },
+        { user_id: approver2, title: "Approval Required", message: `Transaction "${description}" ${verb} (£${Number(amount).toLocaleString()})`, link: "/approvals" },
       ] as any);
 
-      toast({ title: "Transaction added", description: "Sent for approval" });
+      toast({ title: isEdit ? "Transaction updated" : "Transaction added", description: isEdit ? "Sent for re-approval" : "Sent for approval" });
       setOpen(false);
       resetForm();
       onCreated?.();
@@ -82,14 +117,16 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Add Transaction
-        </Button>
-      </DialogTrigger>
+      {!isEdit && (
+        <DialogTrigger asChild>
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" /> Add Transaction
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-heading">Add Transaction</DialogTitle>
+          <DialogTitle className="font-heading">{isEdit ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -130,8 +167,12 @@ export default function AddTransactionDialog({ onCreated }: { onCreated?: () => 
 
           <AttachmentUpload attachments={attachments} onAttachmentsChange={setAttachments} />
 
+          {isEdit && (
+            <p className="text-xs text-muted-foreground">Saving changes resets this transaction to pending and sends it back to both approvers.</p>
+          )}
+
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Adding..." : "Submit for Approval"}
+            {loading ? "Saving..." : isEdit ? "Save & Resubmit for Approval" : "Submit for Approval"}
           </Button>
         </form>
       </DialogContent>

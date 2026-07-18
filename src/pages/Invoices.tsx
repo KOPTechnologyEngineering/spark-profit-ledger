@@ -39,6 +39,7 @@ export default function Invoices() {
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<InvoiceRow | null>(null);
+  const [editing, setEditing] = useState<InvoiceRow | null>(null);
   const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit, hasAdmin } = useUserRoles();
   const viewOnly = !hasEdit("invoices");
@@ -169,7 +170,20 @@ export default function Invoices() {
         )}
       </div>
 
-      <RecordDetailDialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)} record={selected} type="invoice" onUpdated={fetchInvoices} />
+      <RecordDetailDialog
+        open={!!selected}
+        onOpenChange={(o) => !o && setSelected(null)}
+        record={selected}
+        type="invoice"
+        onUpdated={fetchInvoices}
+        onEdit={!viewOnly ? () => { setEditing(selected); setSelected(null); } : undefined}
+      />
+      <NewInvoiceDialog
+        record={editing}
+        open={!!editing}
+        onOpenChange={(o) => !o && setEditing(null)}
+        onCreated={fetchInvoices}
+      />
     </div>
   );
 }
