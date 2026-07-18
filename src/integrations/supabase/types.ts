@@ -847,6 +847,7 @@ export type Database = {
           date: string
           description: string
           id: string
+          recurring_transaction_id: string | null
           status: string
           type: string
           updated_at: string
@@ -865,6 +866,7 @@ export type Database = {
           date?: string
           description: string
           id?: string
+          recurring_transaction_id?: string | null
           status?: string
           type: string
           updated_at?: string
@@ -883,12 +885,21 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          recurring_transaction_id?: string | null
           status?: string
           type?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tbl_transactions_recurring_transaction_id_fkey"
+            columns: ["recurring_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "tbl_recurring_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tbl_user_approval_audit: {
         Row: {
