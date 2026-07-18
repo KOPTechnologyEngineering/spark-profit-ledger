@@ -50,6 +50,7 @@ export default function Transactions() {
   const [search, setSearch] = useState("");
   const [allTransactions, setAllTransactions] = useState<TransactionRow[]>([]);
   const [recurringList, setRecurringList] = useState<{ id: string; description: string }[]>([]);
+  const [orgMap, setOrgMap] = useState<Record<string, string>>({});
   const [recurringFilter, setRecurringFilter] = useState<string>("all"); // "all" | "any" | "<id>"
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TransactionRow | null>(null);
