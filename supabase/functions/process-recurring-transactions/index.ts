@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
         status: "completed",
         date: runDate,
         created_by_name: r.created_by_name || "Recurring",
+        recurring_transaction_id: r.id,
       });
       if (insErr) {
         console.error("insert failed", insErr);
