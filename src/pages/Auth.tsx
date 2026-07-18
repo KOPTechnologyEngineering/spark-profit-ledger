@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { TrendingUp, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { TrendingUp, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
+type Mode = "login" | "signup" | "forgot";
+
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -20,7 +22,6 @@ export default function Auth() {
   const navigate = useNavigate();
   const { session } = useAuth();
 
-  // Redirect after render if already signed in (never call navigate during render)
   useEffect(() => {
     if (session) navigate("/", { replace: true });
   }, [session, navigate]);
@@ -30,7 +31,7 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (mode === "login") {
         const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         if (loginData.user) {
@@ -49,7 +50,7 @@ export default function Auth() {
             toast({ title: "Welcome back!", description: "Successfully signed in." });
           }
         }
-      } else {
+      } else if (mode === "signup") {
         const { data: signupData, error } = await supabase.auth.signUp({
           email,
           password,
@@ -83,14 +84,25 @@ export default function Auth() {
             .catch((e) => console.warn("Admin notification failed", e));
         }
         toast({ title: "Account created!", description: "Your account is awaiting admin approval. You'll get access once approved." });
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast({
+          title: "Check your email",
+          description: "If an account exists for this email, a reset link has been sent.",
+        });
+        setMode("login");
       }
-
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
+
+  const title = mode === "login" ? "Sign in to your account" : mode === "signup" ? "Create your account" : "Reset your password";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -104,14 +116,12 @@ export default function Auth() {
             <TrendingUp className="h-6 w-6 text-primary-foreground" />
           </div>
           <h1 className="mt-4 font-heading text-3xl font-bold text-foreground">KOP Ledger</h1>
-          <p className="mt-1 text-muted-foreground">
-            {isLogin ? "Sign in to your account" : "Create your account"}
-          </p>
+          <p className="mt-1 text-muted-foreground">{title}</p>
         </div>
 
         <div className="glass-card p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
+            {mode === "signup" && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
                 <div className="relative">
@@ -144,45 +154,75 @@ export default function Auth() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+            {mode !== "forgot" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {mode === "login" && (
+                    <button
+                      type="button"
+                      onClick={() => setMode("forgot")}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
+              {loading
+                ? "Please wait..."
+                : mode === "login"
+                ? "Sign In"
+                : mode === "signup"
+                ? "Create Account"
+                : "Send Reset Link"}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-            </span>
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="font-medium text-primary hover:underline"
-            >
-              {isLogin ? "Sign Up" : "Sign In"}
-            </button>
+            {mode === "forgot" ? (
+              <button
+                onClick={() => setMode("login")}
+                className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+              >
+                <ArrowLeft className="h-3 w-3" /> Back to sign in
+              </button>
+            ) : (
+              <>
+                <span className="text-muted-foreground">
+                  {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+                </span>
+                <button
+                  onClick={() => setMode(mode === "login" ? "signup" : "login")}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {mode === "login" ? "Sign Up" : "Sign In"}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </motion.div>
