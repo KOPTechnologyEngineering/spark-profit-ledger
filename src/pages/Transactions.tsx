@@ -339,50 +339,52 @@ export default function Transactions() {
                 View future transactions <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
 
-              <div className="pt-2">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Run history</p>
-                {recurringRunsLoading ? (
-                  <div className="py-4 text-center text-sm text-muted-foreground">Loading run history…</div>
-                ) : recurringRuns.length === 0 ? (
-                  <div className="py-4 text-center text-sm text-muted-foreground">No runs recorded for this schedule yet.</div>
-                ) : (
-                  <div className="max-h-60 overflow-auto rounded-md border border-border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">Run date</TableHead>
-                          <TableHead className="text-xs">Triggered by</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs text-right">Created</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recurringRuns.map((run) => {
-                          const log = run.tbl_recurring_run_log;
-                          const runAt = log?.run_at || run.created_at;
-                          const failed = !!log?.error;
-                          return (
-                            <TableRow key={run.id}>
-                              <TableCell className="text-xs whitespace-nowrap">
-                                {new Date(runAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
-                              </TableCell>
-                              <TableCell className="text-xs capitalize whitespace-nowrap">{log?.triggered_by || "—"}</TableCell>
-                              <TableCell className="text-xs">
-                                {failed ? (
-                                  <span className="text-outflow">Failed</span>
-                                ) : (
-                                  <span className="text-inflow">Success</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-xs text-right">{run.created_count}</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </div>
+              {canViewRunHistory && (
+                <div className="pt-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Run history</p>
+                  {recurringRunsLoading ? (
+                    <div className="py-4 text-center text-sm text-muted-foreground">Loading run history…</div>
+                  ) : recurringRuns.length === 0 ? (
+                    <div className="py-4 text-center text-sm text-muted-foreground">No runs recorded for this schedule yet.</div>
+                  ) : (
+                    <div className="max-h-60 overflow-auto rounded-md border border-border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Run date</TableHead>
+                            <TableHead className="text-xs">Triggered by</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="text-xs text-right">Created</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {recurringRuns.map((run) => {
+                            const log = run.tbl_recurring_run_log;
+                            const runAt = log?.run_at || run.created_at;
+                            const failed = !!log?.error;
+                            return (
+                              <TableRow key={run.id}>
+                                <TableCell className="text-xs whitespace-nowrap">
+                                  {new Date(runAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                                </TableCell>
+                                <TableCell className="text-xs capitalize whitespace-nowrap">{log?.triggered_by || "—"}</TableCell>
+                                <TableCell className="text-xs">
+                                  {failed ? (
+                                    <span className="text-outflow">Failed</span>
+                                  ) : (
+                                    <span className="text-inflow">Success</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">{run.created_count}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
