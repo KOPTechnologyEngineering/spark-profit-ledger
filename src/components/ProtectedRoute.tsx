@@ -32,7 +32,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
       const res = await fetch(url.toString(), {
         headers: {
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${session.access_token}`,
           Accept: "application/vnd.pgrst.object+json",
         },
