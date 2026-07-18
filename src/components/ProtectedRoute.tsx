@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     try {
       // Bypass any browser/service-worker cache by calling the REST endpoint directly
       // with cache: "no-store" and a cache-busting query parameter.
-      const url = new URL(`${supabase.supabaseUrl}/rest/v1/tbl_profiles`);
+      const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/tbl_profiles`);
       url.searchParams.set("select", "approval_status,rejection_reason");
       url.searchParams.set("user_id", "eq." + session.user.id);
       url.searchParams.set("limit", "1");
@@ -32,7 +32,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
       const res = await fetch(url.toString(), {
         headers: {
-          apikey: supabase.supabaseKey,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           Authorization: `Bearer ${session.access_token}`,
           Accept: "application/vnd.pgrst.object+json",
         },
