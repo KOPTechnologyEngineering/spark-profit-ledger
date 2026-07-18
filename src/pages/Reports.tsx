@@ -30,7 +30,8 @@ export default function Reports() {
     setGenerating(key);
     try {
       if (key === "pnl" || key === "mgmt" || key === "aa") {
-        const { data } = await supabase.from("tbl_transactions").select("amount, type, category, date, description, status");
+        const { data, error } = await supabase.from("tbl_transactions").select("amount, type, category, date, description, status");
+        if (error) throw error;
         const txns = filterByDateRange(data || [], range, "date");
         downloadCSV(
           `${key}_report.csv`,
@@ -38,7 +39,8 @@ export default function Reports() {
           txns.map((t) => [t.category, t.type, t.description, t.amount, t.date, t.status]),
         );
       } else if (key === "ct600") {
-        const { data } = await supabase.from("tbl_transactions").select("amount, type, category, status, date");
+        const { data, error } = await supabase.from("tbl_transactions").select("amount, type, category, status, date");
+        if (error) throw error;
         const txns = filterByDateRange((data || []).filter((t) => t.status === "completed"), range, "date");
         const revenue = sumAmounts(txns.filter((t) => t.type === "inflow"), "amount");
         const expenses = sumAmounts(txns.filter((t) => t.type === "outflow"), "amount");
@@ -51,7 +53,8 @@ export default function Reports() {
           ["Corporation Tax (19%)", tax],
         ]);
       } else if (key === "vat") {
-        const { data } = await supabase.from("tbl_transactions").select("amount, type, date, description, category");
+        const { data, error } = await supabase.from("tbl_transactions").select("amount, type, date, description, category");
+        if (error) throw error;
         const txns = filterByDateRange(data || [], range, "date");
         const inflow = sumAmounts(txns.filter((t) => t.type === "inflow"), "amount");
         const outflow = sumAmounts(txns.filter((t) => t.type === "outflow"), "amount");
@@ -65,14 +68,16 @@ export default function Reports() {
           ["Net VAT Payable", outputVAT - inputVAT],
         ]);
       } else if (key === "paye" || key === "p60") {
-        const { data } = await supabase.from("tbl_paye_employees").select("name, role, gross_pay, tax, ni, net_pay");
+        const { data, error } = await supabase.from("tbl_paye_employees").select("name, role, gross_pay, tax, ni, net_pay");
+        if (error) throw error;
         downloadCSV(
           `${key}_report.csv`,
           ["Employee", "Role", "Gross Pay", "Income Tax", "NI", "Net Pay"],
           (data || []).map((e) => [e.name, e.role, e.gross_pay, e.tax, e.ni, e.net_pay]),
         );
       } else if (key === "cs01") {
-        const { data } = await supabase.from("tbl_profiles").select("full_name, email, designation, is_active");
+        const { data, error } = await supabase.from("tbl_profiles").select("full_name, email, designation, is_active");
+        if (error) throw error;
         downloadCSV(
           "cs01_confirmation.csv",
           ["Name", "Email", "Designation", "Active"],
@@ -80,8 +85,12 @@ export default function Reports() {
         );
       }
       toast({ title: "Report generated", description: "CSV file downloaded." });
-    } catch {
-      toast({ title: "Error generating report", variant: "destructive" });
+    } catch (e) {
+      toast({
+        title: "Error generating report",
+        description: e instanceof Error ? e.message : undefined,
+        variant: "destructive",
+      });
     }
     setGenerating(null);
   };
