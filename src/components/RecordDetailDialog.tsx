@@ -217,7 +217,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
           </tfoot>
         </table>
 
-        ${record.notes ? `<div style="margin-bottom:20px"><p style="font-size:12px;color:#666;font-weight:bold">NOTES</p><p style="font-size:13px;color:#555">${record.notes}</p></div>` : ""}
+        ${record.notes ? `<div style="margin-bottom:20px"><p style="font-size:12px;color:#666;font-weight:bold">NOTES</p><p style="font-size:13px;color:#555;white-space:pre-wrap">${esc(record.notes)}</p></div>` : ""}
 
         <div style="margin-top:60px;padding-top:20px;border-top:1px solid #eee">
           <p style="font-size:12px;color:#666;margin-bottom:16px;font-weight:bold">SIGNATORIES</p>
