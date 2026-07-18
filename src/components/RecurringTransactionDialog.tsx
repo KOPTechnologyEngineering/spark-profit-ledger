@@ -58,9 +58,11 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
       setFrequency(record.frequency || "monthly");
       setStartDate(record.next_run_date || new Date().toISOString().split("T")[0]);
       setEndDate(record.end_date || "");
+      setOrganizationId(record.organization_id || "");
     } else if (open && !record) {
       setDescription(""); setAmount(""); setType("outflow"); setCategory("Rent");
       setFrequency("monthly"); setStartDate(new Date().toISOString().split("T")[0]); setEndDate("");
+      setOrganizationId("");
     }
   }, [open, record]);
 
@@ -79,6 +81,7 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
         next_run_date: startDate,
         end_date: endDate || null,
         is_active: true,
+        organization_id: organizationId || null,
       };
       if (isEdit) {
         const { error } = await supabase.from("tbl_recurring_transactions").update(fields as any).eq("id", record.id);
