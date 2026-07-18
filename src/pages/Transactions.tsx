@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
 import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
@@ -41,6 +42,8 @@ export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
   const [search, setSearch] = useState("");
   const [allTransactions, setAllTransactions] = useState<TransactionRow[]>([]);
+  const [recurringList, setRecurringList] = useState<{ id: string; description: string }[]>([]);
+  const [recurringFilter, setRecurringFilter] = useState<string>("all"); // "all" | "any" | "<id>"
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [editing, setEditing] = useState<TransactionRow | null>(null);
@@ -50,6 +53,14 @@ export default function Transactions() {
   const viewOnly = !hasEdit("transactions");
   const canImport = hasAdmin("transactions");
   const { user } = useAuth();
+
+  const fetchRecurring = async () => {
+    const { data } = await supabase
+      .from("tbl_recurring_transactions")
+      .select("id, description")
+      .order("description", { ascending: true });
+    setRecurringList(data || []);
+  };
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -75,11 +86,16 @@ export default function Transactions() {
     return { error: error?.message };
   };
 
-  useEffect(() => { fetchTransactions(); }, []);
+  useEffect(() => { fetchTransactions(); fetchRecurring(); }, []);
 
   const periodFiltered = filterByDateRange(filterByPeriod(allTransactions, period), range, "date");
   const filtered = periodFiltered
     .filter((t) => typeFilter === "all" || t.type === typeFilter)
+    .filter((t) => {
+      if (recurringFilter === "all") return true;
+      if (recurringFilter === "any") return !!t.recurring_transaction_id;
+      return t.recurring_transaction_id === recurringFilter;
+    })
     .filter((t) => !search || t.description?.toLowerCase().includes(search.toLowerCase()));
 
   const totalInflow = sumAmounts(periodFiltered.filter((t) => t.type === "inflow"), "amount");
@@ -134,6 +150,19 @@ export default function Transactions() {
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search transactions..." className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
             </div>
             <FilterPills options={typeFilters} value={typeFilter} onChange={(v) => setTypeFilter(v)} />
+            <Select value={recurringFilter} onValueChange={setRecurringFilter}>
+              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Recurring" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All transactions</SelectItem>
+                <SelectItem value="any">↻ Recurring only</SelectItem>
+                {recurringList.length > 0 && (
+                  <div className="my-1 border-t border-border" />
+                )}
+                {recurringList.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>From: {r.description}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {loading ? (
