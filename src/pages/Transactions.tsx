@@ -63,14 +63,19 @@ export default function Transactions() {
     setRecurringDetailLoading(true);
     setRecurringRunsLoading(true);
     setRecurringDetail({ id } as Tables<"tbl_recurring_transactions">);
-    const [detailRes, runsRes] = await Promise.all([
-      supabase.from("tbl_recurring_transactions").select("*").eq("id", id).maybeSingle(),
-      supabase
-        .from("tbl_recurring_run_details")
-        .select("*, tbl_recurring_run_log(run_at, triggered_by, error)")
-        .eq("recurring_transaction_id", id)
-        .order("created_at", { ascending: false }),
-    ]);
+    const detailPromise = supabase
+      .from("tbl_recurring_transactions")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    const runsPromise = canViewRunHistory
+      ? supabase
+          .from("tbl_recurring_run_details")
+          .select("*, tbl_recurring_run_log(run_at, triggered_by, error)")
+          .eq("recurring_transaction_id", id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null });
+    const [detailRes, runsRes] = await Promise.all([detailPromise, runsPromise]);
     setRecurringDetail(detailRes.data ?? null);
     setRecurringRuns((runsRes.data as RunDetailRow[]) || []);
     setRecurringDetailLoading(false);
