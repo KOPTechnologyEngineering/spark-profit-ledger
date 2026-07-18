@@ -129,21 +129,18 @@ export default function Organizations() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader
-        title="Organizations"
-        subtitle="Manage the customers and vendors you do business with"
-        action={
-          <Button onClick={openNew}>
-            <Plus className="mr-2 h-4 w-4" /> New organization
-          </Button>
-        }
-      />
+      <PageHeader title="Organizations" subtitle="Manage the customers and vendors you do business with">
+        <Button onClick={openNew}>
+          <Plus className="mr-2 h-4 w-4" /> New organization
+        </Button>
+      </PageHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <SummaryTile label="Total" value={String(rows.length)} icon={Building2} />
-        <SummaryTile label="Customers" value={String(customerCount)} icon={Building2} />
-        <SummaryTile label="Vendors" value={String(vendorCount)} icon={Building2} />
+        <SummaryTile label="Total" value={String(rows.length)} />
+        <SummaryTile label="Customers" value={String(customerCount)} tone="positive" />
+        <SummaryTile label="Vendors" value={String(vendorCount)} tone="negative" />
       </div>
+
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
