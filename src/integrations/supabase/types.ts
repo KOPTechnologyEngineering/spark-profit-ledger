@@ -650,6 +650,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tbl_password_reset_attempts: {
+        Row: {
+          attempted_at: string
+          email: string
+          id: string
+          ip: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          email: string
+          id?: string
+          ip?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          email?: string
+          id?: string
+          ip?: string | null
+        }
+        Relationships: []
+      }
       tbl_paye_employees: {
         Row: {
           created_at: string

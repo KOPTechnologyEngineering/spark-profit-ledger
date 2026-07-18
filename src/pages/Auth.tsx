@@ -85,10 +85,19 @@ export default function Auth() {
         }
         toast({ title: "Account created!", description: "Your account is awaiting admin approval. You'll get access once approved." });
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+        const { data, error } = await supabase.functions.invoke("request-password-reset", {
+          body: { email, redirectTo: `${window.location.origin}/reset-password` },
         });
-        if (error) throw error;
+        if (error) {
+          const ctx: any = (error as any).context;
+          let msg = error.message;
+          try {
+            const parsed = ctx && typeof ctx.json === "function" ? await ctx.json() : null;
+            if (parsed?.error) msg = parsed.error;
+          } catch {}
+          throw new Error(msg);
+        }
+        if ((data as any)?.error) throw new Error((data as any).error);
         toast({
           title: "Check your email",
           description: "If an account exists for this email, a reset link has been sent.",
