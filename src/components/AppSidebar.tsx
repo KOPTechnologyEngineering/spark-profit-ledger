@@ -10,7 +10,9 @@ import {
   LogOut,
   Shield,
   Mail,
+  Building2,
 } from "lucide-react";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
