@@ -18,7 +18,7 @@ export default function DateRangePicker({ value, onChange, className, placeholde
   const label = value?.from
     ? value.to
       ? `${format(value.from, "dd MMM yyyy")} – ${format(value.to, "dd MMM yyyy")}`
-      : format(value.from, "dd MMM yyyy")
+      : `From ${format(value.from, "dd MMM yyyy")}`
     : placeholder;
 
   return (
