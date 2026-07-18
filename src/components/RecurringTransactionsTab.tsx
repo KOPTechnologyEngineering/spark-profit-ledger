@@ -32,26 +32,39 @@ export default function RecurringTransactionsTab() {
 
   const fetchItems = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tbl_recurring_transactions")
       .select("*")
       .order("next_run_date", { ascending: true });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
     setItems(data || []);
     setLoading(false);
   };
 
   const fetchLastRun = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tbl_recurring_run_log")
       .select("*")
       .order("run_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
     setLastRun((data as RunLog) || null);
   };
 
   const fetchOrgs = async () => {
-    const { data } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
+    const { data, error } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
     const m: Record<string, string> = {};
     (data || []).forEach((o: any) => { m[o.id] = o.name; });
     setOrgMap(m);

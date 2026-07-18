@@ -26,6 +26,7 @@ import { downloadCSV } from "@/lib/csv";
 import { formatGBP, sumAmounts } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useToast } from "@/hooks/use-toast";
 
 type TransactionRow = Tables<"tbl_transactions">;
 
@@ -175,18 +176,28 @@ export default function Transactions() {
   const canImport = hasAdmin("transactions");
   const canViewRunHistory = hasAdmin("transactions");
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const fetchRecurring = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tbl_recurring_transactions")
       .select("id, description")
       .order("description", { ascending: true });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
     setRecurringList(data || []);
   };
 
   const fetchTransactions = async () => {
     setLoading(true);
-    const { data } = await supabase.from("tbl_transactions").select("*").order("date", { ascending: false });
+    const { data, error } = await supabase.from("tbl_transactions").select("*").order("date", { ascending: false });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
     setAllTransactions(data || []);
     setLoading(false);
   };
@@ -226,7 +237,11 @@ export default function Transactions() {
   };
 
   const fetchOrgs = async () => {
-    const { data } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
+    const { data, error } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
     const m: Record<string, string> = {};
     (data || []).forEach((o: any) => { m[o.id] = o.name; });
     setOrgMap(m);

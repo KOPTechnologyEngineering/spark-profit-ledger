@@ -122,7 +122,11 @@ export default function PAYE() {
   };
 
   const fetchEmployees = async () => {
-    const { data } = await supabase.from("tbl_paye_employees").select("*").order("name");
+    const { data, error } = await supabase.from("tbl_paye_employees").select("*").order("name");
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
     setEmployees(data || []);
   };
 

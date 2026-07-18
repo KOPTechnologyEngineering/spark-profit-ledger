@@ -15,7 +15,12 @@ export default function CashflowChart({ period = "All" }: Props) {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.from("tbl_transactions").select("amount, type, date").order("date", { ascending: true });
+      const { data, error } = await supabase.from("tbl_transactions").select("amount, type, date").order("date", { ascending: true });
+      if (error) {
+        console.error("Failed to load cashflow chart data", error);
+        setChartData([]);
+        return;
+      }
       if (!data || data.length === 0) { setChartData([]); return; }
 
       const filtered = filterByPeriod(data, period);

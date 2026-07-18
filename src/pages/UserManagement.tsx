@@ -68,8 +68,13 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from("tbl_profiles").select("*");
-    const { data: roles } = await supabase.from("tbl_user_roles").select("*");
+    const { data: profiles, error: profilesError } = await supabase.from("tbl_profiles").select("*");
+    const { data: roles, error: rolesError } = await supabase.from("tbl_user_roles").select("*");
+    if (profilesError || rolesError) {
+      toast({ title: "Error", description: (profilesError || rolesError)?.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
 
     if (profiles) {
       const mapped: UserProfile[] = profiles.map((p: any) => {
@@ -84,17 +89,25 @@ export default function UserManagement() {
   };
 
   const fetchAuditLog = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tbl_user_approval_audit" as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
     if (!data) return;
     const rows = data as any[];
     const ids = Array.from(new Set(rows.flatMap((r) => [r.target_user_id, r.actor_user_id]).filter(Boolean)));
     let profileMap: Record<string, { full_name: string; email: string }> = {};
     if (ids.length) {
-      const { data: profs } = await supabase.from("tbl_profiles").select("user_id, full_name, email").in("user_id", ids);
+      const { data: profs, error: profsError } = await supabase.from("tbl_profiles").select("user_id, full_name, email").in("user_id", ids);
+      if (profsError) {
+        toast({ title: "Error", description: profsError.message, variant: "destructive" });
+        return;
+      }
       (profs || []).forEach((p: any) => { profileMap[p.user_id] = { full_name: p.full_name, email: p.email }; });
     }
     setAuditLog(rows.map((r) => ({ ...r, target: profileMap[r.target_user_id], actor: profileMap[r.actor_user_id] })));

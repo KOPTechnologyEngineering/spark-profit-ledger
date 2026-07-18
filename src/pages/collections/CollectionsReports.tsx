@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { daysOverdue, ageBracket } from "@/lib/collections";
 import { downloadCSV } from "@/lib/csv";
 import DateRangePicker from "@/components/DateRangePicker";
@@ -29,8 +30,10 @@ export default function CollectionsReports() {
   useEffect(() => {
     (async () => {
       let rows: any[] = [];
+      let error: { message: string } | null = null;
       if (report === "overdue" || report === "aged" || report === "customer" || report === "risk") {
-        const { data: invs } = await supabase.from("tbl_invoices").select("invoice_number, client, amount, due_date, status").neq("status", "paid");
+        const { data: invs, error: invsError } = await supabase.from("tbl_invoices").select("invoice_number, client, amount, due_date, status").neq("status", "paid");
+        error = invsError;
         rows = (invs || [])
           .filter((i) => !from || i.due_date >= from)
           .filter((i) => !to || i.due_date <= to)
@@ -44,17 +47,25 @@ export default function CollectionsReports() {
           rows = rows.filter((r) => r.days_overdue > 30);
         }
       } else if (report === "activity") {
-        const { data: r } = await supabase.from("tbl_collection_reminders").select("*").order("created_at", { ascending: false });
+        const { data: r, error: rError } = await supabase.from("tbl_collection_reminders").select("*").order("created_at", { ascending: false });
+        error = rError;
         rows = (r || []).filter((x) => !from || x.created_at >= from).filter((x) => !to || x.created_at <= to);
       } else if (report === "escalations") {
-        const { data: r } = await supabase.from("tbl_collection_escalations").select("*").order("created_at", { ascending: false });
+        const { data: r, error: rError } = await supabase.from("tbl_collection_escalations").select("*").order("created_at", { ascending: false });
+        error = rError;
         rows = r || [];
       } else if (report === "promises") {
-        const { data: r } = await supabase.from("tbl_collection_payment_promises").select("*");
+        const { data: r, error: rError } = await supabase.from("tbl_collection_payment_promises").select("*");
+        error = rError;
         rows = r || [];
       } else if (report === "disputes") {
-        const { data: r } = await supabase.from("tbl_collection_disputes").select("*");
+        const { data: r, error: rError } = await supabase.from("tbl_collection_disputes").select("*");
+        error = rError;
         rows = r || [];
+      }
+      if (error) {
+        toast.error(error.message);
+        return;
       }
       setData(rows);
     })();
