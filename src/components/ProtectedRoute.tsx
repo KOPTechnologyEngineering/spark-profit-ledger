@@ -13,7 +13,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   useEffect(() => {
     if (!session) { setStatus("loading"); return; }
     let cancelled = false;
-    (async () => {
+    const fetchStatus = async () => {
       const { data } = await supabase
         .from("tbl_profiles")
         .select("approval_status, rejection_reason")
@@ -23,8 +23,29 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       const s = (data as any)?.approval_status ?? "pending";
       setStatus(s === "approved" ? "approved" : s === "rejected" ? "rejected" : "pending");
       setRejectionReason((data as any)?.rejection_reason ?? null);
-    })();
-    return () => { cancelled = true; };
+    };
+    fetchStatus();
+
+    const channel = supabase
+      .channel(`profile-approval-${session.user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "tbl_profiles", filter: `user_id=eq.${session.user.id}` },
+        (payload) => {
+          const s = (payload.new as any)?.approval_status ?? "pending";
+          setStatus(s === "approved" ? "approved" : s === "rejected" ? "rejected" : "pending");
+          setRejectionReason((payload.new as any)?.rejection_reason ?? null);
+        }
+      )
+      .subscribe();
+
+    const interval = setInterval(fetchStatus, 15000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [session]);
 
   if (loading || (session && status === "loading")) {
