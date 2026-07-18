@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import ApproverSelect from "@/components/ApproverSelect";
 import AttachmentUpload from "@/components/AttachmentUpload";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
+const NO_ORG = "__none__";
 
 interface AddTransactionDialogProps {
   onCreated?: () => void;
