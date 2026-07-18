@@ -168,24 +168,26 @@ export default function CollectionsSettings() {
         </Button>
       )}
 
-      <div className="border-t border-border pt-4 space-y-2">
-        <Label>Send test email</Label>
-        <p className="text-xs text-muted-foreground">
-          Verify delivery by sending the test template to any address.
-        </p>
-        <div className="flex gap-2">
-          <Input
-            type="email"
-            value={testEmail}
-            onChange={(e) => setTestEmail(e.target.value)}
-            placeholder="you@example.com"
-            disabled={sendingTest}
-          />
-          <Button onClick={sendTest} disabled={sendingTest || !testEmail.trim()}>
-            {sendingTest ? "Sending..." : "Send test"}
-          </Button>
+      {canEdit && (
+        <div className="border-t border-border pt-4 space-y-2">
+          <Label>Send test email</Label>
+          <p className="text-xs text-muted-foreground">
+            Verify delivery by sending the test template to any address.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="you@example.com"
+              disabled={sendingTest}
+            />
+            <Button onClick={sendTest} disabled={sendingTest || !testEmail.trim()}>
+              {sendingTest ? "Sending..." : "Send test"}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

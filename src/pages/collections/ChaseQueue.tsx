@@ -123,6 +123,7 @@ export default function ChaseQueue() {
         body: {
           templateName: "chase-reminder",
           recipientEmail: recipient,
+          chaseItemId: item.id,
           idempotencyKey: messageId,
           templateData: {
             subject,
