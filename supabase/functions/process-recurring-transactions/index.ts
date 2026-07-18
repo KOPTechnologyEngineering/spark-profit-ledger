@@ -45,6 +45,7 @@ Deno.serve(async (req) => {
 
     for (const r of due ?? []) {
       let scheduleCreated = 0;
+      perSchedule.set(r.id, 0);
       let runDate: string = r.next_run_date;
       while (runDate <= today && (!r.end_date || runDate <= r.end_date)) {
         const { error: insErr } = await supabase
