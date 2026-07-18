@@ -115,7 +115,8 @@ export default function Auth() {
   const title = mode === "login" ? "Sign in to your account" : mode === "signup" ? "Create your account" : "Reset your password";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <PageMeta title="Sign in | KOP Ledger" description="Sign in to KOP Ledger to manage invoices, transactions, VAT, PAYE and collections." path="/auth" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
