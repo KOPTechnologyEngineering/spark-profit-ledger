@@ -30,6 +30,22 @@ const ISE_GRADES = [
   "Grade 10 – C-Suite / Chief Officer",
 ];
 
+// Default Gross Annual Pay per grade, from 2026/27 UK Civil Service pay-band
+// midpoints (AA through SCS4), mapped onto the 10 grades above in ascending
+// seniority. A starting point only -- the field stays editable after this.
+const GRADE_DEFAULT_GROSS_ANNUAL: Record<(typeof ISE_GRADES)[number], number> = {
+  "Grade 1 – Trainee / Entry Level": 23000,
+  "Grade 2 – Junior / Associate": 27000,
+  "Grade 3 – Intermediate / Officer": 31000,
+  "Grade 4 – Senior / Specialist": 38000,
+  "Grade 5 – Lead / Principal": 48500,
+  "Grade 6 – Manager": 65000,
+  "Grade 7 – Senior Manager": 82500,
+  "Grade 8 – Director": 105000,
+  "Grade 9 – Executive Director": 130000,
+  "Grade 10 – C-Suite / Chief Officer": 175000,
+};
+
 const PENSION_QUALIFYING_LOWER = 6240;
 const PENSION_QUALIFYING_UPPER = 50270;
 const PENSION_EMPLOYEE_RATE = 0.05;
@@ -239,7 +255,10 @@ export default function PAYE() {
             </div>
             <div>
               <Label>ISE Grade *</Label>
-              <Select value={form.grade} onValueChange={(v) => setForm({ ...form, grade: v })}>
+              <Select
+                value={form.grade}
+                onValueChange={(v) => setForm({ ...form, grade: v, grossAnnual: String(GRADE_DEFAULT_GROSS_ANNUAL[v] ?? "") })}
+              >
                 <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
                 <SelectContent>
                   {ISE_GRADES.map((g) => (
