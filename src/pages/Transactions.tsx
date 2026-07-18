@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import PageHeader from "@/components/PageHeader";
@@ -47,6 +48,16 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [editing, setEditing] = useState<TransactionRow | null>(null);
+  const [recurringDetail, setRecurringDetail] = useState<Tables<"tbl_recurring_transactions"> | null>(null);
+  const [recurringDetailLoading, setRecurringDetailLoading] = useState(false);
+
+  const openRecurringDetail = async (id: string) => {
+    setRecurringDetailLoading(true);
+    setRecurringDetail({ id } as Tables<"tbl_recurring_transactions">);
+    const { data } = await supabase.from("tbl_recurring_transactions").select("*").eq("id", id).maybeSingle();
+    setRecurringDetail(data ?? null);
+    setRecurringDetailLoading(false);
+  };
   const [period, setPeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit, hasAdmin } = useUserRoles();
@@ -188,9 +199,14 @@ export default function Transactions() {
                       <p className="text-sm font-medium text-foreground flex items-center gap-2">
                         {tx.description}
                         {tx.recurring_transaction_id && (
-                          <span title="Generated from a recurring schedule" className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          <button
+                            type="button"
+                            title="View recurring schedule"
+                            onClick={(e) => { e.stopPropagation(); openRecurringDetail(tx.recurring_transaction_id!); }}
+                            className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground hover:bg-secondary/70 hover:text-foreground transition-colors"
+                          >
                             ↻ Recurring
-                          </span>
+                          </button>
                         )}
                       </p>
                       <p className="text-xs text-muted-foreground">{tx.category} · {tx.date} · {tx.created_by_name || "—"}</p>
@@ -231,6 +247,60 @@ export default function Transactions() {
           onCreated={fetchTransactions}
         />
       )}
+
+      <Dialog open={!!recurringDetail} onOpenChange={(o) => !o && setRecurringDetail(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recurring schedule</DialogTitle>
+          </DialogHeader>
+          {recurringDetailLoading || !recurringDetail?.description ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Description</p>
+                <p className="font-medium text-foreground">{recurringDetail.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Type</p>
+                  <p className={`font-medium ${recurringDetail.type === 'inflow' ? 'text-inflow' : 'text-outflow'}`}>
+                    {recurringDetail.type === 'inflow' ? '+' : '-'}{formatGBP(Number(recurringDetail.amount))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Category</p>
+                  <p className="font-medium text-foreground">{recurringDetail.category || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Frequency</p>
+                  <p className="font-medium text-foreground capitalize">{recurringDetail.frequency}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Status</p>
+                  <p className="font-medium text-foreground">{recurringDetail.is_active ? "Active" : "Paused"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Next due</p>
+                  <p className="font-medium text-foreground">{recurringDetail.next_run_date || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">End date</p>
+                  <p className="font-medium text-foreground">{recurringDetail.end_date || "No end"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Start date</p>
+                  <p className="font-medium text-foreground">{recurringDetail.start_date || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Last run</p>
+                  <p className="font-medium text-foreground">{recurringDetail.last_run_date || "—"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
