@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const tabs = [
   { to: "/collections", label: "Dashboard", end: true },
@@ -39,7 +41,9 @@ export default function CollectionsLayout() {
           ))}
         </nav>
       </div>
-      <Outlet />
+      <Suspense fallback={<LoadingSpinner />}>
+        <Outlet />
+      </Suspense>
     </div>
   );
 }

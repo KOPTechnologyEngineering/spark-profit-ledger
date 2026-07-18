@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import FullScreenSpinner from "@/components/FullScreenSpinner";
 import { AlertTriangle, Clock, RefreshCw, XCircle } from "lucide-react";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -110,11 +111,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }, [status]);
 
   if (loading || (session && status === "loading")) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <FullScreenSpinner />;
   }
 
   if (!session) return <Navigate to="/auth" replace />;
