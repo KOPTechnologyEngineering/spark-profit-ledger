@@ -15,6 +15,7 @@ import VAT from "@/pages/VAT";
 import PAYE from "@/pages/PAYE";
 import Reports from "@/pages/Reports";
 import UserManagement from "@/pages/UserManagement";
+import Organizations from "@/pages/Organizations";
 import Approvals from "@/pages/Approvals";
 import Auth from "@/pages/Auth";
 import ResetPassword from "@/pages/ResetPassword";
