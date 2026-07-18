@@ -6,6 +6,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
@@ -26,6 +27,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 type TransactionRow = Tables<"tbl_transactions">;
+
+type RunDetailRow = Tables<"tbl_recurring_run_details"> & {
+  tbl_recurring_run_log: Pick<Tables<"tbl_recurring_run_log">, "run_at" | "triggered_by" | "error"> | null;
+};
 
 const typeFilters = ["all", "inflow", "outflow"] as const;
 
@@ -50,14 +55,31 @@ export default function Transactions() {
   const [editing, setEditing] = useState<TransactionRow | null>(null);
   const [recurringDetail, setRecurringDetail] = useState<Tables<"tbl_recurring_transactions"> | null>(null);
   const [recurringDetailLoading, setRecurringDetailLoading] = useState(false);
+  const [recurringRuns, setRecurringRuns] = useState<RunDetailRow[]>([]);
+  const [recurringRunsLoading, setRecurringRunsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("transactions");
 
   const openRecurringDetail = async (id: string) => {
     setRecurringDetailLoading(true);
+    setRecurringRunsLoading(true);
     setRecurringDetail({ id } as Tables<"tbl_recurring_transactions">);
-    const { data } = await supabase.from("tbl_recurring_transactions").select("*").eq("id", id).maybeSingle();
-    setRecurringDetail(data ?? null);
+    const detailPromise = supabase
+      .from("tbl_recurring_transactions")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    const runsPromise = canViewRunHistory
+      ? supabase
+          .from("tbl_recurring_run_details")
+          .select("*, tbl_recurring_run_log(run_at, triggered_by, error)")
+          .eq("recurring_transaction_id", id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null });
+    const [detailRes, runsRes] = await Promise.all([detailPromise, runsPromise]);
+    setRecurringDetail(detailRes.data ?? null);
+    setRecurringRuns((runsRes.data as RunDetailRow[]) || []);
     setRecurringDetailLoading(false);
+    setRecurringRunsLoading(false);
   };
 
   const viewFutureTransactions = (id: string) => {
@@ -73,6 +95,7 @@ export default function Transactions() {
   const { hasEdit, hasAdmin } = useUserRoles();
   const viewOnly = !hasEdit("transactions");
   const canImport = hasAdmin("transactions");
+  const canViewRunHistory = hasAdmin("transactions");
   const { user } = useAuth();
 
   const fetchRecurring = async () => {
@@ -315,6 +338,53 @@ export default function Transactions() {
               >
                 View future transactions <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
+
+              {canViewRunHistory && (
+                <div className="pt-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Run history</p>
+                  {recurringRunsLoading ? (
+                    <div className="py-4 text-center text-sm text-muted-foreground">Loading run history…</div>
+                  ) : recurringRuns.length === 0 ? (
+                    <div className="py-4 text-center text-sm text-muted-foreground">No runs recorded for this schedule yet.</div>
+                  ) : (
+                    <div className="max-h-60 overflow-auto rounded-md border border-border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Run date</TableHead>
+                            <TableHead className="text-xs">Triggered by</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="text-xs text-right">Created</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {recurringRuns.map((run) => {
+                            const log = run.tbl_recurring_run_log;
+                            const runAt = log?.run_at || run.created_at;
+                            const failed = !!log?.error;
+                            return (
+                              <TableRow key={run.id}>
+                                <TableCell className="text-xs whitespace-nowrap">
+                                  {new Date(runAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                                </TableCell>
+                                <TableCell className="text-xs capitalize whitespace-nowrap">{log?.triggered_by || "—"}</TableCell>
+                                <TableCell className="text-xs">
+                                  {failed ? (
+                                    <span className="text-outflow">Failed</span>
+                                  ) : (
+                                    <span className="text-inflow">Success</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">{run.created_count}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
