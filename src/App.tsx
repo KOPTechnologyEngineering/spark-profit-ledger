@@ -17,6 +17,7 @@ import Reports from "@/pages/Reports";
 import UserManagement from "@/pages/UserManagement";
 import Approvals from "@/pages/Approvals";
 import Auth from "@/pages/Auth";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 import CollectionsDashboard from "@/pages/collections/CollectionsDashboard";
 import ChaseQueue from "@/pages/collections/ChaseQueue";
