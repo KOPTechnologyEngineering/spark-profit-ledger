@@ -163,7 +163,21 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
             <div className="space-y-2">
               <Label>Date</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Organization (vendor)</Label>
+            <Select value={organizationId || NO_ORG} onValueChange={(v) => setOrganizationId(v === NO_ORG ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_ORG}>None</SelectItem>
+                {vendors.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}{o.org_type === "both" ? " (customer/vendor)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <ApproverSelect approver1={approver1} approver2={approver2} onApprover1Change={setApprover1} onApprover2Change={setApprover2} />
