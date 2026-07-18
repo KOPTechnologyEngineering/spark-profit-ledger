@@ -135,7 +135,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
           <div className="flex flex-col gap-2">
             <Button
               variant="outline"
-              onClick={fetchStatus}
+              onClick={fetchFreshStatus}
               disabled={refreshing}
               className="w-full"
             >
