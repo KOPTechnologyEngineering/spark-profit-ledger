@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import NewInvoiceDialog from "@/components/NewInvoiceDialog";
+import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import PageHeader from "@/components/PageHeader";
 import FilterPills from "@/components/FilterPills";
@@ -14,11 +15,23 @@ import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker
 import type { DateRange } from "react-day-picker";
 import { downloadCSV } from "@/lib/csv";
 import { formatGBP } from "@/lib/format";
+import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 type InvoiceRow = Tables<"tbl_invoices">;
 
 const statusFilters = ["all", "paid", "pending", "overdue", "draft", "rejected"] as const;
+
+const INVOICE_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "invoice_number", label: "Invoice Number", required: true, type: "string" },
+  { key: "client", label: "Client", required: true, type: "string" },
+  { key: "amount", label: "Amount", required: true, type: "number" },
+  { key: "status", label: "Status", type: "enum", enumValues: ["paid", "pending", "overdue", "draft", "rejected"], defaultValue: "paid" },
+  { key: "issue_date", label: "Issue Date", type: "date", defaultValue: new Date().toISOString().split("T")[0] },
+  { key: "due_date", label: "Due Date", type: "date" },
+  { key: "description", label: "Description", type: "string", defaultValue: "Imported invoice" },
+];
+const INVOICE_IMPORT_SAMPLE = ["INV-101", "Example Ltd", 5000, "paid", "2026-01-01", "2026-01-31", "Consulting services"];
 
 export default function Invoices() {
   const [filter, setFilter] = useState<(typeof statusFilters)[number]>("all");
@@ -27,14 +40,38 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<InvoiceRow | null>(null);
   const [range, setRange] = useState<DateRange | undefined>();
-  const { hasEdit } = useUserRoles();
+  const { hasEdit, hasAdmin } = useUserRoles();
   const viewOnly = !hasEdit("invoices");
+  const canImport = hasAdmin("invoices");
+  const { user } = useAuth();
 
   const fetchInvoices = async () => {
     setLoading(true);
     const { data } = await supabase.from("tbl_invoices").select("*").order("created_at", { ascending: false });
     setInvoices(data || []);
     setLoading(false);
+  };
+
+  const handleImportInvoices = async (rows: Record<string, string | number>[]) => {
+    if (!user) return { error: "Not signed in" };
+    const payload = rows.map((r) => {
+      const amount = Number(r.amount);
+      const issueDate = String(r.issue_date);
+      return {
+        user_id: user.id,
+        invoice_number: String(r.invoice_number),
+        client: String(r.client),
+        amount,
+        status: String(r.status),
+        issue_date: issueDate,
+        due_date: r.due_date ? String(r.due_date) : issueDate,
+        items: [{ description: String(r.description), quantity: 1, rate: amount, discount: 0, discount_amount: 0 }],
+        created_by_name: user.user_metadata?.full_name || user.email || "",
+      };
+    });
+    const { error } = await supabase.from("tbl_invoices").insert(payload as never);
+    if (!error) fetchInvoices();
+    return { error: error?.message };
   };
 
   useEffect(() => { fetchInvoices(); }, []);
@@ -55,6 +92,15 @@ export default function Invoices() {
     <div className="space-y-8">
       <PageHeader title="Invoices" subtitle="Manage and track your invoices">
         <Button variant="outline" size="sm" onClick={downloadAllCSV} disabled={viewOnly}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+        {canImport && (
+          <ImportDialog
+            title="Import Invoices"
+            columns={INVOICE_IMPORT_COLUMNS}
+            sampleRow={INVOICE_IMPORT_SAMPLE}
+            onImport={handleImportInvoices}
+            onImported={fetchInvoices}
+          />
+        )}
         <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><NewInvoiceDialog onCreated={fetchInvoices} /></div>
       </PageHeader>
 

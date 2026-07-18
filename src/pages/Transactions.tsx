@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
+import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import PageHeader from "@/components/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector";
@@ -17,11 +18,22 @@ import type { DateRange } from "react-day-picker";
 import { type Period, filterByPeriod } from "@/lib/date-filters";
 import { downloadCSV } from "@/lib/csv";
 import { formatGBP, sumAmounts } from "@/lib/format";
+import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 type TransactionRow = Tables<"tbl_transactions">;
 
 const typeFilters = ["all", "inflow", "outflow"] as const;
+
+const TRANSACTION_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "description", label: "Description", required: true, type: "string" },
+  { key: "amount", label: "Amount", required: true, type: "number" },
+  { key: "type", label: "Type", required: true, type: "enum", enumValues: ["inflow", "outflow"] },
+  { key: "category", label: "Category", type: "string", defaultValue: "Other" },
+  { key: "status", label: "Status", type: "enum", enumValues: ["completed", "pending", "overdue", "rejected"], defaultValue: "completed" },
+  { key: "date", label: "Date", type: "date", defaultValue: new Date().toISOString().split("T")[0] },
+];
+const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15"];
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
@@ -31,14 +43,33 @@ export default function Transactions() {
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [period, setPeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
-  const { hasEdit } = useUserRoles();
+  const { hasEdit, hasAdmin } = useUserRoles();
   const viewOnly = !hasEdit("transactions");
+  const canImport = hasAdmin("transactions");
+  const { user } = useAuth();
 
   const fetchTransactions = async () => {
     setLoading(true);
     const { data } = await supabase.from("tbl_transactions").select("*").order("date", { ascending: false });
     setAllTransactions(data || []);
     setLoading(false);
+  };
+
+  const handleImportTransactions = async (rows: Record<string, string | number>[]) => {
+    if (!user) return { error: "Not signed in" };
+    const payload = rows.map((r) => ({
+      user_id: user.id,
+      description: String(r.description),
+      amount: Number(r.amount),
+      type: String(r.type),
+      category: String(r.category),
+      status: String(r.status),
+      date: String(r.date),
+      created_by_name: user.user_metadata?.full_name || user.email || "",
+    }));
+    const { error } = await supabase.from("tbl_transactions").insert(payload as never);
+    if (!error) fetchTransactions();
+    return { error: error?.message };
   };
 
   useEffect(() => { fetchTransactions(); }, []);
@@ -64,6 +95,15 @@ export default function Transactions() {
     <div className="space-y-8">
       <PageHeader title="Transactions" subtitle="Track all inflows and outflows">
         <Button variant="outline" size="sm" onClick={downloadAllCSV} disabled={viewOnly}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+        {canImport && (
+          <ImportDialog
+            title="Import Transactions"
+            columns={TRANSACTION_IMPORT_COLUMNS}
+            sampleRow={TRANSACTION_IMPORT_SAMPLE}
+            onImport={handleImportTransactions}
+            onImported={fetchTransactions}
+          />
+        )}
         <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={fetchTransactions} /></div>
       </PageHeader>
 

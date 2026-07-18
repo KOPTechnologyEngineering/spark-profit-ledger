@@ -6,6 +6,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
 import SummaryTile from "@/components/SummaryTile";
+import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
 import { downloadCSV } from "@/lib/csv";
 import { formatGBP, sumAmounts } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,6 +61,14 @@ const emptyForm = { name: "", designation: "", grade: "", grossAnnual: "" };
 
 type EmployeeRow = Tables<"tbl_paye_employees">;
 
+const PAYE_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "name", label: "Name", required: true, type: "string" },
+  { key: "designation", label: "Designation", type: "string", defaultValue: "" },
+  { key: "grade", label: "Grade", required: true, type: "enum", enumValues: ISE_GRADES },
+  { key: "gross_annual", label: "Gross Annual Pay", required: true, type: "number" },
+];
+const PAYE_IMPORT_SAMPLE = ["Jane Smith", "Accountant", ISE_GRADES[2], 45000];
+
 export default function PAYE() {
   const { user } = useAuth();
   const { hasAdmin, hasEdit } = useUserRoles();
@@ -86,6 +95,27 @@ export default function PAYE() {
   };
 
   useEffect(() => { fetchEmployees(); }, []);
+
+  const handleImportEmployees = async (rows: Record<string, string | number>[]) => {
+    if (!user) return { error: "Not signed in" };
+    const payload = rows.map((r) => {
+      const annual = Number(r.gross_annual);
+      const designation = String(r.designation || "");
+      const deductions = calcUKDeductions(annual);
+      return {
+        user_id: user.id,
+        name: String(r.name),
+        role: designation,
+        designation,
+        grade: String(r.grade),
+        gross_annual: annual,
+        ...deductions,
+      };
+    });
+    const { error } = await supabase.from("tbl_paye_employees").insert(payload as never);
+    if (!error) fetchEmployees();
+    return { error: error?.message };
+  };
 
   const openAdd = () => {
     setEditId(null);
@@ -163,6 +193,15 @@ export default function PAYE() {
       <PageHeader title="PAYE Management" subtitle="Employee payroll and tax deductions">
         {canEdit && (
           <Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Add Employee</Button>
+        )}
+        {canEdit && (
+          <ImportDialog
+            title="Import Employees"
+            columns={PAYE_IMPORT_COLUMNS}
+            sampleRow={PAYE_IMPORT_SAMPLE}
+            onImport={handleImportEmployees}
+            onImported={fetchEmployees}
+          />
         )}
         <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
       </PageHeader>
