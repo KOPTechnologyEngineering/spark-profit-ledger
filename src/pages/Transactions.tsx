@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { ArrowDownLeft, ArrowUpRight, Search, Download, ArrowRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Search, Download, ArrowRight, FileText, FileSpreadsheet } from "lucide-react";
+
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -89,6 +90,81 @@ export default function Transactions() {
     setPeriod("All");
     setRange({ from: new Date(), to: undefined });
   };
+
+  const fetchScheduleTransactions = async (id: string) => {
+    const { data, error } = await supabase
+      .from("tbl_transactions")
+      .select("*")
+      .eq("recurring_transaction_id", id)
+      .is("deleted_at", null)
+      .order("date", { ascending: false });
+    if (error) throw error;
+    return (data || []) as TransactionRow[];
+  };
+
+  const exportScheduleCSV = async () => {
+    if (!recurringDetail?.id) return;
+    const rows = await fetchScheduleTransactions(recurringDetail.id);
+    const slug = (recurringDetail.description || "schedule").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    downloadCSV(
+      `recurring-${slug}-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Date", "Description", "Type", "Category", "Amount (GBP)", "Status"],
+      rows.map((t) => [t.date, t.description, t.type, t.category || "", Number(t.amount).toFixed(2), t.status]),
+    );
+  };
+
+  const exportSchedulePDF = async () => {
+    if (!recurringDetail?.id) return;
+    const rows = await fetchScheduleTransactions(recurringDetail.id);
+    const r = recurringDetail;
+    const total = rows.reduce((s, t) => s + (t.type === "inflow" ? Number(t.amount) : -Number(t.amount)), 0);
+    const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recurring schedule report</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:32px;color:#111;}
+  h1{margin:0 0 4px;font-size:20px;}
+  .meta{color:#555;font-size:12px;margin-bottom:16px;}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 24px;margin-bottom:20px;font-size:12px;}
+  .grid div span{display:block;color:#666;text-transform:uppercase;font-size:10px;letter-spacing:.05em;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{padding:8px 10px;border-bottom:1px solid #ddd;text-align:left;}
+  th{background:#f5f5f5;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+  td.num,th.num{text-align:right;}
+  tfoot td{font-weight:600;border-top:2px solid #333;border-bottom:none;}
+  .inflow{color:#059669;} .outflow{color:#dc2626;}
+</style></head><body>
+  <h1>Recurring schedule report</h1>
+  <div class="meta">Generated ${new Date().toLocaleString("en-GB")}</div>
+  <div class="grid">
+    <div><span>Description</span>${esc(r.description)}</div>
+    <div><span>Frequency</span>${esc(r.frequency)}</div>
+    <div><span>Category</span>${esc(r.category || "—")}</div>
+    <div><span>Amount</span>${r.type === "inflow" ? "+" : "-"}£${Number(r.amount).toFixed(2)}</div>
+    <div><span>Start</span>${esc(r.start_date || "—")}</div>
+    <div><span>End</span>${esc(r.end_date || "No end")}</div>
+  </div>
+  <table>
+    <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Category</th><th>Status</th><th class="num">Amount (£)</th></tr></thead>
+    <tbody>
+      ${rows.map((t) => `<tr>
+        <td>${esc(t.date)}</td><td>${esc(t.description)}</td>
+        <td class="${t.type}">${esc(t.type)}</td>
+        <td>${esc(t.category || "")}</td><td>${esc(t.status)}</td>
+        <td class="num">${t.type === "inflow" ? "+" : "-"}${Number(t.amount).toFixed(2)}</td>
+      </tr>`).join("")}
+      ${rows.length === 0 ? `<tr><td colspan="6" style="text-align:center;color:#666;padding:20px;">No transactions generated yet.</td></tr>` : ""}
+    </tbody>
+    <tfoot><tr><td colspan="5">Net total</td><td class="num ${total >= 0 ? "inflow" : "outflow"}">${total >= 0 ? "+" : "-"}£${Math.abs(total).toFixed(2)}</td></tr></tfoot>
+  </table>
+  <script>window.onload=()=>{window.print();};</script>
+</body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+  };
+
+
 
   const [period, setPeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
@@ -338,6 +414,16 @@ export default function Transactions() {
               >
                 View future transactions <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={exportScheduleCSV}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Export CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportSchedulePDF}>
+                  <FileText className="mr-2 h-4 w-4" /> Export PDF
+                </Button>
+              </div>
+
 
               {canViewRunHistory && (
                 <div className="pt-2">
