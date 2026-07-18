@@ -26,6 +26,7 @@ const emptyForm = {
   phone: "",
   address: "",
   vat_number: "",
+  nature_of_business: "",
   notes: "",
 };
 
@@ -79,6 +80,7 @@ export default function Organizations() {
       phone: org.phone || "",
       address: org.address || "",
       vat_number: org.vat_number || "",
+      nature_of_business: (org as any).nature_of_business || "",
       notes: org.notes || "",
     });
     setDialogOpen(true);
@@ -95,6 +97,7 @@ export default function Organizations() {
       phone: form.phone.trim() || null,
       address: form.address.trim() || null,
       vat_number: form.vat_number.trim() || null,
+      nature_of_business: form.nature_of_business.trim() || null,
       notes: form.notes.trim() || null,
     };
     const { error } = editing
@@ -189,6 +192,7 @@ export default function Organizations() {
                   <TableHead className="hidden md:table-cell">Email</TableHead>
                   <TableHead className="hidden lg:table-cell">Phone</TableHead>
                   <TableHead className="hidden lg:table-cell">VAT number</TableHead>
+                  <TableHead className="hidden xl:table-cell">Nature of business</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -204,6 +208,7 @@ export default function Organizations() {
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{org.email || "—"}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.phone || "—"}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.vat_number || "—"}</TableCell>
+                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">{(org as any).nature_of_business || "—"}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button size="icon" variant="ghost" onClick={() => openEdit(org)}>
                         <Pencil className="h-4 w-4" />
@@ -255,6 +260,14 @@ export default function Organizations() {
               <div>
                 <Label>Phone</Label>
                 <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Nature of business</Label>
+                <Input
+                  placeholder="e.g. Software consultancy, Retail, Construction"
+                  value={form.nature_of_business}
+                  onChange={(e) => setForm({ ...form, nature_of_business: e.target.value })}
+                />
               </div>
               <div className="sm:col-span-2">
                 <Label>Address</Label>
