@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import ApproverSelect from "@/components/ApproverSelect";
 import AttachmentUpload from "@/components/AttachmentUpload";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
+const NO_ORG = "__none__";
 
 interface AddTransactionDialogProps {
   onCreated?: () => void;
@@ -36,8 +37,21 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
   const [approver1, setApprover1] = useState(record?.approver1_id || "");
   const [approver2, setApprover2] = useState(record?.approver2_id || "");
   const [attachments, setAttachments] = useState<any[]>(Array.isArray(record?.attachments) ? record.attachments : []);
+  const [organizationId, setOrganizationId] = useState<string>(record?.organization_id || "");
+  const [vendors, setVendors] = useState<{ id: string; name: string; org_type: string }[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("tbl_organizations")
+      .select("id, name, org_type")
+      .in("org_type", ["vendor", "both"])
+      .is("deleted_at", null)
+      .order("name", { ascending: true })
+      .then(({ data }) => setVendors((data as any) || []));
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +74,7 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
         approver1_status: "pending",
         approver2_status: "pending",
         attachments: attachments,
+        organization_id: organizationId || null,
       };
 
       if (isEdit) {
@@ -100,6 +115,7 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
     setApprover1("");
     setApprover2("");
     setAttachments([]);
+    setOrganizationId("");
   };
 
   return (
@@ -148,6 +164,22 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
               <Label>Date</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
+          </div>
+
+
+          <div className="space-y-2">
+            <Label>Organization (vendor)</Label>
+            <Select value={organizationId || NO_ORG} onValueChange={(v) => setOrganizationId(v === NO_ORG ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_ORG}>None</SelectItem>
+                {vendors.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}{o.org_type === "both" ? " (customer/vendor)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <ApproverSelect approver1={approver1} approver2={approver2} onApprover1Change={setApprover1} onApprover2Change={setApprover2} />

@@ -50,6 +50,7 @@ export default function Transactions() {
   const [search, setSearch] = useState("");
   const [allTransactions, setAllTransactions] = useState<TransactionRow[]>([]);
   const [recurringList, setRecurringList] = useState<{ id: string; description: string }[]>([]);
+  const [orgMap, setOrgMap] = useState<Record<string, string>>({});
   const [recurringFilter, setRecurringFilter] = useState<string>("all"); // "all" | "any" | "<id>"
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TransactionRow | null>(null);
@@ -206,7 +207,14 @@ export default function Transactions() {
     return { error: error?.message };
   };
 
-  useEffect(() => { fetchTransactions(); fetchRecurring(); }, []);
+  const fetchOrgs = async () => {
+    const { data } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
+    const m: Record<string, string> = {};
+    (data || []).forEach((o: any) => { m[o.id] = o.name; });
+    setOrgMap(m);
+  };
+
+  useEffect(() => { fetchTransactions(); fetchRecurring(); fetchOrgs(); }, []);
 
   const periodFiltered = filterByDateRange(filterByPeriod(allTransactions, period), range, "date");
   const filtered = periodFiltered
@@ -318,7 +326,10 @@ export default function Transactions() {
                           </button>
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground">{tx.category} · {tx.date} · {tx.created_by_name || "—"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {tx.category} · {tx.date} · {tx.created_by_name || "—"}
+                        {tx.organization_id && orgMap[tx.organization_id] && ` · ${orgMap[tx.organization_id]}`}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">

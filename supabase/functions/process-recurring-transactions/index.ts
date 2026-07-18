@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
             date: runDate,
             created_by_name: r.created_by_name || "Recurring",
             recurring_transaction_id: r.id,
+            organization_id: r.organization_id ?? null,
           });
           if (insErr) throw insErr;
           created++;

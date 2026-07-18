@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
 const frequencies = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const;
+const NO_ORG = "__none__";
 
 interface Props {
   onSaved?: () => void;
@@ -32,8 +33,21 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
   const [frequency, setFrequency] = useState<typeof frequencies[number]>("monthly");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState("");
+  const [organizationId, setOrganizationId] = useState<string>("");
+  const [vendors, setVendors] = useState<{ id: string; name: string; org_type: string }[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("tbl_organizations")
+      .select("id, name, org_type")
+      .in("org_type", ["vendor", "both"])
+      .is("deleted_at", null)
+      .order("name", { ascending: true })
+      .then(({ data }) => setVendors((data as any) || []));
+  }, [open]);
 
   useEffect(() => {
     if (open && record) {
@@ -44,9 +58,11 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
       setFrequency(record.frequency || "monthly");
       setStartDate(record.next_run_date || new Date().toISOString().split("T")[0]);
       setEndDate(record.end_date || "");
+      setOrganizationId(record.organization_id || "");
     } else if (open && !record) {
       setDescription(""); setAmount(""); setType("outflow"); setCategory("Rent");
       setFrequency("monthly"); setStartDate(new Date().toISOString().split("T")[0]); setEndDate("");
+      setOrganizationId("");
     }
   }, [open, record]);
 
@@ -65,6 +81,7 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
         next_run_date: startDate,
         end_date: endDate || null,
         is_active: true,
+        organization_id: organizationId || null,
       };
       if (isEdit) {
         const { error } = await supabase.from("tbl_recurring_transactions").update(fields as any).eq("id", record.id);
@@ -144,6 +161,20 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
               <Label>End Date (optional)</Label>
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Organization (vendor)</Label>
+            <Select value={organizationId || NO_ORG} onValueChange={(v) => setOrganizationId(v === NO_ORG ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_ORG}>None</SelectItem>
+                {vendors.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}{o.org_type === "both" ? " (customer/vendor)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Saving..." : isEdit ? "Update" : "Create Recurring"}

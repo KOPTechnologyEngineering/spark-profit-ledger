@@ -19,6 +19,7 @@ type RunLog = {
 
 export default function RecurringTransactionsTab() {
   const [items, setItems] = useState<any[]>([]);
+  const [orgMap, setOrgMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
   const [lastRun, setLastRun] = useState<RunLog | null>(null);
@@ -49,7 +50,14 @@ export default function RecurringTransactionsTab() {
     setLastRun((data as RunLog) || null);
   };
 
-  useEffect(() => { fetchItems(); if (canRun) fetchLastRun(); }, [canRun]);
+  const fetchOrgs = async () => {
+    const { data } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
+    const m: Record<string, string> = {};
+    (data || []).forEach((o: any) => { m[o.id] = o.name; });
+    setOrgMap(m);
+  };
+
+  useEffect(() => { fetchItems(); fetchOrgs(); if (canRun) fetchLastRun(); }, [canRun]);
 
   const runNow = async () => {
     setTriggering(true);
@@ -133,6 +141,7 @@ export default function RecurringTransactionsTab() {
                 <p className="text-xs text-muted-foreground capitalize">
                   {r.frequency} · {r.category} · Next: {r.next_run_date}
                   {r.end_date && ` · Ends: ${r.end_date}`}
+                  {r.organization_id && orgMap[r.organization_id] && ` · ${orgMap[r.organization_id]}`}
                   {!r.is_active && " · Paused"}
                 </p>
               </div>

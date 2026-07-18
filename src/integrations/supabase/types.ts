@@ -903,6 +903,7 @@ export type Database = {
           is_active: boolean
           last_run_date: string | null
           next_run_date: string
+          organization_id: string | null
           start_date: string
           type: string
           updated_at: string
@@ -920,6 +921,7 @@ export type Database = {
           is_active?: boolean
           last_run_date?: string | null
           next_run_date: string
+          organization_id?: string | null
           start_date?: string
           type: string
           updated_at?: string
@@ -937,12 +939,21 @@ export type Database = {
           is_active?: boolean
           last_run_date?: string | null
           next_run_date?: string
+          organization_id?: string | null
           start_date?: string
           type?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tbl_recurring_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "tbl_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tbl_transactions: {
         Row: {
@@ -958,6 +969,7 @@ export type Database = {
           date: string
           description: string
           id: string
+          organization_id: string | null
           recurring_transaction_id: string | null
           status: string
           type: string
@@ -977,6 +989,7 @@ export type Database = {
           date?: string
           description: string
           id?: string
+          organization_id?: string | null
           recurring_transaction_id?: string | null
           status?: string
           type: string
@@ -996,6 +1009,7 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          organization_id?: string | null
           recurring_transaction_id?: string | null
           status?: string
           type?: string
@@ -1003,6 +1017,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tbl_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "tbl_organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tbl_transactions_recurring_transaction_id_fkey"
             columns: ["recurring_transaction_id"]
