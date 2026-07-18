@@ -239,13 +239,13 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
           <p style="color:#666;margin:4px 0;font-size:12px">Smart Accounting for Modern Business</p>
         </div>
         <h2>Transaction Record</h2>
-        <p>Description: ${record.description}</p>
+        <p>Description: ${esc(record.description)}</p>
         <p>Amount: £${Number(record.amount).toLocaleString()}</p>
-        <p>Type: ${record.type}</p>
-        <p>Category: ${record.category}</p>
-        <p>Status: ${record.status}</p>
-        <p>Date: ${record.date}</p>
-        <p>Created By: ${record.created_by_name || "—"}</p>
+        <p>Type: ${esc(record.type)}</p>
+        <p>Category: ${esc(record.category)}</p>
+        <p>Status: ${esc(record.status)}</p>
+        <p>Date: ${esc(record.date)}</p>
+        <p>Created By: ${esc(record.created_by_name || "—")}</p>
         <div style="margin-top:40px;border-top:1px solid #eee;padding-top:20px">
           <p style="font-size:12px;color:#666;font-weight:bold">SIGNATORIES</p>
           <div style="display:flex;justify-content:space-around;gap:30px;margin-top:16px">
