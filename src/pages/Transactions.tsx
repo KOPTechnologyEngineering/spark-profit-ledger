@@ -90,6 +90,7 @@ export default function Transactions() {
   const { hasEdit, hasAdmin } = useUserRoles();
   const viewOnly = !hasEdit("transactions");
   const canImport = hasAdmin("transactions");
+  const canViewRunHistory = hasAdmin("transactions");
   const { user } = useAuth();
 
   const fetchRecurring = async () => {
