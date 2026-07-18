@@ -199,9 +199,14 @@ export default function Transactions() {
                       <p className="text-sm font-medium text-foreground flex items-center gap-2">
                         {tx.description}
                         {tx.recurring_transaction_id && (
-                          <span title="Generated from a recurring schedule" className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          <button
+                            type="button"
+                            title="View recurring schedule"
+                            onClick={(e) => { e.stopPropagation(); openRecurringDetail(tx.recurring_transaction_id!); }}
+                            className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground hover:bg-secondary/70 hover:text-foreground transition-colors"
+                          >
                             ↻ Recurring
-                          </span>
+                          </button>
                         )}
                       </p>
                       <p className="text-xs text-muted-foreground">{tx.category} · {tx.date} · {tx.created_by_name || "—"}</p>
