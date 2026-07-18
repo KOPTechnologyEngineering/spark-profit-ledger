@@ -1,29 +1,32 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Clock, XCircle } from "lucide-react";
+import { Clock, RefreshCw, XCircle } from "lucide-react";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, signOut } = useAuth();
   const [status, setStatus] = useState<"loading" | "approved" | "pending" | "rejected">("loading");
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchStatus = useCallback(async () => {
+    if (!session) return;
+    setRefreshing(true);
+    const { data } = await supabase
+      .from("tbl_profiles")
+      .select("approval_status, rejection_reason")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    const s = (data as any)?.approval_status ?? "pending";
+    setStatus(s === "approved" ? "approved" : s === "rejected" ? "rejected" : "pending");
+    setRejectionReason((data as any)?.rejection_reason ?? null);
+    setRefreshing(false);
+  }, [session]);
 
   useEffect(() => {
     if (!session) { setStatus("loading"); return; }
-    let cancelled = false;
-    const fetchStatus = async () => {
-      const { data } = await supabase
-        .from("tbl_profiles")
-        .select("approval_status, rejection_reason")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      if (cancelled) return;
-      const s = (data as any)?.approval_status ?? "pending";
-      setStatus(s === "approved" ? "approved" : s === "rejected" ? "rejected" : "pending");
-      setRejectionReason((data as any)?.rejection_reason ?? null);
-    };
     fetchStatus();
 
     const channel = supabase
@@ -42,11 +45,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     const interval = setInterval(fetchStatus, 15000);
 
     return () => {
-      cancelled = true;
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [session]);
+  }, [session, fetchStatus]);
 
   if (loading || (session && status === "loading")) {
     return (
@@ -80,7 +82,18 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
               <p className="text-sm text-foreground whitespace-pre-wrap">{rejectionReason}</p>
             </div>
           )}
-          <Button variant="outline" onClick={signOut} className="w-full">Sign out</Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              onClick={fetchStatus}
+              disabled={refreshing}
+              className="w-full"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Checking status..." : "Refresh status"}
+            </Button>
+            <Button variant="outline" onClick={signOut} className="w-full">Sign out</Button>
+          </div>
         </div>
       </div>
     );
