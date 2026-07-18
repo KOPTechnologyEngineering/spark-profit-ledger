@@ -33,8 +33,21 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
   const [frequency, setFrequency] = useState<typeof frequencies[number]>("monthly");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState("");
+  const [organizationId, setOrganizationId] = useState<string>("");
+  const [vendors, setVendors] = useState<{ id: string; name: string; org_type: string }[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("tbl_organizations")
+      .select("id, name, org_type")
+      .in("org_type", ["vendor", "both"])
+      .is("deleted_at", null)
+      .order("name", { ascending: true })
+      .then(({ data }) => setVendors((data as any) || []));
+  }, [open]);
 
   useEffect(() => {
     if (open && record) {
