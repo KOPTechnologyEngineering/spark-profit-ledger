@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,26 +10,56 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const [status, setStatus] = useState<"loading" | "approved" | "pending" | "rejected">("loading");
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const statusRef = useRef(status);
 
-  const fetchStatus = useCallback(async () => {
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  const fetchFreshStatus = useCallback(async () => {
     if (!session) return;
     setRefreshing(true);
-    const { data } = await supabase
-      .from("tbl_profiles")
-      .select("approval_status, rejection_reason")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-    const s = (data as any)?.approval_status ?? "pending";
-    setStatus(s === "approved" ? "approved" : s === "rejected" ? "rejected" : "pending");
-    setRejectionReason((data as any)?.rejection_reason ?? null);
-    setRefreshing(false);
+    try {
+      // Bypass any browser/service-worker cache by calling the REST endpoint directly
+      // with cache: "no-store" and a cache-busting query parameter.
+      const url = new URL(`${supabase.supabaseUrl}/rest/v1/tbl_profiles`);
+      url.searchParams.set("select", "approval_status,rejection_reason");
+      url.searchParams.set("user_id", "eq." + session.user.id);
+      url.searchParams.set("limit", "1");
+      url.searchParams.set("_", Date.now().toString());
+
+      const res = await fetch(url.toString(), {
+        headers: {
+          apikey: supabase.supabaseKey,
+          Authorization: `Bearer ${session.access_token}`,
+          Accept: "application/vnd.pgrst.object+json",
+        },
+        cache: "no-store",
+      });
+
+      if (!res.ok) return;
+      const data = await res.json();
+      const s = data?.approval_status ?? "pending";
+      setStatus(s === "approved" ? "approved" : s === "rejected" ? "rejected" : "pending");
+      setRejectionReason(data?.rejection_reason ?? null);
+    } finally {
+      setRefreshing(false);
+    }
   }, [session]);
 
   useEffect(() => {
-    if (!session) { setStatus("loading"); return; }
-    fetchStatus();
+    if (!session) {
+      setStatus("loading");
+      return;
+    }
+    // Don't restart polling/subscription if we've already been approved.
+    if (statusRef.current === "approved") return;
 
-    const channel = supabase
+    fetchFreshStatus();
+
+    channelRef.current = supabase
       .channel(`profile-approval-${session.user.id}`)
       .on(
         "postgres_changes",
@@ -42,13 +72,33 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       )
       .subscribe();
 
-    const interval = setInterval(fetchStatus, 15000);
+    intervalRef.current = setInterval(fetchFreshStatus, 15000);
 
     return () => {
-      clearInterval(interval);
-      supabase.removeChannel(channel);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [session, fetchStatus]);
+  }, [session, fetchFreshStatus]);
+
+  // Stop polling and realtime subscription immediately once approved.
+  useEffect(() => {
+    if (status === "approved") {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    }
+  }, [status]);
 
   if (loading || (session && status === "loading")) {
     return (
