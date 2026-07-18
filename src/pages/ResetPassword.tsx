@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import PageMeta from "@/components/PageMeta";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
