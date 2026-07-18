@@ -72,9 +72,7 @@ Deno.serve(async (req) => {
         runDate = next;
       }
 
-      if (scheduleCreated > 0) {
-        perSchedule.set(r.id, (perSchedule.get(r.id) ?? 0) + scheduleCreated);
-      }
+      perSchedule.set(r.id, (perSchedule.get(r.id) ?? 0) + scheduleCreated);
 
       const shouldDeactivate = r.end_date && runDate > r.end_date;
       await supabase
