@@ -61,7 +61,11 @@ export default function CollectionsSettings() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase.from("tbl_collection_settings").select("*").eq("user_id", user.id).maybeSingle();
+      const { data, error } = await supabase.from("tbl_collection_settings").select("*").eq("user_id", user.id).maybeSingle();
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       if (data) {
         setId(data.id);
         setForm(data);
@@ -78,9 +82,17 @@ export default function CollectionsSettings() {
       user_id: user.id,
     };
     if (id) {
-      await supabase.from("tbl_collection_settings").update(payload).eq("id", id);
+      const { error } = await supabase.from("tbl_collection_settings").update(payload).eq("id", id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
     } else {
-      const { data } = await supabase.from("tbl_collection_settings").insert(payload).select().single();
+      const { data, error } = await supabase.from("tbl_collection_settings").insert(payload).select().single();
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       if (data) setId(data.id);
     }
     toast.success("Settings saved");
