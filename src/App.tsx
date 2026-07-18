@@ -15,6 +15,7 @@ import VAT from "@/pages/VAT";
 import PAYE from "@/pages/PAYE";
 import Reports from "@/pages/Reports";
 import UserManagement from "@/pages/UserManagement";
+import Organizations from "@/pages/Organizations";
 import Approvals from "@/pages/Approvals";
 import Auth from "@/pages/Auth";
 import ResetPassword from "@/pages/ResetPassword";
@@ -53,7 +54,9 @@ const App = () => (
               <Route path="/approvals" element={<Approvals />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/organizations" element={<Organizations />} />
               <Route path="/collections" element={<CollectionsLayout />}>
+
                 <Route index element={<CollectionsDashboard />} />
                 <Route path="queue" element={<ChaseQueue />} />
                 <Route path="rules" element={<AutomationRules />} />

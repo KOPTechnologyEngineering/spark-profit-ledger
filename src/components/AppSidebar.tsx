@@ -10,7 +10,9 @@ import {
   LogOut,
   Shield,
   Mail,
+  Building2,
 } from "lucide-react";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -18,6 +20,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/", module: null },
   { label: "Invoices", icon: FileText, path: "/invoices", module: "invoices" },
+  { label: "Organizations", icon: Building2, path: "/organizations", module: null },
   { label: "Collections", icon: Mail, path: "/collections", module: "invoices" },
   { label: "Transactions", icon: ArrowDownUp, path: "/transactions", module: "transactions" },
   { label: "Profit & Loss", icon: TrendingUp, path: "/pnl", module: "pnl" },
