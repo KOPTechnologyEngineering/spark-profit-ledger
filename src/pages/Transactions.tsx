@@ -266,7 +266,15 @@ export default function Transactions() {
             columns={TRANSACTION_IMPORT_COLUMNS}
             sampleRow={TRANSACTION_IMPORT_SAMPLE}
             onImport={handleImportTransactions}
-            onImported={fetchTransactions}
+            onImported={() => {
+              // Reset filters so newly imported (possibly past-dated) rows are visible
+              setPeriod("All");
+              setRange(undefined);
+              setTypeFilter("all");
+              setRecurringFilter("all");
+              setSearch("");
+              fetchTransactions();
+            }}
           />
         )}
         <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={fetchTransactions} /></div>
