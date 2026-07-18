@@ -779,6 +779,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tbl_recurring_transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by_name: string
+          description: string
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          last_run_date: string | null
+          next_run_date: string
+          start_date: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by_name?: string
+          description: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean
+          last_run_date?: string | null
+          next_run_date: string
+          start_date?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by_name?: string
+          description?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_run_date?: string | null
+          next_run_date?: string
+          start_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tbl_transactions: {
         Row: {
           amount: number

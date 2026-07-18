@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
 import ImportDialog, { type ImportColumn } from "@/components/ImportDialog";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
@@ -14,6 +15,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import StatusBadge from "@/components/StatusBadge";
 import SummaryTile from "@/components/SummaryTile";
 import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
+import RecurringTransactionsTab from "@/components/RecurringTransactionsTab";
 import type { DateRange } from "react-day-picker";
 import { type Period, filterByPeriod } from "@/lib/date-filters";
 import { downloadCSV } from "@/lib/csv";
@@ -108,59 +110,73 @@ export default function Transactions() {
         <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={fetchTransactions} /></div>
       </PageHeader>
 
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <PeriodSelector value={period} onChange={setPeriod} />
-        <DateRangePicker value={range} onChange={setRange} />
-      </div>
+      <Tabs defaultValue="transactions" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="recurring">Recurring</TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <SummaryTile label="Total Inflow" value={`+${formatGBP(totalInflow)}`} tone="inflow" className="glow-green gradient-inflow" />
-        <SummaryTile label="Total Outflow" value={`-${formatGBP(totalOutflow)}`} tone="outflow" className="glow-red gradient-outflow" />
-        <SummaryTile label="Net Flow" value={formatGBP(netFlow)} tone={netFlow >= 0 ? "inflow" : "outflow"} />
-      </div>
+        <TabsContent value="transactions" className="space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <PeriodSelector value={period} onChange={setPeriod} />
+            <DateRangePicker value={range} onChange={setRange} />
+          </div>
 
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 min-w-[200px]">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search transactions..." className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
-        </div>
-        <FilterPills options={typeFilters} value={typeFilter} onChange={(v) => setTypeFilter(v)} />
-      </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            <SummaryTile label="Total Inflow" value={`+${formatGBP(totalInflow)}`} tone="inflow" className="glow-green gradient-inflow" />
+            <SummaryTile label="Total Outflow" value={`-${formatGBP(totalOutflow)}`} tone="outflow" className="glow-red gradient-outflow" />
+            <SummaryTile label="Net Flow" value={formatGBP(netFlow)} tone={netFlow >= 0 ? "inflow" : "outflow"} />
+          </div>
 
-      {loading ? (
-        <LoadingSpinner />
-      ) : filtered.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">No transactions found.</div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((tx, i) => (
-            <motion.div
-              key={tx.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.03 }}
-              className="glass-card flex items-center justify-between px-6 py-4 cursor-pointer"
-              onClick={() => setSelected(tx)}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`rounded-full p-2 ${tx.type === 'inflow' ? 'bg-inflow-muted' : 'bg-outflow-muted'}`}>
-                  {tx.type === 'inflow' ? <ArrowDownLeft className="h-4 w-4 text-inflow" /> : <ArrowUpRight className="h-4 w-4 text-outflow" />}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{tx.description}</p>
-                  <p className="text-xs text-muted-foreground">{tx.category} · {tx.date} · {tx.created_by_name || "—"}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <StatusBadge status={tx.status} />
-                <span className={`font-heading text-sm font-bold ${tx.type === 'inflow' ? 'text-inflow' : 'text-outflow'}`}>
-                  {tx.type === 'inflow' ? '+' : '-'}{formatGBP(tx.amount)}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex flex-1 items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 min-w-[200px]">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search transactions..." className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+            </div>
+            <FilterPills options={typeFilters} value={typeFilter} onChange={(v) => setTypeFilter(v)} />
+          </div>
+
+          {loading ? (
+            <LoadingSpinner />
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">No transactions found.</div>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((tx, i) => (
+                <motion.div
+                  key={tx.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="glass-card flex items-center justify-between px-6 py-4 cursor-pointer"
+                  onClick={() => setSelected(tx)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`rounded-full p-2 ${tx.type === 'inflow' ? 'bg-inflow-muted' : 'bg-outflow-muted'}`}>
+                      {tx.type === 'inflow' ? <ArrowDownLeft className="h-4 w-4 text-inflow" /> : <ArrowUpRight className="h-4 w-4 text-outflow" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{tx.description}</p>
+                      <p className="text-xs text-muted-foreground">{tx.category} · {tx.date} · {tx.created_by_name || "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <StatusBadge status={tx.status} />
+                    <span className={`font-heading text-sm font-bold ${tx.type === 'inflow' ? 'text-inflow' : 'text-outflow'}`}>
+                      {tx.type === 'inflow' ? '+' : '-'}{formatGBP(tx.amount)}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="recurring">
+          <RecurringTransactionsTab />
+        </TabsContent>
+      </Tabs>
+
 
       <RecordDetailDialog
         open={!!selected}
