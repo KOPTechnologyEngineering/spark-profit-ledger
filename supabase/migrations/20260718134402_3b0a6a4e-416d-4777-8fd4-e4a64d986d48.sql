@@ -1,0 +1,1 @@
+ALTER TABLE public.tbl_organizations ADD COLUMN IF NOT EXISTS nature_of_business text;
