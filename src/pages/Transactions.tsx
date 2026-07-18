@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { ArrowDownLeft, ArrowUpRight, Search, Download, ArrowRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Search, Download, ArrowRight, FileText, FileSpreadsheet } from "lucide-react";
+
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
