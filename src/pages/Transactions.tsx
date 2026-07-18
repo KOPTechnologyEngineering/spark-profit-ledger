@@ -150,6 +150,19 @@ export default function Transactions() {
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search transactions..." className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
             </div>
             <FilterPills options={typeFilters} value={typeFilter} onChange={(v) => setTypeFilter(v)} />
+            <Select value={recurringFilter} onValueChange={setRecurringFilter}>
+              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Recurring" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All transactions</SelectItem>
+                <SelectItem value="any">↻ Recurring only</SelectItem>
+                {recurringList.length > 0 && (
+                  <div className="my-1 border-t border-border" />
+                )}
+                {recurringList.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>From: {r.description}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {loading ? (
