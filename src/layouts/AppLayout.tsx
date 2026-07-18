@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import AppSidebar from "@/components/AppSidebar";
 import NotificationBell from "@/components/NotificationBell";
 import ProfileMenu from "@/components/ProfileMenu";
 import PageMeta from "@/components/PageMeta";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 
 const ROUTE_META: Record<string, { title: string; description: string }> = {
@@ -58,7 +59,9 @@ export default function AppLayout() {
           </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8">
-          <Outlet />
+          <Suspense fallback={<LoadingSpinner />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
