@@ -55,14 +55,26 @@ export default function Transactions() {
   const [editing, setEditing] = useState<TransactionRow | null>(null);
   const [recurringDetail, setRecurringDetail] = useState<Tables<"tbl_recurring_transactions"> | null>(null);
   const [recurringDetailLoading, setRecurringDetailLoading] = useState(false);
+  const [recurringRuns, setRecurringRuns] = useState<RunDetailRow[]>([]);
+  const [recurringRunsLoading, setRecurringRunsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("transactions");
 
   const openRecurringDetail = async (id: string) => {
     setRecurringDetailLoading(true);
+    setRecurringRunsLoading(true);
     setRecurringDetail({ id } as Tables<"tbl_recurring_transactions">);
-    const { data } = await supabase.from("tbl_recurring_transactions").select("*").eq("id", id).maybeSingle();
-    setRecurringDetail(data ?? null);
+    const [detailRes, runsRes] = await Promise.all([
+      supabase.from("tbl_recurring_transactions").select("*").eq("id", id).maybeSingle(),
+      supabase
+        .from("tbl_recurring_run_details")
+        .select("*, tbl_recurring_run_log(run_at, triggered_by, error)")
+        .eq("recurring_transaction_id", id)
+        .order("created_at", { ascending: false }),
+    ]);
+    setRecurringDetail(detailRes.data ?? null);
+    setRecurringRuns((runsRes.data as RunDetailRow[]) || []);
     setRecurringDetailLoading(false);
+    setRecurringRunsLoading(false);
   };
 
   const viewFutureTransactions = (id: string) => {
