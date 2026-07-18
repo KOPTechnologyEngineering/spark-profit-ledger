@@ -207,7 +207,14 @@ export default function Transactions() {
     return { error: error?.message };
   };
 
-  useEffect(() => { fetchTransactions(); fetchRecurring(); }, []);
+  const fetchOrgs = async () => {
+    const { data } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
+    const m: Record<string, string> = {};
+    (data || []).forEach((o: any) => { m[o.id] = o.name; });
+    setOrgMap(m);
+  };
+
+  useEffect(() => { fetchTransactions(); fetchRecurring(); fetchOrgs(); }, []);
 
   const periodFiltered = filterByDateRange(filterByPeriod(allTransactions, period), range, "date");
   const filtered = periodFiltered
