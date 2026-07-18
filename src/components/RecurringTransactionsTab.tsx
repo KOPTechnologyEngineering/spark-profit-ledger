@@ -50,7 +50,14 @@ export default function RecurringTransactionsTab() {
     setLastRun((data as RunLog) || null);
   };
 
-  useEffect(() => { fetchItems(); if (canRun) fetchLastRun(); }, [canRun]);
+  const fetchOrgs = async () => {
+    const { data } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
+    const m: Record<string, string> = {};
+    (data || []).forEach((o: any) => { m[o.id] = o.name; });
+    setOrgMap(m);
+  };
+
+  useEffect(() => { fetchItems(); fetchOrgs(); if (canRun) fetchLastRun(); }, [canRun]);
 
   const runNow = async () => {
     setTriggering(true);
