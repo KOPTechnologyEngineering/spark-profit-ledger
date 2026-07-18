@@ -30,6 +30,11 @@ const ISE_GRADES = [
   "Grade 10 – C-Suite / Chief Officer",
 ];
 
+const PENSION_QUALIFYING_LOWER = 6240;
+const PENSION_QUALIFYING_UPPER = 50270;
+const PENSION_EMPLOYEE_RATE = 0.05;
+const PENSION_EMPLOYER_RATE = 0.03;
+
 function calcUKDeductions(grossAnnual: number) {
   const personalAllowance = grossAnnual > 125140 ? 0 : 12570;
   const taxable = Math.max(0, grossAnnual - personalAllowance);
@@ -44,15 +49,23 @@ function calcUKDeductions(grossAnnual: number) {
   if (grossAnnual > niLower) ni += Math.min(grossAnnual - niLower, niUpper - niLower) * 0.08;
   if (grossAnnual > niUpper) ni += (grossAnnual - niUpper) * 0.02;
 
+  const qualifyingEarnings = Math.max(0, Math.min(grossAnnual, PENSION_QUALIFYING_UPPER) - PENSION_QUALIFYING_LOWER);
+  const pensionEmployee = qualifyingEarnings * PENSION_EMPLOYEE_RATE;
+  const pensionEmployer = qualifyingEarnings * PENSION_EMPLOYER_RATE;
+
   const monthlyGross = grossAnnual / 12;
   const monthlyTax = tax / 12;
   const monthlyNI = ni / 12;
-  const monthlyNet = monthlyGross - monthlyTax - monthlyNI;
+  const monthlyPensionEmployee = pensionEmployee / 12;
+  const monthlyPensionEmployer = pensionEmployer / 12;
+  const monthlyNet = monthlyGross - monthlyTax - monthlyNI - monthlyPensionEmployee;
 
   return {
     gross_pay: Math.round(monthlyGross * 100) / 100,
     tax: Math.round(monthlyTax * 100) / 100,
     ni: Math.round(monthlyNI * 100) / 100,
+    pension_employee: Math.round(monthlyPensionEmployee * 100) / 100,
+    pension_employer: Math.round(monthlyPensionEmployer * 100) / 100,
     net_pay: Math.round(monthlyNet * 100) / 100,
   };
 }
@@ -87,6 +100,8 @@ export default function PAYE() {
     gross: sumAmounts(employees, "gross_pay"),
     tax: sumAmounts(employees, "tax"),
     ni: sumAmounts(employees, "ni"),
+    pensionEmployee: sumAmounts(employees, "pension_employee"),
+    pensionEmployer: sumAmounts(employees, "pension_employer"),
     net: sumAmounts(employees, "net_pay"),
   };
 
@@ -182,8 +197,8 @@ export default function PAYE() {
   const exportCSV = () => {
     downloadCSV(
       "paye_payroll.csv",
-      ["Employee", "Designation", "Grade", "Gross Annual", "Monthly Gross", "Income Tax", "NI", "Net Pay"],
-      employees.map((e) => [e.name, e.designation || e.role, e.grade, e.gross_annual, e.gross_pay, e.tax, e.ni, e.net_pay]),
+      ["Employee", "Designation", "Grade", "Gross Annual", "Monthly Gross", "Income Tax", "NI", "Employee Pension", "Employer Pension", "Net Pay"],
+      employees.map((e) => [e.name, e.designation || e.role, e.grade, e.gross_annual, e.gross_pay, e.tax, e.ni, e.pension_employee, e.pension_employer, e.net_pay]),
     );
   };
 
@@ -243,7 +258,9 @@ export default function PAYE() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Gross Pay</span><span className="text-foreground font-medium">{formatGBP(preview.gross_pay)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Income Tax</span><span className="text-outflow">-{formatGBP(preview.tax)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">National Insurance</span><span className="text-outflow">-{formatGBP(preview.ni)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Employee Pension</span><span className="text-outflow">-{formatGBP(preview.pension_employee)}</span></div>
                 <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="font-semibold text-foreground">Net Pay</span><span className="font-bold text-inflow">{formatGBP(preview.net_pay)}</span></div>
+                <div className="flex justify-between pt-1 mt-1 border-t border-border"><span className="text-muted-foreground">Employer Pension (company cost)</span><span className="text-foreground font-medium">{formatGBP(preview.pension_employer)}</span></div>
               </div>
             )}
             <Button className="w-full" onClick={handleSave} disabled={saving}>{saving ? "Saving…" : editId ? "Update Employee" : "Add Employee"}</Button>
@@ -251,10 +268,12 @@ export default function PAYE() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-6">
         <SummaryTile label="Total Monthly Gross" value={formatGBP(totals.gross)} />
         <SummaryTile label="Income Tax" value={formatGBP(totals.tax)} tone="outflow" className="glow-red gradient-outflow" />
         <SummaryTile label="National Insurance" value={formatGBP(totals.ni)} tone="outflow" className="gradient-outflow" />
+        <SummaryTile label="Employee Pension" value={formatGBP(totals.pensionEmployee)} tone="outflow" className="gradient-outflow" />
+        <SummaryTile label="Employer Pension" value={formatGBP(totals.pensionEmployer)} />
         <SummaryTile label="Total Net Pay" value={formatGBP(totals.net)} tone="inflow" className="glow-green gradient-inflow" />
       </div>
 
@@ -276,6 +295,8 @@ export default function PAYE() {
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Gross</th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Tax</th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">NI</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Employee Pension</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Employer Pension</th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Net Pay</th>
                   {(canDelete || isAdmin) && <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>}
                 </tr>
@@ -290,6 +311,8 @@ export default function PAYE() {
                     <td className="px-6 py-4 text-right font-heading text-sm font-semibold text-foreground">{formatGBP(emp.gross_pay)}</td>
                     <td className="px-6 py-4 text-right font-heading text-sm text-outflow">{formatGBP(emp.tax)}</td>
                     <td className="px-6 py-4 text-right font-heading text-sm text-outflow">{formatGBP(emp.ni)}</td>
+                    <td className="px-6 py-4 text-right font-heading text-sm text-outflow">{formatGBP(emp.pension_employee)}</td>
+                    <td className="px-6 py-4 text-right font-heading text-sm text-muted-foreground">{formatGBP(emp.pension_employer)}</td>
                     <td className="px-6 py-4 text-right font-heading text-sm font-semibold text-inflow">{formatGBP(emp.net_pay)}</td>
                     {(canDelete || isAdmin) && (
                       <td className="px-6 py-4 text-right space-x-1">
