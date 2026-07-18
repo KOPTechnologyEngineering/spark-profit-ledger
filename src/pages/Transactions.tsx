@@ -251,8 +251,8 @@ export default function Transactions() {
   const downloadAllCSV = () => {
     downloadCSV(
       "transactions.csv",
-      ["Description", "Amount", "Type", "Category", "Status", "Date", "Created By"],
-      filtered.map((t) => [t.description, t.amount, t.type, t.category, t.status, t.date, t.created_by_name || ""]),
+      ["Description", "Amount", "Type", "Category", "Status", "Date", "Organization", "Created By"],
+      filtered.map((t) => [t.description, t.amount, t.type, t.category, t.status, t.date, (t.organization_id && orgMap[t.organization_id]) || "", t.created_by_name || ""]),
     );
   };
 
