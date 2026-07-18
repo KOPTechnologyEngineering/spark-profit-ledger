@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
   let processed = 0;
   let created = 0;
   let errorMessage: string | null = null;
+  const perSchedule = new Map<string, number>();
 
   try {
     const { data: due, error } = await supabase
@@ -43,6 +44,7 @@ Deno.serve(async (req) => {
     processed = due?.length ?? 0;
 
     for (const r of due ?? []) {
+      let scheduleCreated = 0;
       let runDate: string = r.next_run_date;
       while (runDate <= today && (!r.end_date || runDate <= r.end_date)) {
         const { error: insErr } = await supabase
@@ -63,9 +65,14 @@ Deno.serve(async (req) => {
           );
         if (insErr) throw insErr;
         created++;
+        scheduleCreated++;
         const next = advance(runDate, r.frequency);
         if (next === runDate) break;
         runDate = next;
+      }
+
+      if (scheduleCreated > 0) {
+        perSchedule.set(r.id, (perSchedule.get(r.id) ?? 0) + scheduleCreated);
       }
 
       const shouldDeactivate = r.end_date && runDate > r.end_date;
@@ -83,12 +90,33 @@ Deno.serve(async (req) => {
     console.error("process-recurring-transactions failed", e);
   }
 
-  await supabase.from("tbl_recurring_run_log").insert({
-    triggered_by: triggeredBy,
-    processed,
-    created,
-    error: errorMessage,
-  });
+  const { data: logRow } = await supabase
+    .from("tbl_recurring_run_log")
+    .insert({
+      triggered_by: triggeredBy,
+      processed,
+      created,
+      error: errorMessage,
+    })
+    .select("id")
+    .single();
+
+  if (logRow?.id && perSchedule.size > 0) {
+    const details = [];
+    for (const [recId, count] of perSchedule.entries()) {
+      details.push({
+        run_log_id: logRow.id,
+        recurring_transaction_id: recId,
+        created_count: count,
+      });
+    }
+    const { error: detailsErr } = await supabase
+      .from("tbl_recurring_run_details")
+      .insert(details);
+    if (detailsErr) {
+      console.error("Failed to insert recurring run details", detailsErr);
+    }
+  }
 
   return new Response(
     JSON.stringify({ processed, created, error: errorMessage }),
