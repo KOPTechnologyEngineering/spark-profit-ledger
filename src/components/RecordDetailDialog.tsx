@@ -187,8 +187,8 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
           <tbody>
             ${items.map((i: any) => `
               <tr style="border-bottom:1px solid #eee">
-                <td>${i.description || ""}</td>
-                <td style="text-align:center">${i.quantity || 0}</td>
+                <td>${esc(i.description || "")}</td>
+                <td style="text-align:center">${esc(i.quantity || 0)}</td>
                 <td style="text-align:right">£${Number(i.rate || 0).toLocaleString()}</td>
                 <td style="text-align:right">${Number(i.discount || 0)}%</td>
                 <td style="text-align:right">£${Number(i.discount_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
