@@ -48,6 +48,16 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [editing, setEditing] = useState<TransactionRow | null>(null);
+  const [recurringDetail, setRecurringDetail] = useState<Tables<"tbl_recurring_transactions"> | null>(null);
+  const [recurringDetailLoading, setRecurringDetailLoading] = useState(false);
+
+  const openRecurringDetail = async (id: string) => {
+    setRecurringDetailLoading(true);
+    setRecurringDetail({ id } as Tables<"tbl_recurring_transactions">);
+    const { data } = await supabase.from("tbl_recurring_transactions").select("*").eq("id", id).maybeSingle();
+    setRecurringDetail(data ?? null);
+    setRecurringDetailLoading(false);
+  };
   const [period, setPeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
   const { hasEdit, hasAdmin } = useUserRoles();
