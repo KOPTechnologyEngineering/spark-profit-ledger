@@ -115,6 +115,7 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
     setApprover1("");
     setApprover2("");
     setAttachments([]);
+    setOrganizationId("");
   };
 
   return (
