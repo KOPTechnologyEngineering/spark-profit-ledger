@@ -779,6 +779,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tbl_recurring_run_details: {
+        Row: {
+          created_at: string
+          created_count: number
+          id: string
+          recurring_transaction_id: string
+          run_log_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_count?: number
+          id?: string
+          recurring_transaction_id: string
+          run_log_id: string
+        }
+        Update: {
+          created_at?: string
+          created_count?: number
+          id?: string
+          recurring_transaction_id?: string
+          run_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tbl_recurring_run_details_recurring_transaction_id_fkey"
+            columns: ["recurring_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "tbl_recurring_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tbl_recurring_run_details_run_log_id_fkey"
+            columns: ["run_log_id"]
+            isOneToOne: false
+            referencedRelation: "tbl_recurring_run_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tbl_recurring_run_log: {
         Row: {
           created: number
