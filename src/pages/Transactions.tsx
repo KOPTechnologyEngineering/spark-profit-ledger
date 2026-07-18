@@ -42,8 +42,9 @@ const TRANSACTION_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "category", label: "Category", type: "string", defaultValue: "Other" },
   { key: "status", label: "Status", type: "enum", enumValues: ["completed", "pending", "overdue", "rejected"], defaultValue: "completed" },
   { key: "date", label: "Date", type: "date", defaultValue: new Date().toISOString().split("T")[0] },
+  { key: "organization", label: "Organization", type: "string" },
 ];
-const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15"];
+const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15", "Example Ltd"];
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
@@ -192,16 +193,33 @@ export default function Transactions() {
 
   const handleImportTransactions = async (rows: Record<string, string | number>[]) => {
     if (!user) return { error: "Not signed in" };
-    const payload = rows.map((r) => ({
-      user_id: user.id,
-      description: String(r.description),
-      amount: Number(r.amount),
-      type: String(r.type),
-      category: String(r.category),
-      status: String(r.status),
-      date: String(r.date),
-      created_by_name: user.user_metadata?.full_name || user.email || "",
-    }));
+    const nameToId = new Map<string, string>();
+    Object.entries(orgMap).forEach(([id, name]) => nameToId.set(name.trim().toLowerCase(), id));
+    const missing: string[] = [];
+    const payload = rows.map((r) => {
+      let organization_id: string | null = null;
+      const orgName = r.organization ? String(r.organization).trim() : "";
+      if (orgName) {
+        const id = nameToId.get(orgName.toLowerCase());
+        if (!id) missing.push(orgName);
+        else organization_id = id;
+      }
+      return {
+        user_id: user.id,
+        description: String(r.description),
+        amount: Number(r.amount),
+        type: String(r.type),
+        category: String(r.category),
+        status: String(r.status),
+        date: String(r.date),
+        organization_id,
+        created_by_name: user.user_metadata?.full_name || user.email || "",
+      };
+    });
+    if (missing.length) {
+      const uniq = Array.from(new Set(missing));
+      return { error: `Unknown organization${uniq.length > 1 ? "s" : ""}: ${uniq.join(", ")}. Add them in Organizations first.` };
+    }
     const { error } = await supabase.from("tbl_transactions").insert(payload as never);
     if (!error) fetchTransactions();
     return { error: error?.message };
@@ -233,8 +251,8 @@ export default function Transactions() {
   const downloadAllCSV = () => {
     downloadCSV(
       "transactions.csv",
-      ["Description", "Amount", "Type", "Category", "Status", "Date", "Created By"],
-      filtered.map((t) => [t.description, t.amount, t.type, t.category, t.status, t.date, t.created_by_name || ""]),
+      ["Description", "Amount", "Type", "Category", "Status", "Date", "Organization", "Created By"],
+      filtered.map((t) => [t.description, t.amount, t.type, t.category, t.status, t.date, (t.organization_id && orgMap[t.organization_id]) || "", t.created_by_name || ""]),
     );
   };
 
