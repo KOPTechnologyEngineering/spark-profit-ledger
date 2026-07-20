@@ -730,6 +730,8 @@ export type Database = {
           name: string
           net_pay: number
           ni: number
+          pension_employee: number
+          pension_employer: number
           role: string
           tax: number
           updated_at: string
@@ -745,6 +747,8 @@ export type Database = {
           name: string
           net_pay?: number
           ni?: number
+          pension_employee?: number
+          pension_employer?: number
           role?: string
           tax?: number
           updated_at?: string
@@ -760,6 +764,8 @@ export type Database = {
           name?: string
           net_pay?: number
           ni?: number
+          pension_employee?: number
+          pension_employer?: number
           role?: string
           tax?: number
           updated_at?: string
@@ -1159,6 +1165,7 @@ export type Database = {
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
+          enqueued_at: string
           message: Json
           msg_id: number
           read_ct: number
