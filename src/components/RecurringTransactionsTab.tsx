@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, Pause, Play, RefreshCw, PlayCircle } from "lucide-react";
+import { Pencil, Trash2, Pause, Play, RefreshCw, PlayCircle, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import RecurringTransactionDialog from "@/components/RecurringTransactionDialog";
+import RecurringRunHistoryDialog from "@/components/RecurringRunHistoryDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { formatGBP } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ export default function RecurringTransactionsTab() {
   const [editing, setEditing] = useState<any | null>(null);
   const [lastRun, setLastRun] = useState<RunLog | null>(null);
   const [triggering, setTriggering] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { toast } = useToast();
   const { hasEdit, hasAdmin } = useUserRoles();
   const canEdit = hasEdit("transactions");
@@ -128,6 +130,9 @@ export default function RecurringTransactionsTab() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)}>
+              <History className="h-4 w-4 mr-1" /> History
+            </Button>
             <Button variant="ghost" size="sm" onClick={fetchLastRun} disabled={triggering}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
@@ -137,6 +142,7 @@ export default function RecurringTransactionsTab() {
           </div>
         </div>
       )}
+      <RecurringRunHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
 
       <div className="flex justify-end">
         {canEdit && <RecurringTransactionDialog onSaved={fetchItems} />}
