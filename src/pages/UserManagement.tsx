@@ -57,14 +57,22 @@ export default function UserManagement() {
   const { user } = useAuth();
 
   const deleteUser = async (userId: string) => {
-    const { error: rolesErr } = await supabase.from("tbl_user_roles").delete().eq("user_id", userId);
-    const { error: profileErr } = await supabase.from("tbl_profiles").delete().eq("user_id", userId);
-    if (rolesErr || profileErr) {
-      toast({ title: "Couldn't delete user", description: friendlyErrorMessage(rolesErr || profileErr), variant: "destructive" });
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { targetUserId: userId },
+    });
+    if (error) {
+      toast({ title: "Couldn't delete user", description: friendlyErrorMessage(error), variant: "destructive" });
+      return;
+    }
+    if (data?.mode === "anonymized") {
+      toast({
+        title: "User's identity removed",
+        description: "This account has invoices, transactions, or payroll records that must be retained by law, so their name and email were erased instead of deleting the account outright.",
+      });
     } else {
       toast({ title: "User deleted" });
-      fetchUsers();
     }
+    fetchUsers();
   };
 
   const fetchUsers = async () => {
@@ -461,7 +469,7 @@ export default function UserManagement() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete User</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will remove {u.full_name || u.email} and all their permissions. This cannot be undone.
+                                  This will permanently remove {u.full_name || u.email}'s account and access. If they have invoices, transactions, or payroll records on file, those are kept for legal record-keeping and their name/email are erased instead of the account being deleted outright. This cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
