@@ -5,12 +5,15 @@ const statusStyles: Record<string, string> = {
   completed: "bg-inflow-muted text-inflow",
   filed: "bg-inflow-muted text-inflow",
   ready: "bg-inflow-muted text-inflow",
+  success: "bg-inflow-muted text-inflow",
   pending: "bg-warning/15 text-warning",
   due: "bg-warning/15 text-warning",
   overdue: "bg-outflow-muted text-outflow",
   rejected: "bg-outflow-muted text-outflow",
+  failed: "bg-outflow-muted text-outflow",
   draft: "bg-secondary text-muted-foreground",
   upcoming: "bg-secondary text-muted-foreground",
+  "no changes": "bg-secondary text-muted-foreground",
 };
 
 interface StatusBadgeProps {
