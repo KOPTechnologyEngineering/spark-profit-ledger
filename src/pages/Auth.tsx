@@ -129,7 +129,7 @@ export default function Auth() {
             <TrendingUp className="h-6 w-6 text-primary-foreground" />
           </div>
           <h1 className="mt-4 font-heading text-3xl font-bold text-foreground">KOP Ledger</h1>
-          <p className="mt-1 text-muted-foreground">{title}</p>
+          <h2 className="mt-1 text-muted-foreground font-normal text-base">{title}</h2>
         </div>
 
         <div className="glass-card p-8">

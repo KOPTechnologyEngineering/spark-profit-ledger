@@ -157,7 +157,7 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Invoice Number</Label>
-              <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="INV-006" required />
+              <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="e.g. INV-006" required />
             </div>
             <div className="space-y-2">
               <Label>Client</Label>
@@ -190,7 +190,7 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
               <div key={i} className="grid grid-cols-[1fr_50px_80px_60px_80px_32px] gap-2 items-end">
                 <div>
                   {i === 0 && <Label className="text-xs text-muted-foreground">Description</Label>}
-                  <Input value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="Service" required />
+                  <Input value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="e.g. Consulting services" required />
                 </div>
                 <div>
                   {i === 0 && <Label className="text-xs text-muted-foreground">Qty</Label>}
