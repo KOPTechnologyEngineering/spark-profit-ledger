@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Search, Download, ArrowRight, FileText, FileSpreadsheet } from "lucide-react";
 
 import { motion } from "framer-motion";
@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { useTransactionsData, useOrganizationsData, useRecurringTransactionsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
 
 type TransactionRow = Tables<"tbl_transactions">;
 
@@ -51,11 +52,16 @@ const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
   const [search, setSearch] = useState("");
-  const [allTransactions, setAllTransactions] = useState<TransactionRow[]>([]);
-  const [recurringList, setRecurringList] = useState<{ id: string; description: string }[]>([]);
-  const [orgMap, setOrgMap] = useState<Record<string, string>>({});
+  const { data: allTransactions = [], isLoading: loading } = useTransactionsData();
+  const { data: organizations = [] } = useOrganizationsData();
+  const { data: recurringTransactions = [] } = useRecurringTransactionsData();
+  const { invalidateTransactions } = useInvalidateFinancialData();
+  const orgMap: Record<string, string> = {};
+  organizations.forEach((o) => { orgMap[o.id] = o.name; });
+  const recurringList = [...recurringTransactions]
+    .map((r) => ({ id: r.id, description: r.description }))
+    .sort((a, b) => a.description.localeCompare(b.description));
   const [recurringFilter, setRecurringFilter] = useState<string>("all"); // "all" | "any" | "<id>"
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [editing, setEditing] = useState<TransactionRow | null>(null);
   const [recurringDetail, setRecurringDetail] = useState<Tables<"tbl_recurring_transactions"> | null>(null);
@@ -179,30 +185,6 @@ export default function Transactions() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchRecurring = async () => {
-    const { data, error } = await supabase
-      .from("tbl_recurring_transactions")
-      .select("id, description")
-      .order("description", { ascending: true });
-    if (error) {
-      toast({ title: "Couldn't load recurring transactions", description: friendlyErrorMessage(error), variant: "destructive" });
-      return;
-    }
-    setRecurringList(data || []);
-  };
-
-  const fetchTransactions = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from("tbl_transactions").select("*").order("date", { ascending: false });
-    if (error) {
-      toast({ title: "Couldn't load transactions", description: friendlyErrorMessage(error), variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-    setAllTransactions(data || []);
-    setLoading(false);
-  };
-
   const handleImportTransactions = async (rows: Record<string, string | number>[]) => {
     if (!user) return { error: "Not signed in" };
     const nameToId = new Map<string, string>();
@@ -233,22 +215,9 @@ export default function Transactions() {
       return { error: `Unknown organization${uniq.length > 1 ? "s" : ""}: ${uniq.join(", ")}. Add them in Organizations first.` };
     }
     const { error } = await supabase.from("tbl_transactions").insert(payload as never);
-    if (!error) fetchTransactions();
+    if (!error) invalidateTransactions();
     return { error: error?.message };
   };
-
-  const fetchOrgs = async () => {
-    const { data, error } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
-    if (error) {
-      toast({ title: "Couldn't load organizations", description: friendlyErrorMessage(error), variant: "destructive" });
-      return;
-    }
-    const m: Record<string, string> = {};
-    (data || []).forEach((o: any) => { m[o.id] = o.name; });
-    setOrgMap(m);
-  };
-
-  useEffect(() => { fetchTransactions(); fetchRecurring(); fetchOrgs(); }, []);
 
   const periodFiltered = filterByDateRange(filterByPeriod(allTransactions, period), range, "date");
   const filtered = periodFiltered
@@ -289,11 +258,11 @@ export default function Transactions() {
               setTypeFilter("all");
               setRecurringFilter("all");
               setSearch("");
-              fetchTransactions();
+              invalidateTransactions();
             }}
           />
         )}
-        <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={fetchTransactions} /></div>
+        <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><AddTransactionDialog onCreated={invalidateTransactions} /></div>
       </PageHeader>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -397,7 +366,7 @@ export default function Transactions() {
         onOpenChange={(o) => !o && setSelected(null)}
         record={selected}
         type="transaction"
-        onUpdated={fetchTransactions}
+        onUpdated={invalidateTransactions}
         onEdit={!viewOnly ? () => { setEditing(selected); setSelected(null); } : undefined}
       />
       {editing && (
@@ -406,7 +375,7 @@ export default function Transactions() {
           record={editing}
           open
           onOpenChange={(o) => !o && setEditing(null)}
-          onCreated={fetchTransactions}
+          onCreated={invalidateTransactions}
         />
       )}
 

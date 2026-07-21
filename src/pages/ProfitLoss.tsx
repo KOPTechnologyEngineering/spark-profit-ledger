@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Download } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector";
@@ -10,8 +8,7 @@ import SummaryTile from "@/components/SummaryTile";
 import { type Period, filterByPeriod } from "@/lib/date-filters";
 import { downloadCSV } from "@/lib/csv";
 import { formatGBP } from "@/lib/format";
-
-type TxnSummary = Pick<Tables<"tbl_transactions">, "amount" | "type" | "category" | "date">;
+import { useTransactionsData } from "@/hooks/useFinancialData";
 
 interface BreakdownItem {
   label: string;
@@ -43,11 +40,7 @@ function CategoryBreakdown({ title, items, total, tone }: { title: string; items
 
 export default function ProfitLoss() {
   const [period, setPeriod] = useState<Period>("Monthly");
-  const [allTxns, setAllTxns] = useState<TxnSummary[]>([]);
-
-  useEffect(() => {
-    supabase.from("tbl_transactions").select("amount, type, category, date").then(({ data }) => setAllTxns(data || []));
-  }, []);
+  const { data: allTxns = [] } = useTransactionsData();
 
   const filtered = filterByPeriod(allTxns, period);
 

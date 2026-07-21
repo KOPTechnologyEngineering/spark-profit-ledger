@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Search, Download, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { useInvoicesData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
 
 type InvoiceRow = Tables<"tbl_invoices">;
 
@@ -38,8 +39,8 @@ const INVOICE_IMPORT_SAMPLE = ["INV-101", "Example Ltd", 5000, "paid", "2026-01-
 export default function Invoices() {
   const [filter, setFilter] = useState<(typeof statusFilters)[number]>("all");
   const [search, setSearch] = useState("");
-  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: invoices = [], isLoading: loading } = useInvoicesData();
+  const { invalidateInvoices } = useInvalidateFinancialData();
   const [selected, setSelected] = useState<InvoiceRow | null>(null);
   const [editing, setEditing] = useState<InvoiceRow | null>(null);
   const [range, setRange] = useState<DateRange | undefined>();
@@ -48,18 +49,6 @@ export default function Invoices() {
   const canImport = hasAdmin("invoices");
   const { user } = useAuth();
   const { toast } = useToast();
-
-  const fetchInvoices = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from("tbl_invoices").select("*").order("created_at", { ascending: false });
-    if (error) {
-      toast({ title: "Couldn't load invoices", description: friendlyErrorMessage(error), variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-    setInvoices(data || []);
-    setLoading(false);
-  };
 
   const handleImportInvoices = async (rows: Record<string, string | number>[]) => {
     if (!user) return { error: "Not signed in" };
@@ -79,11 +68,9 @@ export default function Invoices() {
       };
     });
     const { error } = await supabase.from("tbl_invoices").insert(payload as never);
-    if (!error) fetchInvoices();
+    if (!error) invalidateInvoices();
     return { error: error?.message };
   };
-
-  useEffect(() => { fetchInvoices(); }, []);
 
   const filtered = filterByDateRange(invoices, range, "due_date")
     .filter((i) => filter === "all" || i.status === filter)
@@ -107,10 +94,10 @@ export default function Invoices() {
             columns={INVOICE_IMPORT_COLUMNS}
             sampleRow={INVOICE_IMPORT_SAMPLE}
             onImport={handleImportInvoices}
-            onImported={fetchInvoices}
+            onImported={invalidateInvoices}
           />
         )}
-        <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><NewInvoiceDialog onCreated={fetchInvoices} /></div>
+        <div className={viewOnly ? "opacity-50 pointer-events-none" : ""}><NewInvoiceDialog onCreated={invalidateInvoices} /></div>
       </PageHeader>
 
       <div className="flex items-center gap-4 flex-wrap">
@@ -183,7 +170,7 @@ export default function Invoices() {
         onOpenChange={(o) => !o && setSelected(null)}
         record={selected}
         type="invoice"
-        onUpdated={fetchInvoices}
+        onUpdated={invalidateInvoices}
         onEdit={!viewOnly ? () => { setEditing(selected); setSelected(null); } : undefined}
       />
       {editing && (
@@ -192,7 +179,7 @@ export default function Invoices() {
           record={editing}
           open
           onOpenChange={(o) => !o && setEditing(null)}
-          onCreated={fetchInvoices}
+          onCreated={invalidateInvoices}
         />
       )}
     </div>

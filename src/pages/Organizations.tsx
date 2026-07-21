@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Pencil, Search, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ import FilterPills from "@/components/FilterPills";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { useOrganizationsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
 
 type OrgRow = Tables<"tbl_organizations">;
 type OrgType = "customer" | "vendor" | "both";
@@ -43,30 +44,14 @@ const typeStyles: Record<OrgType, string> = {
 export default function Organizations() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [rows, setRows] = useState<OrgRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: rows = [], isLoading: loading } = useOrganizationsData();
+  const { invalidateOrganizations } = useInvalidateFinancialData();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<OrgRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const fetchOrgs = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("tbl_organizations")
-      .select("*")
-      .is("deleted_at", null)
-      .order("name", { ascending: true });
-    if (error) toast({ title: "Couldn't load organizations", description: friendlyErrorMessage(error), variant: "destructive" });
-    setRows((data || []) as OrgRow[]);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchOrgs();
-  }, []);
 
   const openNew = () => {
     setEditing(null);
@@ -116,7 +101,7 @@ export default function Organizations() {
     }
     toast({ title: editing ? "Organization updated" : "Organization added" });
     setDialogOpen(false);
-    fetchOrgs();
+    invalidateOrganizations();
   };
 
   const handleDelete = async (org: OrgRow) => {
@@ -127,7 +112,7 @@ export default function Organizations() {
       .eq("id", org.id);
     if (error) return toast({ title: "Couldn't remove organization", description: friendlyErrorMessage(error), variant: "destructive" });
     toast({ title: "Organization removed" });
-    fetchOrgs();
+    invalidateOrganizations();
   };
 
   const filtered = rows.filter((r) => {

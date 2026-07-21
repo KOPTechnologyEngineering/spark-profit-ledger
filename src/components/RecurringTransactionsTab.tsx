@@ -8,6 +8,7 @@ import { formatGBP } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useRecurringTransactionsData, useOrganizationsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
 
 type RunLog = {
   id: string;
@@ -19,9 +20,11 @@ type RunLog = {
 };
 
 export default function RecurringTransactionsTab() {
-  const [items, setItems] = useState<any[]>([]);
-  const [orgMap, setOrgMap] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const { data: items = [], isLoading: loading } = useRecurringTransactionsData();
+  const { data: organizations = [] } = useOrganizationsData();
+  const { invalidateRecurringTransactions, invalidateTransactions } = useInvalidateFinancialData();
+  const orgMap: Record<string, string> = {};
+  organizations.forEach((o) => { orgMap[o.id] = o.name; });
   const [editing, setEditing] = useState<any | null>(null);
   const [lastRun, setLastRun] = useState<RunLog | null>(null);
   const [triggering, setTriggering] = useState(false);
@@ -30,21 +33,6 @@ export default function RecurringTransactionsTab() {
   const canEdit = hasEdit("transactions");
   const canDelete = hasAdmin("transactions");
   const canRun = hasAdmin("transactions");
-
-  const fetchItems = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("tbl_recurring_transactions")
-      .select("*")
-      .order("next_run_date", { ascending: true });
-    if (error) {
-      toast({ title: "Couldn't load recurring transactions", description: friendlyErrorMessage(error), variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-    setItems(data || []);
-    setLoading(false);
-  };
 
   const fetchLastRun = async () => {
     const { data, error } = await supabase
@@ -60,18 +48,7 @@ export default function RecurringTransactionsTab() {
     setLastRun((data as RunLog) || null);
   };
 
-  const fetchOrgs = async () => {
-    const { data, error } = await supabase.from("tbl_organizations").select("id, name").is("deleted_at", null);
-    if (error) {
-      toast({ title: "Couldn't load organizations", description: friendlyErrorMessage(error), variant: "destructive" });
-      return;
-    }
-    const m: Record<string, string> = {};
-    (data || []).forEach((o: any) => { m[o.id] = o.name; });
-    setOrgMap(m);
-  };
-
-  useEffect(() => { fetchItems(); fetchOrgs(); if (canRun) fetchLastRun(); }, [canRun]);
+  useEffect(() => { if (canRun) fetchLastRun(); }, [canRun]);
 
   const runNow = async () => {
     setTriggering(true);
@@ -85,7 +62,13 @@ export default function RecurringTransactionsTab() {
         title: "Recurring processor ran",
         description: `Processed ${data?.processed ?? 0} schedule(s); created ${data?.created ?? 0} transaction(s).`,
       });
-      await Promise.all([fetchItems(), fetchLastRun()]);
+      // A run can both advance schedules' next_run_date AND create real
+      // transactions -- invalidate both caches so the main Transactions tab
+      // (a sibling component that doesn't remount when you switch tabs)
+      // reflects new entries immediately instead of only after a refresh.
+      invalidateRecurringTransactions();
+      invalidateTransactions();
+      await fetchLastRun();
     } catch (err: any) {
       toast({ title: "Recurring processor didn't run", description: friendlyErrorMessage(err), variant: "destructive" });
       await fetchLastRun();
@@ -100,14 +83,14 @@ export default function RecurringTransactionsTab() {
       .update({ is_active: !item.is_active })
       .eq("id", item.id);
     if (error) toast({ title: "Couldn't update schedule", description: friendlyErrorMessage(error), variant: "destructive" });
-    else fetchItems();
+    else invalidateRecurringTransactions();
   };
 
   const remove = async (id: string) => {
     if (!confirm("Delete this recurring transaction?")) return;
     const { error } = await supabase.from("tbl_recurring_transactions").delete().eq("id", id);
     if (error) toast({ title: "Couldn't delete recurring transaction", description: friendlyErrorMessage(error), variant: "destructive" });
-    else fetchItems();
+    else invalidateRecurringTransactions();
   };
 
   return (
@@ -139,7 +122,7 @@ export default function RecurringTransactionsTab() {
       )}
 
       <div className="flex justify-end">
-        {canEdit && <RecurringTransactionDialog onSaved={fetchItems} />}
+        {canEdit && <RecurringTransactionDialog onSaved={invalidateRecurringTransactions} />}
       </div>
 
       {loading ? (
@@ -188,7 +171,7 @@ export default function RecurringTransactionsTab() {
         record={editing}
         open={!!editing}
         onOpenChange={(o) => !o && setEditing(null)}
-        onSaved={fetchItems}
+        onSaved={invalidateRecurringTransactions}
       />
     </div>
   );
