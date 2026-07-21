@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Clock, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector";
 import StatusBadge from "@/components/StatusBadge";
@@ -10,9 +11,20 @@ import { type Period, filterByPeriod } from "@/lib/date-filters";
 import { downloadCSV } from "@/lib/csv";
 import { formatGBP, sumAmounts } from "@/lib/format";
 import { useTransactionsData, useVatReturnsData } from "@/hooks/useFinancialData";
+import type { Tables } from "@/integrations/supabase/types";
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
 
 export default function VAT() {
   const [period, setPeriod] = useState<Period>("Monthly");
+  const [selected, setSelected] = useState<Tables<"tbl_vat_returns"> | null>(null);
   const { data: allTxns = [] } = useTransactionsData();
   const { data: vatReturns = [] } = useVatReturnsData();
 
@@ -79,7 +91,7 @@ export default function VAT() {
                     <p className="font-heading text-sm font-semibold text-outflow">{formatGBP(q.net_vat)}</p>
                   </div>
                   <StatusBadge status={q.status} className="hidden md:inline-flex" />
-                  <Button variant="ghost" size="sm" aria-label="View return">
+                  <Button variant="ghost" size="sm" aria-label="View return" onClick={() => setSelected(q)}>
                     <Eye className="h-4 w-4" />
                     <span className="hidden sm:inline ml-1">View</span>
                   </Button>
@@ -90,6 +102,27 @@ export default function VAT() {
         )}
         </div>
       </div>
+
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>VAT Return — {selected?.quarter}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-3">
+              <DetailRow label="Output VAT" value={formatGBP(selected.output_vat)} />
+              <DetailRow label="Input VAT" value={formatGBP(selected.input_vat)} />
+              <DetailRow label="Net VAT" value={formatGBP(selected.net_vat)} />
+              <DetailRow label="Deadline" value={selected.deadline || "—"} />
+              <DetailRow label="Filed" value={new Date(selected.created_at).toLocaleDateString("en-GB")} />
+              <div className="flex justify-between items-center pt-1">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <StatusBadge status={selected.status} />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

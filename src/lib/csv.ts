@@ -1,6 +1,12 @@
 function escapeCell(value: unknown): string {
   const s = value === null || value === undefined ? "" : String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  // Prefix cells starting with a character a spreadsheet app can interpret as
+  // the start of a formula (=, +, -, @) with a leading apostrophe so it's
+  // read as literal text instead of evaluated -- CSV/formula injection
+  // (CWE-1236). Any free-text field a user controls (description, client
+  // name, notes) can end up in one of these exports.
+  const safe = /^[=+\-@]/.test(s) ? `'${s}` : s;
+  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
 export function toCSV(header: string[], rows: unknown[][]): string {

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { formatGBP, sumAmounts } from "@/lib/format";
 import { toCSV, parseCSV } from "@/lib/csv";
 import { parseImportRows, type ImportColumn } from "@/lib/import";
+import { calcCorporationTax, calcUKDeductions } from "@/lib/tax";
 
 describe("formatGBP", () => {
   it("formats numbers with thousands separators", () => {
@@ -46,6 +47,21 @@ describe("toCSV", () => {
   it("renders null and undefined as empty cells", () => {
     expect(toCSV(["A", "B"], [[null, undefined]])).toBe("A,B\n,");
   });
+
+  it("neutralizes cells that could be interpreted as spreadsheet formulas", () => {
+    expect(toCSV(["Description"], [["=1+1"]])).toBe('Description\n\'=1+1');
+    expect(toCSV(["Description"], [["+1+1"]])).toBe('Description\n\'+1+1');
+    expect(toCSV(["Description"], [["-1+1"]])).toBe('Description\n\'-1+1');
+    expect(toCSV(["Description"], [["@SUM(A1)"]])).toBe('Description\n\'@SUM(A1)');
+  });
+
+  it("still quotes a neutralized formula-like cell that also contains a comma", () => {
+    expect(toCSV(["Note"], [["=cmd,arg"]])).toBe('Note\n"\'=cmd,arg"');
+  });
+
+  it("leaves ordinary text and numbers alone", () => {
+    expect(toCSV(["Description"], [["Client payment"]])).toBe("Description\nClient payment");
+  });
 });
 
 describe("parseCSV", () => {
@@ -81,6 +97,54 @@ describe("parseCSV", () => {
     const { headers, rows } = parseCSV(csv);
     expect(headers).toEqual(["Name", "Note"]);
     expect(rows).toEqual([["Acme, Ltd", 'Says "hi"\nline2']]);
+  });
+});
+
+describe("calcCorporationTax", () => {
+  it("applies the flat 19% small-profits rate up to and including £50,000", () => {
+    expect(calcCorporationTax(30000)).toBe(5700);
+    expect(calcCorporationTax(50000)).toBe(9500);
+  });
+
+  it("applies marginal relief between £50,000 and £250,000", () => {
+    expect(calcCorporationTax(200000)).toBe(49250);
+  });
+
+  it("is continuous across the £50,000 boundary (no cliff-edge jump)", () => {
+    expect(calcCorporationTax(50001)).toBe(9500);
+  });
+
+  it("applies the flat 25% main rate above £250,000, continuous at the boundary", () => {
+    expect(calcCorporationTax(250000)).toBe(62500);
+    expect(calcCorporationTax(300000)).toBe(75000);
+  });
+
+  it("returns 0 for zero or negative profit", () => {
+    expect(calcCorporationTax(0)).toBe(0);
+    expect(calcCorporationTax(-5000)).toBe(0);
+  });
+});
+
+describe("calcUKDeductions", () => {
+  it("applies the full £12,570 personal allowance below the £100,000 taper threshold", () => {
+    // £50,000: allowance 12,570 untouched, taxable 37,430, all at 20%.
+    expect(calcUKDeductions(50000).tax).toBeCloseTo(37430 * 0.2 / 12, 2);
+  });
+
+  it("tapers the personal allowance £1 per £2 earned between £100,000 and £125,140", () => {
+    // Allowance at £105,000 should be £10,070 (not the full £12,570), giving
+    // monthly tax of £2,536 -- the pre-fix cliff-edge code gave £2,452.67 here.
+    expect(calcUKDeductions(105000).tax).toBeCloseTo(2536, 2);
+    // Allowance at £120,000 should be £2,570, giving monthly tax of £3,286.
+    expect(calcUKDeductions(120000).tax).toBeCloseTo(3286, 2);
+  });
+
+  it("fully withdraws the personal allowance at exactly £125,140", () => {
+    expect(calcUKDeductions(125140).tax).toBeCloseTo(3543, 2);
+  });
+
+  it("keeps the allowance at zero just above the £125,140 withdrawal point", () => {
+    expect(calcUKDeductions(125141).tax).toBeCloseTo(3543.04, 2);
   });
 });
 

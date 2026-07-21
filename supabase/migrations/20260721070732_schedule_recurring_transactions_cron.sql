@@ -1,3 +1,13 @@
+-- SUPERSEDED: a second migration (20260721071210_e06a5b6d-...sql, applied
+-- ~13 minutes after this one) scheduled the same job name with different
+-- parameters (02:15 UTC, 'email_queue_service_role_key'). Since cron.schedule
+-- upserts by job name and migrations apply in filename order, that one is
+-- what's actually live in production -- this migration's schedule was
+-- immediately overwritten, and the "REQUIRED MANUAL STEP" below was never
+-- acted on and is moot. See 20260721112545_consolidate_recurring_transactions_cron.sql
+-- for the current, accurate state. Left as-is (not rewritten) since it
+-- already executed in production; this note is just for future readers.
+--
 -- Recurring transactions were never actually processed automatically: the
 -- process-recurring-transactions edge function supports being triggered by a
 -- cron job (it accepts the service-role key as an alternative to a user

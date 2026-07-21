@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { usePayeEmployeesData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
+import { calcUKDeductions } from "@/lib/tax";
 
 const ISE_GRADES = [
   "Grade 1 – Trainee / Entry Level",
@@ -47,46 +48,6 @@ const GRADE_DEFAULT_GROSS_ANNUAL: Record<(typeof ISE_GRADES)[number], number> = 
   "Grade 9 – Executive Director": 130000,
   "Grade 10 – C-Suite / Chief Officer": 175000,
 };
-
-const PENSION_QUALIFYING_LOWER = 6240;
-const PENSION_QUALIFYING_UPPER = 50270;
-const PENSION_EMPLOYEE_RATE = 0.05;
-const PENSION_EMPLOYER_RATE = 0.03;
-
-function calcUKDeductions(grossAnnual: number) {
-  const personalAllowance = grossAnnual > 125140 ? 0 : 12570;
-  const taxable = Math.max(0, grossAnnual - personalAllowance);
-  let tax = 0;
-  if (taxable > 0) tax += Math.min(taxable, 37700) * 0.2;
-  if (taxable > 37700) tax += Math.min(taxable - 37700, 87440) * 0.4;
-  if (taxable > 125140) tax += (taxable - 125140) * 0.45;
-
-  const niLower = 12570;
-  const niUpper = 50270;
-  let ni = 0;
-  if (grossAnnual > niLower) ni += Math.min(grossAnnual - niLower, niUpper - niLower) * 0.08;
-  if (grossAnnual > niUpper) ni += (grossAnnual - niUpper) * 0.02;
-
-  const qualifyingEarnings = Math.max(0, Math.min(grossAnnual, PENSION_QUALIFYING_UPPER) - PENSION_QUALIFYING_LOWER);
-  const pensionEmployee = qualifyingEarnings * PENSION_EMPLOYEE_RATE;
-  const pensionEmployer = qualifyingEarnings * PENSION_EMPLOYER_RATE;
-
-  const monthlyGross = grossAnnual / 12;
-  const monthlyTax = tax / 12;
-  const monthlyNI = ni / 12;
-  const monthlyPensionEmployee = pensionEmployee / 12;
-  const monthlyPensionEmployer = pensionEmployer / 12;
-  const monthlyNet = monthlyGross - monthlyTax - monthlyNI - monthlyPensionEmployee;
-
-  return {
-    gross_pay: Math.round(monthlyGross * 100) / 100,
-    tax: Math.round(monthlyTax * 100) / 100,
-    ni: Math.round(monthlyNI * 100) / 100,
-    pension_employee: Math.round(monthlyPensionEmployee * 100) / 100,
-    pension_employer: Math.round(monthlyPensionEmployer * 100) / 100,
-    net_pay: Math.round(monthlyNet * 100) / 100,
-  };
-}
 
 const emptyForm = { name: "", designation: "", grade: "", grossAnnual: "" };
 

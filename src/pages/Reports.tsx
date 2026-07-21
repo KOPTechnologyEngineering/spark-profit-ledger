@@ -6,6 +6,7 @@ import { downloadCSV } from "@/lib/csv";
 import { sumAmounts } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { calcCorporationTax } from "@/lib/tax";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
 import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
@@ -46,12 +47,12 @@ export default function Reports() {
         const revenue = sumAmounts(txns.filter((t) => t.type === "inflow"), "amount");
         const expenses = sumAmounts(txns.filter((t) => t.type === "outflow"), "amount");
         const profit = revenue - expenses;
-        const tax = Math.max(0, Math.round(profit * 0.19));
+        const tax = calcCorporationTax(profit);
         downloadCSV("ct600_report.csv", ["Item", "Amount (£)"], [
           ["Revenue", revenue],
           ["Expenses", expenses],
           ["Taxable Profit", profit],
-          ["Corporation Tax (19%)", tax],
+          ["Corporation Tax", tax],
         ]);
       } else if (key === "vat") {
         const { data, error } = await supabase.from("tbl_transactions").select("amount, type, date, description, category");
