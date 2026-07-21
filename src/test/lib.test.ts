@@ -106,6 +106,13 @@ describe("calcCorporationTax", () => {
     expect(calcCorporationTax(50000)).toBe(9500);
   });
 
+  it("matches HMRC's own published marginal relief example (£100,000 profit -> £22,750 tax)", () => {
+    // HMRC's worked example: £100,000 x 25% = £25,000 main-rate tax;
+    // marginal relief = (£250,000 - £100,000) x 3/200 = £2,250;
+    // £25,000 - £2,250 = £22,750 payable.
+    expect(calcCorporationTax(100000)).toBe(22750);
+  });
+
   it("applies marginal relief between £50,000 and £250,000", () => {
     expect(calcCorporationTax(200000)).toBe(49250);
   });
