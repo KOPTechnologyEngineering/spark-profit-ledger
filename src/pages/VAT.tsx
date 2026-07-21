@@ -29,17 +29,25 @@ export default function VAT() {
   const { data: vatReturns = [] } = useVatReturnsData();
 
   const filtered = filterByPeriod(allTxns, period);
+  // Only standard-rated transactions carry VAT -- zero-rated, exempt, and
+  // out-of-scope transactions still count as sales/purchases for revenue
+  // purposes, but contribute £0 output/input VAT.
+  const standardRated = filtered.filter((t) => (t.vat_treatment ?? "standard") === "standard");
   const inflow = sumAmounts(filtered.filter((t) => t.type === "inflow"), "amount");
   const outflow = sumAmounts(filtered.filter((t) => t.type === "outflow"), "amount");
-  const outputVAT = Math.round(inflow * 0.2);
-  const inputVAT = Math.round(outflow * 0.2);
+  const standardInflow = sumAmounts(standardRated.filter((t) => t.type === "inflow"), "amount");
+  const standardOutflow = sumAmounts(standardRated.filter((t) => t.type === "outflow"), "amount");
+  const outputVAT = Math.round(standardInflow * 0.2);
+  const inputVAT = Math.round(standardOutflow * 0.2);
   const netVAT = outputVAT - inputVAT;
 
   const exportCSV = () => {
     downloadCSV("vat_summary.csv", ["Item", "Amount (£)"], [
       ["Total Sales", inflow],
+      ["Standard-Rated Sales", standardInflow],
       ["Output VAT (20%)", outputVAT],
       ["Total Purchases", outflow],
+      ["Standard-Rated Purchases", standardOutflow],
       ["Input VAT (20%)", inputVAT],
       ["Net VAT", netVAT],
     ]);
@@ -65,7 +73,7 @@ export default function VAT() {
         </div>
         <div className="p-6 max-h-[60vh] overflow-y-auto">
         {vatReturns.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No VAT returns recorded yet. VAT summary above is calculated from transactions at 20% rate.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No VAT returns recorded yet. VAT summary above is calculated from standard-rated transactions at 20%; zero-rated, exempt, and out-of-scope transactions are excluded.</p>
         ) : (
           <div className="space-y-3">
             {vatReturns.map((q, i) => (

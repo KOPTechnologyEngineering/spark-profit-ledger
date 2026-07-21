@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { formatGBP, sumAmounts } from "@/lib/format";
 import { toCSV, parseCSV } from "@/lib/csv";
 import { parseImportRows, type ImportColumn } from "@/lib/import";
-import { calcCorporationTax, calcUKDeductions } from "@/lib/tax";
+import { calcCorporationTax, calcUKDeductions, defaultVatTreatmentForCategory } from "@/lib/tax";
 
 describe("formatGBP", () => {
   it("formats numbers with thousands separators", () => {
@@ -152,6 +152,18 @@ describe("calcUKDeductions", () => {
 
   it("keeps the allowance at zero just above the £125,140 withdrawal point", () => {
     expect(calcUKDeductions(125141).tax).toBeCloseTo(3543.04, 2);
+  });
+});
+
+describe("defaultVatTreatmentForCategory", () => {
+  it("defaults Insurance to exempt and Payroll to out of scope", () => {
+    expect(defaultVatTreatmentForCategory("Insurance")).toBe("exempt");
+    expect(defaultVatTreatmentForCategory("Payroll")).toBe("out_of_scope");
+  });
+
+  it("defaults everything else to standard-rated", () => {
+    expect(defaultVatTreatmentForCategory("Revenue")).toBe("standard");
+    expect(defaultVatTreatmentForCategory("Some Unknown Category")).toBe("standard");
   });
 });
 

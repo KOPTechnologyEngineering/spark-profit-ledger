@@ -984,6 +984,7 @@ export type Database = {
           type: string
           updated_at: string
           user_id: string
+          vat_treatment: string
         }
         Insert: {
           amount?: number
@@ -1004,6 +1005,7 @@ export type Database = {
           type: string
           updated_at?: string
           user_id: string
+          vat_treatment?: string
         }
         Update: {
           amount?: number
@@ -1024,6 +1026,7 @@ export type Database = {
           type?: string
           updated_at?: string
           user_id?: string
+          vat_treatment?: string
         }
         Relationships: [
           {

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import ApproverSelect from "@/components/ApproverSelect";
 import AttachmentUpload from "@/components/AttachmentUpload";
+import { VAT_TREATMENTS, defaultVatTreatmentForCategory, type VatTreatment } from "@/lib/tax";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
 const NO_ORG = "__none__";
@@ -34,6 +35,9 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
   const [amount, setAmount] = useState(record ? String(record.amount ?? "") : "");
   const [type, setType] = useState<"inflow" | "outflow">(record?.type === "outflow" ? "outflow" : "inflow");
   const [category, setCategory] = useState(record?.category || "Revenue");
+  const [vatTreatment, setVatTreatment] = useState<VatTreatment>(
+    (record?.vat_treatment as VatTreatment) || defaultVatTreatmentForCategory(record?.category || "Revenue"),
+  );
   const [date, setDate] = useState(record?.date || new Date().toISOString().split("T")[0]);
   const [approver1, setApprover1] = useState(record?.approver1_id || "");
   const [approver2, setApprover2] = useState(record?.approver2_id || "");
@@ -70,6 +74,7 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
         category,
         status: "pending",
         date,
+        vat_treatment: vatTreatment,
         approver1_id: approver1,
         approver2_id: approver2,
         approver1_status: "pending",
@@ -116,6 +121,7 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
     setAmount("");
     setType("inflow");
     setCategory("Revenue");
+    setVatTreatment(defaultVatTreatmentForCategory("Revenue"));
     setDate(new Date().toISOString().split("T")[0]);
     setApprover1("");
     setApprover2("");
@@ -158,7 +164,10 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
             </div>
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select
+                value={category}
+                onValueChange={(v) => { setCategory(v); setVatTreatment(defaultVatTreatmentForCategory(v)); }}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -168,6 +177,15 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
             <div className="space-y-2">
               <Label>Date</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>VAT Treatment</Label>
+              <Select value={vatTreatment} onValueChange={(v) => setVatTreatment(v as VatTreatment)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {VAT_TREATMENTS.map((v) => <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

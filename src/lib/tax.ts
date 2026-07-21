@@ -47,6 +47,31 @@ function calcPersonalAllowance(grossAnnual: number): number {
   return Math.max(0, PERSONAL_ALLOWANCE - reduction);
 }
 
+// A transaction's VAT treatment, distinct from its category -- a category
+// picks a sensible default (see below) but stays user-editable, since real
+// businesses have exceptions (e.g. an otherwise-standard-rated category with
+// one export sale that's actually zero-rated).
+export const VAT_TREATMENTS = [
+  { value: "standard", label: "Standard-rated (20%)" },
+  { value: "zero_rated", label: "Zero-rated (0%)" },
+  { value: "exempt", label: "Exempt" },
+  { value: "out_of_scope", label: "Outside the scope of VAT" },
+] as const;
+
+export type VatTreatment = (typeof VAT_TREATMENTS)[number]["value"];
+
+// UK VAT-notable defaults: insurance is VAT-exempt, wages/payroll are
+// outside the scope of VAT entirely. Everything else defaults to
+// standard-rated, matching the app's behaviour before this field existed.
+const CATEGORY_DEFAULT_VAT_TREATMENT: Partial<Record<string, VatTreatment>> = {
+  Insurance: "exempt",
+  Payroll: "out_of_scope",
+};
+
+export function defaultVatTreatmentForCategory(category: string): VatTreatment {
+  return CATEGORY_DEFAULT_VAT_TREATMENT[category] ?? "standard";
+}
+
 export function calcUKDeductions(grossAnnual: number) {
   const personalAllowance = calcPersonalAllowance(grossAnnual);
   const taxable = Math.max(0, grossAnnual - personalAllowance);

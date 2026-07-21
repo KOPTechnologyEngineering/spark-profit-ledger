@@ -29,6 +29,7 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { useTransactionsData, useOrganizationsData, useRecurringTransactionsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
+import { VAT_TREATMENTS } from "@/lib/tax";
 
 type TransactionRow = Tables<"tbl_transactions">;
 
@@ -46,8 +47,9 @@ const TRANSACTION_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "status", label: "Status", type: "enum", enumValues: ["completed", "pending", "overdue", "rejected"], defaultValue: "completed" },
   { key: "date", label: "Date", type: "date", defaultValue: new Date().toISOString().split("T")[0] },
   { key: "organization", label: "Organization", type: "string" },
+  { key: "vat_treatment", label: "VAT Treatment", type: "enum", enumValues: VAT_TREATMENTS.map((v) => v.value), defaultValue: "standard" },
 ];
-const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15", "Example Ltd"];
+const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15", "Example Ltd", "standard"];
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
@@ -206,6 +208,7 @@ export default function Transactions() {
         category: String(r.category),
         status: String(r.status),
         date: String(r.date),
+        vat_treatment: String(r.vat_treatment || "standard"),
         organization_id,
         created_by_name: user.user_metadata?.full_name || user.email || "",
       };
