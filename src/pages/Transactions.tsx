@@ -168,12 +168,16 @@ export default function Transactions() {
     </tbody>
     <tfoot><tr><td colspan="5">Net total</td><td class="num ${total >= 0 ? "inflow" : "outflow"}">${total >= 0 ? "+" : "-"}£${Math.abs(total).toFixed(2)}</td></tr></tfoot>
   </table>
-  <script>window.onload=()=>{window.print();};</script>
 </body></html>`;
     const w = window.open("", "_blank");
     if (!w) return;
     w.document.write(html);
     w.document.close();
+    // Called from here (the opener) rather than an inline <script> in the
+    // generated document, so this keeps working under a strict script-src
+    // CSP with no 'unsafe-inline' -- document.write/close are synchronous,
+    // so the popup's content is already fully parsed by this point.
+    w.print();
   };
 
 
