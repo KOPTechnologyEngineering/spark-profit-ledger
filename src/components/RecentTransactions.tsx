@@ -1,19 +1,10 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { formatGBP } from "@/lib/format";
-
-type TransactionRow = Tables<"tbl_transactions">;
+import { useTransactionsData } from "@/hooks/useFinancialData";
 
 export default function RecentTransactions() {
-  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
-
-  useEffect(() => {
-    supabase.from("tbl_transactions").select("*").order("date", { ascending: false }).limit(6).then(({ data }) => {
-      setTransactions(data || []);
-    });
-  }, []);
+  const { data: allTransactions = [] } = useTransactionsData();
+  const transactions = allTransactions.slice(0, 6);
 
   return (
     <div className="glass-card p-6">

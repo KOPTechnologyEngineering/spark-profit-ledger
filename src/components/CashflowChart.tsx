@@ -1,44 +1,30 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { type Period, filterByPeriod } from "@/lib/date-filters";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTransactionsData } from "@/hooks/useFinancialData";
 
 interface Props {
   period?: Period;
 }
 
 export default function CashflowChart({ period = "All" }: Props) {
-  const [chartData, setChartData] = useState<any[]>([]);
+  const { data: transactions = [] } = useTransactionsData();
   const isMobile = useIsMobile();
 
-  useEffect(() => {
-    const load = async () => {
-      const { data, error } = await supabase.from("tbl_transactions").select("amount, type, date").order("date", { ascending: true });
-      if (error) {
-        console.error("Failed to load cashflow chart data", error);
-        setChartData([]);
-        return;
-      }
-      if (!data || data.length === 0) { setChartData([]); return; }
-
-      const filtered = filterByPeriod(data, period);
-
-      const groupKey = period === "Daily" ? "HH:00" : period === "Weekly" ? "EEE" : "MMM yy";
-      const grouped: Record<string, { inflow: number; outflow: number }> = {};
-
-      filtered.forEach((t) => {
-        const key = format(new Date(t.date), groupKey);
-        if (!grouped[key]) grouped[key] = { inflow: 0, outflow: 0 };
-        if (t.type === "inflow") grouped[key].inflow += Number(t.amount);
-        else grouped[key].outflow += Number(t.amount);
-      });
-
-      setChartData(Object.entries(grouped).map(([month, vals]) => ({ month, ...vals })));
-    };
-    load();
-  }, [period]);
+  // useTransactionsData() is ordered newest-first (to suit the transaction
+  // list view); re-sort ascending here since the chart's x-axis relies on
+  // chronological insertion order into `grouped` below.
+  const filtered = [...filterByPeriod(transactions, period)].sort((a, b) => a.date.localeCompare(b.date));
+  const groupKey = period === "Daily" ? "HH:00" : period === "Weekly" ? "EEE" : "MMM yy";
+  const grouped: Record<string, { inflow: number; outflow: number }> = {};
+  filtered.forEach((t) => {
+    const key = format(new Date(t.date), groupKey);
+    if (!grouped[key]) grouped[key] = { inflow: 0, outflow: 0 };
+    if (t.type === "inflow") grouped[key].inflow += Number(t.amount);
+    else grouped[key].outflow += Number(t.amount);
+  });
+  const chartData = Object.entries(grouped).map(([month, vals]) => ({ month, ...vals }));
 
   const formatYTick = (v: number) => {
     if (Math.abs(v) >= 1_000_000) return `£${(v / 1_000_000).toFixed(1)}m`;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DollarSign, TrendingUp, TrendingDown, Wallet, FileText, Clock, AlertCircle } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import CashflowChart from "@/components/CashflowChart";
@@ -8,37 +8,19 @@ import PeriodSelector from "@/components/PeriodSelector";
 import DateRangePicker, { filterByDateRange } from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 import { type Period, filterByPeriod } from "@/lib/date-filters";
 import { formatGBP, sumAmounts } from "@/lib/format";
-
-type TxnSummary = Pick<Tables<"tbl_transactions">, "amount" | "type" | "status" | "date">;
-type InvoiceSummary = Pick<Tables<"tbl_invoices">, "amount" | "status" | "created_at">;
+import { useTransactionsData, useInvoicesData, useVatReturnsData, usePayeEmployeesData } from "@/hooks/useFinancialData";
 
 export default function Dashboard() {
   const [activePeriod, setActivePeriod] = useState<Period>("Monthly");
   const [range, setRange] = useState<DateRange | undefined>();
-  const [allTxns, setAllTxns] = useState<TxnSummary[]>([]);
-  const [allInvs, setAllInvs] = useState<InvoiceSummary[]>([]);
-  const [vatDue, setVatDue] = useState(0);
-  const [payeMonth, setPayeMonth] = useState(0);
-
-  useEffect(() => {
-    const load = async () => {
-      const [{ data: txns }, { data: invs }, { data: vat }, { data: paye }] = await Promise.all([
-        supabase.from("tbl_transactions").select("amount, type, status, date"),
-        supabase.from("tbl_invoices").select("amount, status, created_at"),
-        supabase.from("tbl_vat_returns").select("net_vat, status"),
-        supabase.from("tbl_paye_employees").select("gross_pay"),
-      ]);
-      setAllTxns(txns || []);
-      setAllInvs(invs || []);
-      setVatDue(sumAmounts((vat || []).filter((v) => v.status === "due"), "net_vat"));
-      setPayeMonth(sumAmounts(paye || [], "gross_pay"));
-    };
-    load();
-  }, []);
+  const { data: allTxns = [] } = useTransactionsData();
+  const { data: allInvs = [] } = useInvoicesData();
+  const { data: vatReturns = [] } = useVatReturnsData();
+  const { data: payeEmployees = [] } = usePayeEmployeesData();
+  const vatDue = sumAmounts(vatReturns.filter((v) => v.status === "due"), "net_vat");
+  const payeMonth = sumAmounts(payeEmployees, "gross_pay");
 
   const filtered = filterByDateRange(filterByPeriod(allTxns, activePeriod), range, "date");
   const approved = filtered.filter((t) => t.status === "completed");

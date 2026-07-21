@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 import { CheckCircle, Clock, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
@@ -11,19 +9,12 @@ import SummaryTile from "@/components/SummaryTile";
 import { type Period, filterByPeriod } from "@/lib/date-filters";
 import { downloadCSV } from "@/lib/csv";
 import { formatGBP, sumAmounts } from "@/lib/format";
-
-type TxnSummary = Pick<Tables<"tbl_transactions">, "amount" | "type" | "date">;
-type VatReturnRow = Tables<"tbl_vat_returns">;
+import { useTransactionsData, useVatReturnsData } from "@/hooks/useFinancialData";
 
 export default function VAT() {
   const [period, setPeriod] = useState<Period>("Monthly");
-  const [allTxns, setAllTxns] = useState<TxnSummary[]>([]);
-  const [vatReturns, setVatReturns] = useState<VatReturnRow[]>([]);
-
-  useEffect(() => {
-    supabase.from("tbl_transactions").select("amount, type, date").then(({ data }) => setAllTxns(data || []));
-    supabase.from("tbl_vat_returns").select("*").order("created_at", { ascending: false }).then(({ data }) => setVatReturns(data || []));
-  }, []);
+  const { data: allTxns = [] } = useTransactionsData();
+  const { data: vatReturns = [] } = useVatReturnsData();
 
   const filtered = filterByPeriod(allTxns, period);
   const inflow = sumAmounts(filtered.filter((t) => t.type === "inflow"), "amount");

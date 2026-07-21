@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Plus, Trash2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { usePayeEmployeesData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
 
 const ISE_GRADES = [
   "Grade 1 – Trainee / Entry Level",
@@ -107,7 +108,8 @@ export default function PAYE() {
   const canDelete = hasAdmin("paye");
   const isAdmin = hasAdmin("paye");
 
-  const [employees, setEmployees] = useState<EmployeeRow[]>([]);
+  const { data: employees = [] } = usePayeEmployeesData();
+  const { invalidatePayeEmployees } = useInvalidateFinancialData();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -121,17 +123,6 @@ export default function PAYE() {
     pensionEmployer: sumAmounts(employees, "pension_employer"),
     net: sumAmounts(employees, "net_pay"),
   };
-
-  const fetchEmployees = async () => {
-    const { data, error } = await supabase.from("tbl_paye_employees").select("*").order("name");
-    if (error) {
-      toast({ title: "Couldn't load employees", description: friendlyErrorMessage(error), variant: "destructive" });
-      return;
-    }
-    setEmployees(data || []);
-  };
-
-  useEffect(() => { fetchEmployees(); }, []);
 
   const handleImportEmployees = async (rows: Record<string, string | number>[]) => {
     if (!user) return { error: "Not signed in" };
@@ -150,7 +141,7 @@ export default function PAYE() {
       };
     });
     const { error } = await supabase.from("tbl_paye_employees").insert(payload as never);
-    if (!error) fetchEmployees();
+    if (!error) invalidatePayeEmployees();
     return { error: error?.message };
   };
 
@@ -211,7 +202,7 @@ export default function PAYE() {
     setForm(emptyForm);
     setEditId(null);
     setOpen(false);
-    fetchEmployees();
+    invalidatePayeEmployees();
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -219,7 +210,7 @@ export default function PAYE() {
     const { error } = await supabase.from("tbl_paye_employees").delete().eq("id", id);
     if (error) { toast({ title: "Couldn't delete employee", description: friendlyErrorMessage(error), variant: "destructive" }); return; }
     toast({ title: "Employee deleted" });
-    fetchEmployees();
+    invalidatePayeEmployees();
   };
 
   const exportCSV = () => {
@@ -244,7 +235,7 @@ export default function PAYE() {
             columns={PAYE_IMPORT_COLUMNS}
             sampleRow={PAYE_IMPORT_SAMPLE}
             onImport={handleImportEmployees}
-            onImported={fetchEmployees}
+            onImported={invalidatePayeEmployees}
           />
         )}
         <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
