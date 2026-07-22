@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { resolveSignatureUrl } from "@/lib/signatures";
 
 export default function ProfileMenu() {
   const { user, signOut } = useAuth();
