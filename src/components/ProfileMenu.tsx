@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { resolveSignatureUrl } from "@/lib/signatures";
 
 export default function ProfileMenu() {
   const { user, signOut } = useAuth();
@@ -18,7 +19,8 @@ export default function ProfileMenu() {
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState("");
   const [designation, setDesignation] = useState("");
-  const [signatureUrl, setSignatureUrl] = useState("");
+  const [signatureUrl, setSignatureUrl] = useState(""); // stored path (or legacy URL)
+  const [signaturePreview, setSignaturePreview] = useState(""); // short-lived signed URL for <img>
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -29,11 +31,13 @@ export default function ProfileMenu() {
         .select("full_name, designation, signature_url")
         .eq("user_id", user.id)
         .single()
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           if (data) {
             setFullName((data as any).full_name || "");
             setDesignation((data as any).designation || "");
-            setSignatureUrl((data as any).signature_url || "");
+            const stored = (data as any).signature_url || "";
+            setSignatureUrl(stored);
+            setSignaturePreview(stored ? await resolveSignatureUrl(stored) : "");
           }
         });
     }
@@ -68,16 +72,12 @@ export default function ProfileMenu() {
       setUploading(false);
       return;
     }
-    // Bucket is private — create a long-lived signed URL (10 years).
-    const { data: signed, error: signErr } = await supabase.storage
-      .from("signatures")
-      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-    if (signErr || !signed?.signedUrl) {
-      toast({ title: "Upload failed", description: friendlyErrorMessage(signErr, "Couldn't finish preparing your signature. Please try again."), variant: "destructive" });
-      setUploading(false);
-      return;
-    }
-    setSignatureUrl(signed.signedUrl);
+    // Bucket is private — signed URLs are generated on demand with a short TTL.
+    // Store ONLY the object path. Signed URLs are generated on demand with a short TTL
+    // so that leaked links do not grant long-lived access to signature images.
+    setSignatureUrl(path);
+    const preview = await resolveSignatureUrl(path);
+    setSignaturePreview(preview);
     setUploading(false);
     toast({ title: "Signature uploaded" });
   };
@@ -133,9 +133,9 @@ export default function ProfileMenu() {
             </div>
             <div className="space-y-2">
               <Label>Signature</Label>
-              {signatureUrl && (
+              {signaturePreview && (
                 <div className="border border-border rounded-lg p-3 bg-white">
-                  <img src={signatureUrl} alt="Your saved signature used to approve documents" className="max-h-20 object-contain" />
+                  <img src={signaturePreview} alt="Your saved signature used to approve documents" className="max-h-20 object-contain" />
                 </div>
               )}
               <input ref={fileRef} type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
@@ -151,6 +151,7 @@ export default function ProfileMenu() {
                     className="text-destructive border-destructive/50 hover:bg-destructive/10"
                     onClick={async () => {
                       setSignatureUrl("");
+                      setSignaturePreview("");
                       await supabase
                         .from("tbl_profiles")
                         .update({ signature_url: "" } as any)
