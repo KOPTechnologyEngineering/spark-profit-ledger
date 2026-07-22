@@ -132,9 +132,19 @@ Deno.serve(async (req) => {
     })
     if (updateAuthErr) throw updateAuthErr
 
+    // The signature image is itself identifying personal data (the person's actual
+    // signature) -- remove the stored object(s) as well as the profile's reference to
+    // it, otherwise "anonymization" leaves a real identifying artifact behind. The
+    // upload path is `${userId}/signature.<ext>` with an arbitrary extension (whatever
+    // the user last uploaded), so list the folder rather than guessing the extension.
+    const { data: signatureFiles } = await admin.storage.from('signatures').list(targetUserId)
+    if (signatureFiles && signatureFiles.length > 0) {
+      await admin.storage.from('signatures').remove(signatureFiles.map((f) => `${targetUserId}/${f.name}`))
+    }
+
     const { error: profileErr } = await admin
       .from('tbl_profiles')
-      .update({ full_name: 'Deleted user', email: anonymizedEmail, is_active: false, is_hidden: true })
+      .update({ full_name: 'Deleted user', email: anonymizedEmail, is_active: false, is_hidden: true, signature_url: null })
       .eq('user_id', targetUserId)
     if (profileErr) throw profileErr
 

@@ -61,8 +61,24 @@ export default function PrivacyPolicy() {
               <strong className="text-foreground">Our transactional email provider</strong> sends account
               notifications (welcome, approval status, password reset) and invoice chase reminders on our behalf,
               from the <code className="rounded bg-secondary px-1 py-0.5 text-xs">kopledger.koptechnology.com</code> domain.
+              <strong className="text-foreground"> Lovable</strong> provisions the underlying domain/nameserver
+              infrastructure this mail is sent through, as a sub-processor of that pipeline.
             </p>
             <p>We don't share your data with anyone else, and never for marketing purposes.</p>
+          </Section>
+
+          <Section title="Data about people who aren't KOP Ledger users">
+            <p>
+              An organization using KOP Ledger may enter personal data about people who don't hold an account
+              themselves and can't sign in to manage it directly — for example a payroll employee's name and
+              salary details, or a customer/vendor contact's name and email. That data is processed by the
+              organization as part of running its accounts, under the same legal bases described above.
+            </p>
+            <p>
+              If you're one of these people and want to access, correct, or request erasure of data held about
+              you, contact the organization's KOP Ledger administrator (see "How to exercise your rights" below) —
+              they can look up and action your request directly in the app on your behalf.
+            </p>
           </Section>
 
           <Section title="How long we keep it">
