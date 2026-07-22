@@ -6,6 +6,25 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 // Renders all registered templates with their previewData.
 // Gated by LOVABLE_API_KEY — only the Go API calls this.
 
+// Compares two secrets via their SHA-256 digests rather than the raw
+// strings, so the comparison always operates on two fixed-length (32-byte)
+// buffers -- neither the early-exit-on-mismatch nor the length of `token`
+// itself leaks any timing signal about `apiKey`.
+async function constantTimeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder()
+  const [digestA, digestB] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(a)),
+    crypto.subtle.digest('SHA-256', enc.encode(b)),
+  ])
+  const bytesA = new Uint8Array(digestA)
+  const bytesB = new Uint8Array(digestB)
+  let diff = 0
+  for (let i = 0; i < bytesA.length; i++) {
+    diff |= bytesA[i] ^ bytesB[i]
+  }
+  return diff === 0
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -24,8 +43,8 @@ Deno.serve(async (req) => {
 
   // Verify the caller is authorized with LOVABLE_API_KEY
   const authHeader = req.headers.get('Authorization')
-  const token = authHeader?.replace(/^Bearer\s+/i, '')
-  if (token !== apiKey) {
+  const token = authHeader?.replace(/^Bearer\s+/i, '') ?? ''
+  if (!token || !(await constantTimeEqual(token, apiKey))) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

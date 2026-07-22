@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Clock, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector";
 import StatusBadge from "@/components/StatusBadge";
@@ -10,24 +11,43 @@ import { type Period, filterByPeriod } from "@/lib/date-filters";
 import { downloadCSV } from "@/lib/csv";
 import { formatGBP, sumAmounts } from "@/lib/format";
 import { useTransactionsData, useVatReturnsData } from "@/hooks/useFinancialData";
+import type { Tables } from "@/integrations/supabase/types";
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
 
 export default function VAT() {
   const [period, setPeriod] = useState<Period>("Monthly");
+  const [selected, setSelected] = useState<Tables<"tbl_vat_returns"> | null>(null);
   const { data: allTxns = [] } = useTransactionsData();
   const { data: vatReturns = [] } = useVatReturnsData();
 
   const filtered = filterByPeriod(allTxns, period);
+  // Only standard-rated transactions carry VAT -- zero-rated, exempt, and
+  // out-of-scope transactions still count as sales/purchases for revenue
+  // purposes, but contribute £0 output/input VAT.
+  const standardRated = filtered.filter((t) => (t.vat_treatment ?? "standard") === "standard");
   const inflow = sumAmounts(filtered.filter((t) => t.type === "inflow"), "amount");
   const outflow = sumAmounts(filtered.filter((t) => t.type === "outflow"), "amount");
-  const outputVAT = Math.round(inflow * 0.2);
-  const inputVAT = Math.round(outflow * 0.2);
+  const standardInflow = sumAmounts(standardRated.filter((t) => t.type === "inflow"), "amount");
+  const standardOutflow = sumAmounts(standardRated.filter((t) => t.type === "outflow"), "amount");
+  const outputVAT = Math.round(standardInflow * 0.2);
+  const inputVAT = Math.round(standardOutflow * 0.2);
   const netVAT = outputVAT - inputVAT;
 
   const exportCSV = () => {
     downloadCSV("vat_summary.csv", ["Item", "Amount (£)"], [
       ["Total Sales", inflow],
+      ["Standard-Rated Sales", standardInflow],
       ["Output VAT (20%)", outputVAT],
       ["Total Purchases", outflow],
+      ["Standard-Rated Purchases", standardOutflow],
       ["Input VAT (20%)", inputVAT],
       ["Net VAT", netVAT],
     ]);
@@ -53,7 +73,7 @@ export default function VAT() {
         </div>
         <div className="p-6 max-h-[60vh] overflow-y-auto">
         {vatReturns.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No VAT returns recorded yet. VAT summary above is calculated from transactions at 20% rate.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No VAT returns recorded yet. VAT summary above is calculated from standard-rated transactions at 20%; zero-rated, exempt, and out-of-scope transactions are excluded.</p>
         ) : (
           <div className="space-y-3">
             {vatReturns.map((q, i) => (
@@ -79,7 +99,7 @@ export default function VAT() {
                     <p className="font-heading text-sm font-semibold text-outflow">{formatGBP(q.net_vat)}</p>
                   </div>
                   <StatusBadge status={q.status} className="hidden md:inline-flex" />
-                  <Button variant="ghost" size="sm" aria-label="View return">
+                  <Button variant="ghost" size="sm" aria-label="View return" onClick={() => setSelected(q)}>
                     <Eye className="h-4 w-4" />
                     <span className="hidden sm:inline ml-1">View</span>
                   </Button>
@@ -90,6 +110,27 @@ export default function VAT() {
         )}
         </div>
       </div>
+
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>VAT Return — {selected?.quarter}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-3">
+              <DetailRow label="Output VAT" value={formatGBP(selected.output_vat)} />
+              <DetailRow label="Input VAT" value={formatGBP(selected.input_vat)} />
+              <DetailRow label="Net VAT" value={formatGBP(selected.net_vat)} />
+              <DetailRow label="Deadline" value={selected.deadline || "—"} />
+              <DetailRow label="Filed" value={new Date(selected.created_at).toLocaleDateString("en-GB")} />
+              <div className="flex justify-between items-center pt-1">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <StatusBadge status={selected.status} />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

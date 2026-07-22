@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from "lucide-react";
@@ -129,7 +129,7 @@ export default function Auth() {
             <TrendingUp className="h-6 w-6 text-primary-foreground" />
           </div>
           <h1 className="mt-4 font-heading text-3xl font-bold text-foreground">KOP Ledger</h1>
-          <p className="mt-1 text-muted-foreground">{title}</p>
+          <h2 className="mt-1 text-muted-foreground font-normal text-base">{title}</h2>
         </div>
 
         <div className="glass-card p-8">
@@ -196,7 +196,9 @@ export default function Auth() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="absolute right-1 top-1 p-2 text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -213,6 +215,16 @@ export default function Auth() {
                 ? "Create Account"
                 : "Send Reset Link"}
             </Button>
+
+            {mode === "signup" && (
+              <p className="text-center text-xs text-muted-foreground">
+                By creating an account, you agree to our{" "}
+                <Link to="/privacy" className="font-medium text-primary hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            )}
           </form>
 
           <div className="mt-6 text-center text-sm">

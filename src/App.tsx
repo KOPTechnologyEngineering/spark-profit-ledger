@@ -27,6 +27,7 @@ const UserManagement = lazy(() => import("@/pages/UserManagement"));
 const Organizations = lazy(() => import("@/pages/Organizations"));
 const Approvals = lazy(() => import("@/pages/Approvals"));
 const Auth = lazy(() => import("@/pages/Auth"));
+const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const CollectionsDashboard = lazy(() => import("@/pages/collections/CollectionsDashboard"));
@@ -52,6 +53,7 @@ const App = () => (
           <Suspense fallback={<FullScreenSpinner />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
