@@ -32,14 +32,19 @@ Deno.serve(async (req) => {
   // presents the service key rather than a user session).
   const authHeader = req.headers.get("Authorization") || "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  if (!token) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  if (token !== serviceRoleKey) {
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const cronSecret = Deno.env.get("RECURRING_CRON_SECRET") || "";
+  const cronHeader = req.headers.get("X-Cron-Secret") || "";
+  const isCron = !!cronSecret && (cronHeader === cronSecret || token === cronSecret);
+  const isServiceRole = !!serviceRoleKey && token === serviceRoleKey;
+
+  if (!isCron && !isServiceRole) {
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const { data: userData, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
