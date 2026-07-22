@@ -72,7 +72,7 @@ export default function ProfileMenu() {
       setUploading(false);
       return;
     }
-    // Bucket is private — create a long-lived signed URL (10 years).
+    // Bucket is private — signed URLs are generated on demand with a short TTL.
     // Store ONLY the object path. Signed URLs are generated on demand with a short TTL
     // so that leaked links do not grant long-lived access to signature images.
     setSignatureUrl(path);
