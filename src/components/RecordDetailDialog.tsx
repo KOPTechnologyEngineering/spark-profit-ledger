@@ -7,6 +7,7 @@ import { friendlyErrorMessage } from "@/lib/errors";
 import { Download, Printer, CheckCircle, XCircle, FileText, Image, Pencil, Trash2 } from "lucide-react";
 import { useProfiles, Profile } from "@/hooks/useProfiles";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { resolveSignatureUrl } from "@/lib/signatures";
 
 interface RecordDetailDialogProps {
   open: boolean;
