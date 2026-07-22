@@ -19,7 +19,8 @@ export default function ProfileMenu() {
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState("");
   const [designation, setDesignation] = useState("");
-  const [signatureUrl, setSignatureUrl] = useState("");
+  const [signatureUrl, setSignatureUrl] = useState(""); // stored path (or legacy URL)
+  const [signaturePreview, setSignaturePreview] = useState(""); // short-lived signed URL for <img>
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
