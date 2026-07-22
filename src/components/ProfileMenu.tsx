@@ -133,9 +133,9 @@ export default function ProfileMenu() {
             </div>
             <div className="space-y-2">
               <Label>Signature</Label>
-              {signatureUrl && (
+              {signaturePreview && (
                 <div className="border border-border rounded-lg p-3 bg-white">
-                  <img src={signatureUrl} alt="Your saved signature used to approve documents" className="max-h-20 object-contain" />
+                  <img src={signaturePreview} alt="Your saved signature used to approve documents" className="max-h-20 object-contain" />
                 </div>
               )}
               <input ref={fileRef} type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
