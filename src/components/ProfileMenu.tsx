@@ -31,11 +31,13 @@ export default function ProfileMenu() {
         .select("full_name, designation, signature_url")
         .eq("user_id", user.id)
         .single()
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           if (data) {
             setFullName((data as any).full_name || "");
             setDesignation((data as any).designation || "");
-            setSignatureUrl((data as any).signature_url || "");
+            const stored = (data as any).signature_url || "";
+            setSignatureUrl(stored);
+            setSignaturePreview(stored ? await resolveSignatureUrl(stored) : "");
           }
         });
     }
