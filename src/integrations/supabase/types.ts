@@ -1174,6 +1174,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      set_recurring_cron_secret: {
+        Args: { _value: string }
+        Returns: undefined
+      }
     }
     Enums: {
       access_level: "none" | "view" | "edit" | "admin"
