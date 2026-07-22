@@ -73,15 +73,11 @@ export default function ProfileMenu() {
       return;
     }
     // Bucket is private — create a long-lived signed URL (10 years).
-    const { data: signed, error: signErr } = await supabase.storage
-      .from("signatures")
-      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-    if (signErr || !signed?.signedUrl) {
-      toast({ title: "Upload failed", description: friendlyErrorMessage(signErr, "Couldn't finish preparing your signature. Please try again."), variant: "destructive" });
-      setUploading(false);
-      return;
-    }
-    setSignatureUrl(signed.signedUrl);
+    // Store ONLY the object path. Signed URLs are generated on demand with a short TTL
+    // so that leaked links do not grant long-lived access to signature images.
+    setSignatureUrl(path);
+    const preview = await resolveSignatureUrl(path);
+    setSignaturePreview(preview);
     setUploading(false);
     toast({ title: "Signature uploaded" });
   };
