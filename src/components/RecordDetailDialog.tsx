@@ -122,9 +122,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
       .replace(/'/g, "&#39;");
   };
 
-  const handlePrint = () => {
-    const w = window.open("", "_blank");
-    if (!w) return;
+  const handlePrint = async () => {
     const esc = escapeHtml;
 
     const createdDate = record.created_at ? new Date(record.created_at).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
@@ -133,11 +131,29 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
     const approver2Profile = getProfile(record.approver2_id);
     const creatorProfile = profiles.find(p => p.full_name === record.created_by_name || p.email === record.created_by_name);
 
+    // Resolve short-lived signed URLs for signatures on demand — never embed the persisted long-lived URL.
+    const [approver1Sig, approver2Sig, creatorSig] = await Promise.all([
+      resolveSignatureUrl(approver1Profile?.signature_url),
+      resolveSignatureUrl(approver2Profile?.signature_url),
+      resolveSignatureUrl(creatorProfile?.signature_url),
+    ]);
+    const sigFor = (profile: Profile | undefined): string => {
+      if (!profile) return "";
+      if (profile.user_id === approver1Profile?.user_id) return approver1Sig;
+      if (profile.user_id === approver2Profile?.user_id) return approver2Sig;
+      if (profile.user_id === creatorProfile?.user_id) return creatorSig;
+      return "";
+    };
+
+    const w = window.open("", "_blank");
+    if (!w) return;
+
     const signatoryBlock = (label: string, profile: Profile | undefined, status: string, date: string) => {
+      const sig = sigFor(profile);
       return `
         <div style="text-align:center;min-width:200px">
           <p style="font-size:11px;color:#666;margin-bottom:4px">${esc(label)}</p>
-          ${profile?.signature_url ? `<img src="${esc(profile.signature_url)}" alt="${esc(profile.full_name || "User")} signature for document approval" style="max-height:50px;margin:0 auto 4px" />` : `<div style="border-bottom:1px solid #333;width:160px;margin:30px auto 4px"></div>`}
+          ${sig ? `<img src="${esc(sig)}" alt="${esc(profile?.full_name || "User")} signature for document approval" style="max-height:50px;margin:0 auto 4px" />` : `<div style="border-bottom:1px solid #333;width:160px;margin:30px auto 4px"></div>`}
           <p style="font-weight:bold;margin:2px 0">${esc(profile?.full_name || "—")}</p>
           <p style="font-size:12px;color:#555;margin:0">${esc(profile?.designation || "")}</p>
           <p style="font-size:11px;color:#888;margin:2px 0">Status: ${esc(status)}</p>
