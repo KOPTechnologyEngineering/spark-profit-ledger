@@ -151,6 +151,7 @@ export default function ProfileMenu() {
                     className="text-destructive border-destructive/50 hover:bg-destructive/10"
                     onClick={async () => {
                       setSignatureUrl("");
+                      setSignaturePreview("");
                       await supabase
                         .from("tbl_profiles")
                         .update({ signature_url: "" } as any)
