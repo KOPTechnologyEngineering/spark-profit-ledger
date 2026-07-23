@@ -11,6 +11,7 @@ import {
   Shield,
   Mail,
   Building2,
+  ScrollText,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +29,7 @@ const navItems = [
   { label: "PAYE", icon: Users, path: "/paye", module: "paye" },
   { label: "Reports", icon: ClipboardList, path: "/reports", module: "reports" },
   { label: "User Management", icon: Shield, path: "/users", module: "users" },
+  { label: "Audit Log", icon: ScrollText, path: "/audit", module: "users" },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {

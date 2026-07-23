@@ -24,6 +24,7 @@ const VAT = lazy(() => import("@/pages/VAT"));
 const PAYE = lazy(() => import("@/pages/PAYE"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const UserManagement = lazy(() => import("@/pages/UserManagement"));
+const AuditLog = lazy(() => import("@/pages/AuditLog"));
 const Organizations = lazy(() => import("@/pages/Organizations"));
 const Approvals = lazy(() => import("@/pages/Approvals"));
 const Auth = lazy(() => import("@/pages/Auth"));
@@ -66,6 +67,7 @@ const App = () => (
                 <Route path="/approvals" element={<Approvals />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/users" element={<UserManagement />} />
+                <Route path="/audit" element={<AuditLog />} />
                 <Route path="/organizations" element={<Organizations />} />
                 <Route path="/collections" element={<CollectionsLayout />}>
 
