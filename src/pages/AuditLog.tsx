@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import TablePagination, { DEFAULT_PAGE_SIZE } from "@/components/TablePagination";
 import { ShieldAlert } from "lucide-react";
 
 interface LoginRow {
@@ -35,8 +36,6 @@ interface ChangeRow {
   changed_by: string | null;
   changed_at: string;
 }
-
-const PAGE_SIZE = 50;
 
 // The tables the audit_row_change() trigger is attached to (see the
 // audit_log_login_and_change migration). Used to populate the table filter
@@ -93,22 +92,6 @@ const cell = (v: unknown) => {
   return String(v);
 };
 
-function Pagination({ page, total, onPage }: { page: number; total: number; onPage: (p: number) => void }) {
-  const from = total === 0 ? 0 : page * PAGE_SIZE + 1;
-  const to = Math.min((page + 1) * PAGE_SIZE, total);
-  return (
-    <div className="flex items-center justify-between gap-2 pt-3">
-      <span className="text-xs text-muted-foreground">
-        {total === 0 ? "No results" : `Showing ${from}–${to} of ${total}`}
-      </span>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => onPage(page - 1)} disabled={page === 0}>Previous</Button>
-        <Button variant="outline" size="sm" onClick={() => onPage(page + 1)} disabled={to >= total}>Next</Button>
-      </div>
-    </div>
-  );
-}
-
 export default function AuditLog() {
   const { toast } = useToast();
   const { hasAdmin, loading: rolesLoading } = useUserRoles();
@@ -120,6 +103,7 @@ export default function AuditLog() {
   const [logins, setLogins] = useState<LoginRow[]>([]);
   const [loginCount, setLoginCount] = useState(0);
   const [loginPage, setLoginPage] = useState(0);
+  const [loginPageSize, setLoginPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [loginLoading, setLoginLoading] = useState(true);
   const [loginEvent, setLoginEvent] = useState("all");
   const [loginStatus, setLoginStatus] = useState("all");
@@ -132,6 +116,7 @@ export default function AuditLog() {
   const [changes, setChanges] = useState<ChangeRow[]>([]);
   const [changeCount, setChangeCount] = useState(0);
   const [changePage, setChangePage] = useState(0);
+  const [changePageSize, setChangePageSize] = useState(DEFAULT_PAGE_SIZE);
   const [changeLoading, setChangeLoading] = useState(true);
   const [changeTable, setChangeTable] = useState("all");
   const [changeOp, setChangeOp] = useState("all");
@@ -169,14 +154,14 @@ export default function AuditLog() {
       if (loginSearchApplied) q = q.or(`email.ilike.%${loginSearchApplied}%,ip.ilike.%${loginSearchApplied}%`);
       if (loginFrom) q = q.gte("created_at", dayStart(loginFrom));
       if (loginTo) q = q.lte("created_at", dayEnd(loginTo));
-      const start = loginPage * PAGE_SIZE;
-      const { data, count, error } = await q.range(start, start + PAGE_SIZE - 1);
+      const start = loginPage * loginPageSize;
+      const { data, count, error } = await q.range(start, start + loginPageSize - 1);
       if (error) toast({ title: "Couldn't load login audit", description: friendlyErrorMessage(error), variant: "destructive" });
       setLogins((data as LoginRow[]) || []);
       setLoginCount(count || 0);
       setLoginLoading(false);
     })();
-  }, [rolesLoading, isAdmin, loginEvent, loginStatus, loginSearchApplied, loginFrom, loginTo, loginPage, toast]);
+  }, [rolesLoading, isAdmin, loginEvent, loginStatus, loginSearchApplied, loginFrom, loginTo, loginPage, loginPageSize, toast]);
 
   // Fetch change audit page.
   useEffect(() => {
@@ -188,14 +173,14 @@ export default function AuditLog() {
       if (changeOp !== "all") q = q.eq("operation", changeOp);
       if (changeFrom) q = q.gte("changed_at", dayStart(changeFrom));
       if (changeTo) q = q.lte("changed_at", dayEnd(changeTo));
-      const start = changePage * PAGE_SIZE;
-      const { data, count, error } = await q.range(start, start + PAGE_SIZE - 1);
+      const start = changePage * changePageSize;
+      const { data, count, error } = await q.range(start, start + changePageSize - 1);
       if (error) toast({ title: "Couldn't load change audit", description: friendlyErrorMessage(error), variant: "destructive" });
       setChanges((data as ChangeRow[]) || []);
       setChangeCount(count || 0);
       setChangeLoading(false);
     })();
-  }, [rolesLoading, isAdmin, changeTable, changeOp, changeFrom, changeTo, changePage, toast]);
+  }, [rolesLoading, isAdmin, changeTable, changeOp, changeFrom, changeTo, changePage, changePageSize, toast]);
 
   if (!rolesLoading && !isAdmin) {
     return (
@@ -290,7 +275,13 @@ export default function AuditLog() {
                   </TableBody>
                 </Table>
               </div>
-              <Pagination page={loginPage} total={loginCount} onPage={setLoginPage} />
+              <TablePagination
+                page={loginPage}
+                pageSize={loginPageSize}
+                total={loginCount}
+                onPageChange={setLoginPage}
+                onPageSizeChange={(s) => { setLoginPageSize(s); setLoginPage(0); }}
+              />
             </>
           )}
         </TabsContent>
@@ -364,7 +355,13 @@ export default function AuditLog() {
                   </TableBody>
                 </Table>
               </div>
-              <Pagination page={changePage} total={changeCount} onPage={setChangePage} />
+              <TablePagination
+                page={changePage}
+                pageSize={changePageSize}
+                total={changeCount}
+                onPageChange={setChangePage}
+                onPageSizeChange={(s) => { setChangePageSize(s); setChangePage(0); }}
+              />
             </>
           )}
         </TabsContent>
