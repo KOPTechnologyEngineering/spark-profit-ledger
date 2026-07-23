@@ -40,6 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Stable identity so dependent effects (e.g. useInactivityTimeout) don't re-run every render
   const signOut = useCallback(async () => {
+    // Record the logout while the session token is still valid (best-effort;
+    // never blocks sign-out). Awaited so the request carries the live token.
+    try {
+      await supabase.functions.invoke("record-login-event", { body: { event: "logout", status: "success" } });
+    } catch {
+      /* audit is best-effort */
+    }
     await supabase.auth.signOut();
   }, []);
 

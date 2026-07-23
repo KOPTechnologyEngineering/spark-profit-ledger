@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.create-user]
 verify_jwt = true
+
+[functions.record-login-event]
+verify_jwt = false

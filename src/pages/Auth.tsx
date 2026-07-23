@@ -35,6 +35,11 @@ export default function Auth() {
     try {
       if (mode === "login") {
         const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password });
+        // Best-effort audit of the attempt (both success and failure). Never
+        // blocks or fails the sign-in itself.
+        supabase.functions
+          .invoke("record-login-event", { body: { event: "login", status: error ? "failed" : "success", email } })
+          .catch(() => {});
         if (error) throw error;
         if (loginData.user) {
           const { data: profile } = await supabase
