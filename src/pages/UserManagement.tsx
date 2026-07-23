@@ -128,24 +128,15 @@ export default function UserManagement() {
     e.preventDefault();
     setAddLoading(true);
     try {
-      // Sign up the new user via Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: newEmail,
-        password: newPassword,
-        options: { data: { full_name: newName }, emailRedirectTo: `${window.location.origin}/` },
+      // Create via the service-role edge function so admin-created users are
+      // pre-confirmed (no confirmation email needed), approved, and given the
+      // chosen roles in one step. Client-side signUp() would fail whenever
+      // SMTP isn't fully set up, since it tries to send a confirmation email.
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { email: newEmail, password: newPassword, full_name: newName, roles: newRoles },
       });
       if (error) throw error;
-
-      // Update roles if the user was created (trigger auto-creates default roles)
-      if (data.user) {
-        for (const mod of modules) {
-          await supabase
-            .from("tbl_user_roles")
-            .update({ access: newRoles[mod] as any })
-            .eq("user_id", data.user.id)
-            .eq("module", mod as any);
-        }
-      }
+      if (!data?.success) throw new Error(data?.error || "Could not create user");
 
       toast({ title: "User created", description: `${newEmail} has been added.` });
       setAddOpen(false);
