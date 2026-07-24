@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { refreshLogLevel } from "@/lib/logger";
 
 interface AuthContextType {
   session: Session | null;
@@ -27,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
+      // Pick up any per-user log level override for the new identity.
+      void refreshLogLevel();
     });
 
     // Then hydrate from existing session

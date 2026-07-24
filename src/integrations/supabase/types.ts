@@ -125,6 +125,96 @@ export type Database = {
         }
         Relationships: []
       }
+      tbl_app_log: {
+        Row: {
+          app_version: string | null
+          client_ip: string | null
+          context: Json | null
+          correlation_id: string | null
+          cs_bytes: number | null
+          duration_ms: number | null
+          endpoint: string | null
+          environment: string | null
+          error_code: string | null
+          error_detail: string | null
+          http_method: string | null
+          id: string
+          level: string
+          level_num: number
+          logger: string | null
+          message: string
+          query: string | null
+          request_at: string | null
+          response_at: string | null
+          sc_bytes: number | null
+          session_id: string | null
+          source: string
+          status_code: number | null
+          ts: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          client_ip?: string | null
+          context?: Json | null
+          correlation_id?: string | null
+          cs_bytes?: number | null
+          duration_ms?: number | null
+          endpoint?: string | null
+          environment?: string | null
+          error_code?: string | null
+          error_detail?: string | null
+          http_method?: string | null
+          id?: string
+          level: string
+          level_num: number
+          logger?: string | null
+          message?: string
+          query?: string | null
+          request_at?: string | null
+          response_at?: string | null
+          sc_bytes?: number | null
+          session_id?: string | null
+          source: string
+          status_code?: number | null
+          ts?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          client_ip?: string | null
+          context?: Json | null
+          correlation_id?: string | null
+          cs_bytes?: number | null
+          duration_ms?: number | null
+          endpoint?: string | null
+          environment?: string | null
+          error_code?: string | null
+          error_detail?: string | null
+          http_method?: string | null
+          id?: string
+          level?: string
+          level_num?: number
+          logger?: string | null
+          message?: string
+          query?: string | null
+          request_at?: string | null
+          response_at?: string | null
+          sc_bytes?: number | null
+          session_id?: string | null
+          source?: string
+          status_code?: number | null
+          ts?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       tbl_change_audit: {
         Row: {
           changed_at: string
@@ -682,6 +772,39 @@ export type Database = {
           ip?: string | null
           status?: string
           user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      tbl_log_settings: {
+        Row: {
+          enabled: boolean
+          id: string
+          level: string
+          retention_days: number
+          scope: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          id?: string
+          level?: string
+          retention_days?: number
+          scope: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          id?: string
+          level?: string
+          retention_days?: number
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
           user_id?: string | null
         }
         Relationships: []
