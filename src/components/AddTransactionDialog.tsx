@@ -166,7 +166,12 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
               <Label>Category</Label>
               <Select
                 value={category}
-                onValueChange={(v) => { setCategory(v); setVatTreatment(defaultVatTreatmentForCategory(v)); }}
+                onValueChange={(v) => {
+                  setCategory(v);
+                  // Only auto-apply the category default on create -- on an existing
+                  // transaction this would silently overwrite a deliberate manual override.
+                  if (!isEdit) setVatTreatment(defaultVatTreatmentForCategory(v));
+                }}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>

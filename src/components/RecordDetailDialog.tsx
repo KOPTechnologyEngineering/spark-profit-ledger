@@ -348,6 +348,7 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
               <Row label="Amount" value={`£${Number(record.amount).toLocaleString()}`} />
               <Row label="Type" value={record.type} />
               <Row label="Category" value={record.category} />
+              {record.vat_treatment && <Row label="VAT Treatment" value={String(record.vat_treatment).replace(/_/g, " ")} />}
               <Row label="Status" value={record.status} />
               <Row label="Date" value={record.date} />
               <Row label="Created By" value={record.created_by_name || "—"} />

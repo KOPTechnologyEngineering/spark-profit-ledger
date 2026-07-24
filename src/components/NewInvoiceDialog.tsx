@@ -198,7 +198,7 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
                 </div>
                 <div>
                   {i === 0 && <Label className="text-xs text-muted-foreground">Rate (£)</Label>}
-                  <Input type="number" min={0} step={0.01} value={item.rate} onChange={(e) => updateItem(i, "rate", Number(e.target.value))} />
+                  <Input type="number" min={0} step={0.01} value={item.rate} onFocus={(e) => e.target.select()} onChange={(e) => updateItem(i, "rate", Number(e.target.value))} />
                 </div>
                 <div>
                   {i === 0 && <Label className="text-xs text-muted-foreground">Disc %</Label>}
