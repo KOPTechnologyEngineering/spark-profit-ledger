@@ -12,6 +12,7 @@ import {
   Mail,
   Building2,
   ScrollText,
+  Terminal,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +31,7 @@ const navItems = [
   { label: "Reports", icon: ClipboardList, path: "/reports", module: "reports" },
   { label: "User Management", icon: Shield, path: "/users", module: "users" },
   { label: "Audit Log", icon: ScrollText, path: "/audit", module: "users" },
+  { label: "Logging", icon: Terminal, path: "/logs", module: "users" },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {

@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { withLogging } from '../_shared/logger.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ const corsHeaders = {
 // logout) we resolve and trust the user_id/email from it; otherwise we record
 // the attempt with just the supplied email. A light per-IP flood guard keeps
 // the table from being spammed.
-Deno.serve(async (req) => {
+Deno.serve(withLogging('record-login-event', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   const json = (b: unknown, s = 200) =>
     new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -67,4 +68,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return json({ ok: false, error: (e as Error).message }, 500)
   }
-})
+}))

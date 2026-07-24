@@ -95,6 +95,21 @@ export default function PrivacyPolicy() {
             </p>
           </Section>
 
+          <Section title="Technical and diagnostic logs">
+            <p>
+              To keep the service reliable we record technical logs of activity in the app: the date and time,
+              the action or page requested, whether it succeeded, how long it took, your account email, and the
+              IP address and browser the request came from. Errors are recorded with technical detail so we can
+              diagnose them.
+            </p>
+            <p>
+              These logs are used only to operate, secure and troubleshoot the service — never for marketing or
+              profiling. They are visible only to your organization's administrators, are automatically deleted
+              after the retention period configured by your administrator (30 days by default), and we
+              deliberately exclude passwords and authentication tokens from them.
+            </p>
+          </Section>
+
           <Section title="Cookies and local storage">
             <p>
               We don't use advertising or tracking cookies. We use your browser's local storage only to keep you
