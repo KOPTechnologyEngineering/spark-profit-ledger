@@ -60,9 +60,7 @@ export default function PrivacyPolicy() {
             <p>
               <strong className="text-foreground">Our transactional email provider</strong> sends account
               notifications (welcome, approval status, password reset) and invoice chase reminders on our behalf,
-              from the <code className="rounded bg-secondary px-1 py-0.5 text-xs">kopledger.koptechnology.com</code> domain.
-              <strong className="text-foreground"> Lovable</strong> provisions the underlying domain/nameserver
-              infrastructure this mail is sent through, as a sub-processor of that pipeline.
+              from the <code className="rounded bg-secondary px-1 py-0.5 text-xs">koptechnology.com</code> domain.
             </p>
             <p>We don't share your data with anyone else, and never for marketing purposes.</p>
           </Section>
