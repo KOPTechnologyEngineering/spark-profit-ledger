@@ -1,27 +1,51 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
 
-// Suppression event payload sent by the Go API when Mailgun reports
-// a bounce, complaint, or unsubscribe.
-interface SuppressionPayload {
-  email: string
-  reason: 'bounce' | 'complaint' | 'unsubscribe'
-  message_id?: string
-  metadata?: Record<string, unknown>
-  is_retry: boolean
-  retry_count: number
+// Inbound webhook for Brevo transactional email events (bounces, spam
+// complaints, unsubscribes). Replaces the former Lovable/Mailgun pipeline,
+// which delivered events via @lovable.dev/webhooks-js + LOVABLE_API_KEY.
+//
+// Brevo does NOT sign its webhooks, so we authenticate with a shared secret
+// sent as a custom header (configured on the Brevo webhook). Set the same
+// value as the BREVO_WEBHOOK_SECRET edge-function secret and as a custom
+// header named X-Webhook-Secret on the webhook in the Brevo dashboard.
+const SECRET_HEADER = 'x-webhook-secret'
+
+// Brevo transactional event names → our internal suppression reason.
+// Only permanent-failure / complaint / opt-out events suppress; transient
+// events (soft_bounce, deferred, error) and informational ones (delivered,
+// opened, clicked, request) are acknowledged but never suppress an address.
+const SUPPRESSING_EVENTS: Record<string, 'bounce' | 'complaint' | 'unsubscribe'> = {
+  hard_bounce: 'bounce',
+  invalid_email: 'bounce',
+  blocked: 'bounce',
+  spam: 'complaint',
+  unsubscribed: 'unsubscribe',
 }
 
-function parseSuppressionPayload(body: string): SuppressionPayload {
-  const parsed = JSON.parse(body)
-  if (!parsed.data) {
-    throw new Error('Missing data field in payload')
-  }
-  const data = parsed.data as SuppressionPayload
-  if (!data.email || !data.reason) {
-    throw new Error('Missing required fields: email, reason')
-  }
-  return data
+// Brevo posts a flat JSON object (no envelope). Only the fields we use.
+interface BrevoEventPayload {
+  event: string
+  email: string
+  'message-id'?: string
+  reason?: string
+  tags?: string[]
+  sending_ip?: string
+}
+
+// Constant-time comparison via SHA-256 digests, so neither the length nor the
+// content of the configured secret leaks through comparison timing. Mirrors
+// the helper in preview-transactional-email.
+async function constantTimeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder()
+  const [digestA, digestB] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(a)),
+    crypto.subtle.digest('SHA-256', enc.encode(b)),
+  ])
+  const viewA = new Uint8Array(digestA)
+  const viewB = new Uint8Array(digestB)
+  let diff = 0
+  for (let i = 0; i < viewA.length; i++) diff |= viewA[i] ^ viewB[i]
+  return diff === 0
 }
 
 function jsonResponse(data: Record<string, unknown>, status = 200): Response {
@@ -31,105 +55,99 @@ function jsonResponse(data: Record<string, unknown>, status = 200): Response {
   })
 }
 
+function redactEmail(email: string): string {
+  const [local, domain] = email.split('@')
+  return (local?.[0] ?? '') + '***@' + (domain ?? '')
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
+  const webhookSecret = Deno.env.get('BREVO_WEBHOOK_SECRET')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!webhookSecret || !supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
     return jsonResponse({ error: 'Server configuration error' }, 500)
   }
 
-  // Verify HMAC signature using the Lovable API Key (same as auth-email-hook)
-  let payload: SuppressionPayload
+  // Authenticate the caller via the shared-secret header (constant-time).
+  const presentedSecret = req.headers.get(SECRET_HEADER) ?? ''
+  if (!presentedSecret || !(await constantTimeEqual(presentedSecret, webhookSecret))) {
+    console.error('Invalid or missing webhook secret')
+    return jsonResponse({ error: 'Invalid signature' }, 401)
+  }
+
+  // Parse the Brevo event payload.
+  let payload: BrevoEventPayload
   try {
-    const verified = await verifyWebhookRequest({
-      req,
-      secret: apiKey,
-      parser: parseSuppressionPayload,
-    })
-    payload = verified.payload
-  } catch (error) {
-    if (error instanceof WebhookError) {
-      switch (error.code) {
-        case 'invalid_signature':
-          console.error('Invalid webhook signature')
-          return jsonResponse({ error: 'Invalid signature' }, 401)
-        case 'stale_timestamp':
-          console.error('Stale webhook timestamp')
-          return jsonResponse({ error: 'Stale timestamp' }, 401)
-        case 'invalid_payload':
-        case 'invalid_json':
-          console.error('Invalid payload', { code: error.code })
-          return jsonResponse({ error: 'Invalid payload' }, 400)
-        default:
-          console.error('Webhook verification failed', {
-            code: error.code,
-            message: error.message,
-          })
-          return jsonResponse({ error: 'Verification failed' }, 401)
-      }
+    const parsed = await req.json()
+    if (!parsed?.event || !parsed?.email) {
+      return jsonResponse({ error: 'Missing required fields: event, email' }, 400)
     }
-    console.error('Unexpected error during verification', { error })
-    return jsonResponse({ error: 'Internal error' }, 500)
+    payload = parsed as BrevoEventPayload
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON' }, 400)
+  }
+
+  const reason = SUPPRESSING_EVENTS[payload.event]
+
+  // Not a suppression-worthy event: acknowledge so Brevo doesn't retry, no-op.
+  if (!reason) {
+    return jsonResponse({ success: true, ignored: payload.event })
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
   const normalizedEmail = payload.email.toLowerCase()
+  const messageId = payload['message-id'] ?? null
+  const metadata = {
+    event: payload.event,
+    brevo_reason: payload.reason ?? null,
+    tags: payload.tags ?? null,
+    sending_ip: payload.sending_ip ?? null,
+  }
 
   // 1. Upsert to suppressed_emails (idempotent — safe for retries)
   const { error: suppressError } = await supabase
     .from('suppressed_emails')
     .upsert(
-      {
-        email: normalizedEmail,
-        reason: payload.reason,
-        metadata: payload.metadata ?? null,
-      },
+      { email: normalizedEmail, reason, metadata },
       { onConflict: 'email' },
     )
 
   if (suppressError) {
     console.error('Failed to upsert suppressed email', {
       error: suppressError,
-      email_redacted: normalizedEmail[0] + '***@' + normalizedEmail.split('@')[1],
+      email_redacted: redactEmail(normalizedEmail),
     })
     return jsonResponse({ error: 'Failed to write suppression' }, 500)
   }
 
   // 2. Append a new log entry for the suppression event (never update existing rows)
-  const sendLogStatus = mapReasonToStatus(payload.reason)
-  const sendLogMessage = mapReasonToMessage(payload.reason)
-
   const { error: insertError } = await supabase
     .from('email_send_log')
     .insert({
-      message_id: payload.message_id ?? null,
+      message_id: messageId,
       template_name: 'system',
       recipient_email: normalizedEmail,
-      status: sendLogStatus,
-      error_message: sendLogMessage,
-      metadata: payload.metadata ?? null,
+      status: mapReasonToStatus(reason),
+      error_message: mapReasonToMessage(reason),
+      metadata,
     })
 
   if (insertError) {
-    // Non-fatal — log and continue. The suppression was already recorded.
-    console.warn('Failed to insert email_send_log', {
-      error: insertError,
-    })
+    // Non-fatal — the suppression was already recorded.
+    console.warn('Failed to insert email_send_log', { error: insertError })
   }
 
   console.log('Suppression processed', {
-    email_redacted: normalizedEmail[0] + '***@' + normalizedEmail.split('@')[1],
-    reason: payload.reason,
-    is_retry: payload.is_retry,
-    retry_count: payload.retry_count,
-    has_message_id: !!payload.message_id,
+    email_redacted: redactEmail(normalizedEmail),
+    event: payload.event,
+    reason,
+    has_message_id: !!messageId,
   })
 
   return jsonResponse({ success: true })
