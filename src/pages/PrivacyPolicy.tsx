@@ -60,7 +60,7 @@ export default function PrivacyPolicy() {
             <p>
               <strong className="text-foreground">Our transactional email provider</strong> sends account
               notifications (welcome, approval status, password reset) and invoice chase reminders on our behalf,
-              from the <code className="rounded bg-secondary px-1 py-0.5 text-xs">koptechnology.com</code> domain.
+              from the <code className="rounded bg-secondary px-1 py-0.5 text-xs">koptechnology.co.uk</code> domain.
             </p>
             <p>We don't share your data with anyone else, and never for marketing purposes.</p>
           </Section>
