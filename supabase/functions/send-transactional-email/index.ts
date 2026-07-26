@@ -6,12 +6,12 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 const SITE_NAME = "KOPLedger"
 // Sender identity. The actual send is performed by the queue consumer
-// (process-email-queue), which sends from the Brevo-authenticated root domain
-// koptechnology.com. We stamp the same address on the From: header of the
+// (process-email-queue), which sends from the Brevo-authenticated domain
+// koptechnology.co.uk. We stamp the same address on the From: header of the
 // enqueued record so it matches what is actually sent.
 // (The former notify.kopledger.koptechnology.com sender subdomain was a
 // Lovable/Mailgun scaffold artifact and has been retired.)
-const SENDER_EMAIL = "noreply@koptechnology.com"
+const SENDER_EMAIL = "noreply@koptechnology.co.uk"
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {

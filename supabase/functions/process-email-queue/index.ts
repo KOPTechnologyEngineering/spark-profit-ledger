@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
-const SENDER_EMAIL = 'noreply@koptechnology.com'
+const SENDER_EMAIL = 'noreply@koptechnology.co.uk'
 const SENDER_NAME = 'KOP Ledger'
 
 const MAX_RETRIES = 5
