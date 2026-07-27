@@ -6,9 +6,11 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 const SITE_NAME = "KOPLedger"
 // Sender identity. The actual send is performed by the queue consumer
-// (process-email-queue), which sends from the Brevo-authenticated domain
-// koptechnology.co.uk. We stamp the same address on the From: header of the
-// enqueued record so it matches what is actually sent.
+// (process-email-queue), which sends via Mailjet from koptechnology.co.uk --
+// already carrying a valid Mailjet DKIM record and SPF include, so no DNS
+// changes were needed when the consumer switched from Brevo to Mailjet.
+// We stamp the same address on the From: header of the enqueued record so
+// it matches what is actually sent.
 // (The former notify.kopledger.koptechnology.com sender subdomain was a
 // Lovable/Mailgun scaffold artifact and has been retired.)
 const SENDER_EMAIL = "noreply@koptechnology.co.uk"
