@@ -42,6 +42,20 @@ function deriveStatus(invStatus: string, dueDate: string): string {
   return "not_due";
 }
 
+// tbl_invoices.status has its own 'overdue' value (CHECK constraint allows
+// paid/pending/overdue/draft/rejected), separate from the chase item's
+// derived status above -- but nothing was ever setting it, so it sat
+// permanently at 'pending' and every "overdue invoices" count/filter reading
+// tbl_invoices.status directly (Dashboard.tsx, Invoices.tsx) was silently
+// always empty. Only pending/overdue are ever toggled here: paid, draft, and
+// rejected are terminal/not-applicable and must never be touched.
+function correctedInvoiceStatus(invStatus: string, dueDate: string): string | null {
+  if (invStatus !== "pending" && invStatus !== "overdue") return null;
+  const shouldBeOverdue = daysOverdue(dueDate) > 0;
+  const correct = shouldBeOverdue ? "overdue" : "pending";
+  return invStatus === correct ? null : correct;
+}
+
 Deno.serve(withLogging("sync-collections-chase-queue", async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -102,6 +116,7 @@ Deno.serve(withLogging("sync-collections-chase-queue", async (req) => {
   let processed = 0;
   let created = 0;
   let updated = 0;
+  let invoicesCorrected = 0;
   let errorMessage: string | null = null;
 
   try {
@@ -110,6 +125,20 @@ Deno.serve(withLogging("sync-collections-chase-queue", async (req) => {
       .select("id, user_id, client, due_date, status");
     if (invErr) throw invErr;
     processed = invoices?.length ?? 0;
+
+    const invoiceStatusUpdates: { id: string; status: string }[] = [];
+    for (const inv of invoices ?? []) {
+      const corrected = correctedInvoiceStatus(inv.status, inv.due_date);
+      if (corrected) invoiceStatusUpdates.push({ id: inv.id, status: corrected });
+    }
+    for (const u of invoiceStatusUpdates) {
+      const { error: invUpdErr } = await supabase
+        .from("tbl_invoices")
+        .update({ status: u.status })
+        .eq("id", u.id);
+      if (invUpdErr) throw invUpdErr;
+    }
+    invoicesCorrected = invoiceStatusUpdates.length;
 
     const { data: existing, error: existErr } = await supabase
       .from("tbl_collection_chase_items")
@@ -159,10 +188,10 @@ Deno.serve(withLogging("sync-collections-chase-queue", async (req) => {
     console.error("sync-collections-chase-queue failed", e);
   }
 
-  console.log("sync-collections-chase-queue run", { triggeredBy, processed, created, updated, errorMessage });
+  console.log("sync-collections-chase-queue run", { triggeredBy, processed, created, updated, invoicesCorrected, errorMessage });
 
   return new Response(
-    JSON.stringify({ processed, created, updated, error: errorMessage }),
+    JSON.stringify({ processed, created, updated, invoicesCorrected, error: errorMessage }),
     {
       status: errorMessage ? 500 : 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
