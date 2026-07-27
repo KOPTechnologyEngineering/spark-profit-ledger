@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import ApproverSelect from "@/components/ApproverSelect";
 import AttachmentUpload from "@/components/AttachmentUpload";
+import { useProfiles } from "@/hooks/useProfiles";
 import { VAT_TREATMENTS, defaultVatTreatmentForCategory, type VatTreatment } from "@/lib/tax";
 
 const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
@@ -46,6 +47,7 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
   const [vendors, setVendors] = useState<{ id: string; name: string; org_type: string }[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
+  const profiles = useProfiles();
 
   useEffect(() => {
     if (!open) return;
@@ -83,16 +85,22 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
         organization_id: organizationId || null,
       };
 
+      let transactionId: string = record?.id;
       if (isEdit) {
         const { error } = await supabase.from("tbl_transactions").update(fields as any).eq("id", record.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("tbl_transactions").insert({
-          user_id: user.id,
-          created_by_name: user.user_metadata?.full_name || user.email || "",
-          ...fields,
-        } as any);
+        const { data: inserted, error } = await supabase
+          .from("tbl_transactions")
+          .insert({
+            user_id: user.id,
+            created_by_name: user.user_metadata?.full_name || user.email || "",
+            ...fields,
+          } as any)
+          .select("id")
+          .single();
         if (error) throw error;
+        transactionId = (inserted as any).id;
       }
 
       // Create notifications for approvers. The transaction itself is already
@@ -116,6 +124,40 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
         onCreated?.();
         return;
       }
+
+      // Email both approvers too. Best-effort: the record and its in-app
+      // notification already succeeded, so a failure here is logged but
+      // doesn't change the success toast -- email is a supplementary
+      // channel, not the primary one.
+      const formattedAmount = `£${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      await Promise.allSettled(
+        [approver1, approver2].map((approverId) => {
+          const approverProfile = profiles.find((p) => p.user_id === approverId);
+          if (!approverProfile?.email) return Promise.resolve();
+          return supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "record-approval-request",
+              recipientEmail: approverProfile.email,
+              targetUserId: approverId,
+              recordId: transactionId,
+              recordType: "transaction",
+              idempotencyKey: `record-approval-request-${transactionId}-${approverId}`,
+              templateData: {
+                approverName: approverProfile.full_name || approverProfile.email.split("@")[0],
+                recordType: "transaction",
+                recordLabel: description,
+                amount: formattedAmount,
+                isResubmission: isEdit,
+                appUrl: window.location.origin,
+              },
+            },
+          });
+        }),
+      ).then((results) => {
+        results.forEach((r) => {
+          if (r.status === "rejected") console.error("Failed to send approval-request email", r.reason);
+        });
+      });
 
       toast({ title: isEdit ? "Transaction updated" : "Transaction added", description: isEdit ? "Sent for re-approval" : "Sent for approval" });
       setOpen(false);

@@ -81,6 +81,43 @@ export default function RecordDetailDialog({ open, onOpenChange, record, type, o
         title: action === "approved" ? "Approved" : "Rejected",
         description: `This ${type} has been ${action}.`,
       });
+
+      // Email the creator once the record reaches a final state (fully
+      // approved by both approvers, or rejected by either). Best-effort:
+      // the approval/rejection itself already succeeded, so a failed send
+      // here is logged, not surfaced as the approval action failing.
+      const isFinal = updates.status === "paid" || updates.status === "completed" || updates.status === "rejected";
+      if (isFinal) {
+        const creatorProfile = getProfile(record.user_id);
+        const amountValue = type === "invoice" ? record.amount : record.amount;
+        const formattedAmount = `£${Number(amountValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const recordLabel = type === "invoice" ? record.invoice_number : record.description;
+        if (creatorProfile?.email) {
+          const authorized = updates.status !== "rejected";
+          supabase.functions
+            .invoke("send-transactional-email", {
+              body: {
+                templateName: authorized ? "record-authorized" : "record-rejected",
+                recipientEmail: creatorProfile.email,
+                recordId: record.id,
+                recordType: type,
+                idempotencyKey: `${authorized ? "record-authorized" : "record-rejected"}-${record.id}`,
+                templateData: {
+                  recipientName: creatorProfile.full_name || creatorProfile.email.split("@")[0],
+                  recordType: type,
+                  recordLabel,
+                  amount: formattedAmount,
+                  rejectedByName: authorized ? undefined : (user.user_metadata?.full_name || user.email || ""),
+                  appUrl: window.location.origin,
+                },
+              },
+            })
+            .then(({ error: emailError }) => {
+              if (emailError) console.error("Failed to send record outcome email", emailError);
+            });
+        }
+      }
+
       onUpdated?.();
       onOpenChange(false);
     }

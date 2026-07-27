@@ -120,6 +120,66 @@ Deno.serve(withLogging('send-transactional-email', async (req) => {
           targetProfile.approval_status === expectedStatus &&
           (targetProfile.email || '').toLowerCase() === requestedRecipient
       }
+    } else if (requestedTemplate === 'record-approval-request') {
+      // Sent by the record's creator (the caller) to notify one of its two
+      // designated approvers that it needs action. recordId/recordType are
+      // resolved server-side -- the caller cannot claim ownership of a
+      // record they don't own, and the recipient must actually be one of
+      // that record's two approvers (not an arbitrary email the caller
+      // supplies).
+      const recordId = String(authzBody.recordId || '')
+      const recordType = authzBody.recordType === 'invoice' ? 'invoice' : authzBody.recordType === 'transaction' ? 'transaction' : null
+      if (recordId && recordType) {
+        const table = recordType === 'invoice' ? 'tbl_invoices' : 'tbl_transactions'
+        const { data: record } = await authzClient
+          .from(table)
+          .select('user_id, approver1_id, approver2_id')
+          .eq('id', recordId)
+          .maybeSingle()
+        if (
+          record &&
+          record.user_id === callerUserId &&
+          targetUserId &&
+          (targetUserId === record.approver1_id || targetUserId === record.approver2_id)
+        ) {
+          const { data: targetProfile } = await authzClient
+            .from('tbl_profiles')
+            .select('email')
+            .eq('user_id', targetUserId)
+            .maybeSingle()
+          authorized = !!targetProfile && (targetProfile.email || '').toLowerCase() === requestedRecipient
+        }
+      }
+    } else if (requestedTemplate === 'record-authorized' || requestedTemplate === 'record-rejected') {
+      // Sent by one of a record's two approvers (the caller) to notify its
+      // creator of the outcome. The record's actual status must match the
+      // outcome being emailed -- an approver can't send a "rejected" email
+      // for a record they merely approved, or vice versa -- and the
+      // recipient must be that record's real creator, both resolved
+      // server-side.
+      const recordId = String(authzBody.recordId || '')
+      const recordType = authzBody.recordType === 'invoice' ? 'invoice' : authzBody.recordType === 'transaction' ? 'transaction' : null
+      if (recordId && recordType) {
+        const table = recordType === 'invoice' ? 'tbl_invoices' : 'tbl_transactions'
+        const { data: record } = await authzClient
+          .from(table)
+          .select('user_id, approver1_id, approver2_id, status')
+          .eq('id', recordId)
+          .maybeSingle()
+        const isApprover = !!record && (record.approver1_id === callerUserId || record.approver2_id === callerUserId)
+        const expectedStatus =
+          requestedTemplate === 'record-authorized'
+            ? (recordType === 'invoice' ? 'paid' : 'completed')
+            : 'rejected'
+        if (record && isApprover && record.status === expectedStatus) {
+          const { data: creatorProfile } = await authzClient
+            .from('tbl_profiles')
+            .select('email')
+            .eq('user_id', record.user_id)
+            .maybeSingle()
+          authorized = !!creatorProfile && (creatorProfile.email || '').toLowerCase() === requestedRecipient
+        }
+      }
     } else {
       // Templates that require invoices edit/admin access to send.
       const invoiceEditorTemplates = new Set(['chase-reminder', 'test-delivery'])

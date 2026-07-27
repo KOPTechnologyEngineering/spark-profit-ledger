@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import ApproverSelect from "@/components/ApproverSelect";
+import { useProfiles } from "@/hooks/useProfiles";
 
 interface LineItem {
   description: string;
@@ -55,6 +56,7 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
   const [approver2, setApprover2] = useState(record?.approver2_id || "");
   const { user } = useAuth();
   const { toast } = useToast();
+  const profiles = useProfiles();
 
   const lineNet = (item: LineItem) => Math.max(0, item.quantity * item.rate * (1 - (item.discount || 0) / 100) - (item.discount_amount || 0));
   const subtotal = items.reduce((sum, item) => sum + lineNet(item), 0);
@@ -95,16 +97,22 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
         approver2_status: "pending",
       };
 
+      let invoiceId: string = record?.id;
       if (isEdit) {
         const { error } = await supabase.from("tbl_invoices").update(fields as any).eq("id", record.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("tbl_invoices").insert({
-          user_id: user.id,
-          created_by_name: user.user_metadata?.full_name || user.email || "",
-          ...fields,
-        } as any);
+        const { data: inserted, error } = await supabase
+          .from("tbl_invoices")
+          .insert({
+            user_id: user.id,
+            created_by_name: user.user_metadata?.full_name || user.email || "",
+            ...fields,
+          } as any)
+          .select("id")
+          .single();
         if (error) throw error;
+        invoiceId = (inserted as any).id;
       }
 
       // Create notifications for approvers. The invoice itself is already
@@ -128,6 +136,40 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
         onCreated?.();
         return;
       }
+
+      // Email both approvers too. Best-effort: the record and its in-app
+      // notification already succeeded, so a failure here is logged but
+      // doesn't change the success toast -- email is a supplementary
+      // channel, not the primary one.
+      const formattedAmount = `£${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      await Promise.allSettled(
+        [approver1, approver2].map((approverId) => {
+          const approverProfile = profiles.find((p) => p.user_id === approverId);
+          if (!approverProfile?.email) return Promise.resolve();
+          return supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "record-approval-request",
+              recipientEmail: approverProfile.email,
+              targetUserId: approverId,
+              recordId: invoiceId,
+              recordType: "invoice",
+              idempotencyKey: `record-approval-request-${invoiceId}-${approverId}`,
+              templateData: {
+                approverName: approverProfile.full_name || approverProfile.email.split("@")[0],
+                recordType: "invoice",
+                recordLabel: invoiceNumber,
+                amount: formattedAmount,
+                isResubmission: isEdit,
+                appUrl: window.location.origin,
+              },
+            },
+          });
+        }),
+      ).then((results) => {
+        results.forEach((r) => {
+          if (r.status === "rejected") console.error("Failed to send approval-request email", r.reason);
+        });
+      });
 
       toast({ title: isEdit ? "Invoice updated" : "Invoice created", description: `${invoiceNumber} sent for ${isEdit ? "re-approval" : "approval"}` });
       setOpen(false);

@@ -15,6 +15,9 @@ import { template as welcome } from './welcome.tsx'
 import { template as adminApprovalRequest } from './admin-approval-request.tsx'
 import { template as accountRejected } from './account-rejected.tsx'
 import { template as accountApproved } from './account-approved.tsx'
+import { template as recordApprovalRequest } from './record-approval-request.tsx'
+import { template as recordAuthorized } from './record-authorized.tsx'
+import { template as recordRejected } from './record-rejected.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'test-delivery': testDelivery,
@@ -23,4 +26,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'admin-approval-request': adminApprovalRequest,
   'account-rejected': accountRejected,
   'account-approved': accountApproved,
+  'record-approval-request': recordApprovalRequest,
+  'record-authorized': recordAuthorized,
+  'record-rejected': recordRejected,
 }
