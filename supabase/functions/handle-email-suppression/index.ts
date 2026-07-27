@@ -44,6 +44,17 @@ interface MailjetEventPayload {
   comment?: string
 }
 
+function isMailjetEvent(entry: unknown): entry is MailjetEventPayload {
+  if (!entry || typeof entry !== 'object') return false
+  const { event, email } = entry as MailjetEventPayload
+  return (
+    typeof event === 'string' &&
+    event.length > 0 &&
+    typeof email === 'string' &&
+    email.includes('@')
+  )
+}
+
 // Constant-time comparison via SHA-256 digests, so neither the length nor the
 // content of the configured secret leaks through comparison timing. Mirrors
 // the helper in preview-transactional-email.
@@ -186,18 +197,15 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Invalid JSON' }, 400)
   }
 
-  // Keep only entries that actually look like events. Mailjet's "Send a test"
-  // button posts a sample payload carrying no event/email, and answering that
-  // with a 400 shows up in Mailjet as a failed delivery -- enough of those and
-  // it disables the webhook. So acknowledge unrecognized entries with a 200
-  // and just report how many were skipped.
-  const events = entries.filter(
-    (e): e is MailjetEventPayload =>
-      !!e &&
-      typeof e === 'object' &&
-      typeof (e as MailjetEventPayload).event === 'string' &&
-      typeof (e as MailjetEventPayload).email === 'string',
-  )
+  // Keep only entries that actually look like events, and acknowledge the rest
+  // with a 200: Mailjet reports a non-2xx as a failed delivery, and enough of
+  // those in a row gets the webhook disabled.
+  //
+  // Mailjet's "Send a test" button posts the real event name but an EMPTY
+  // email string, so requiring a plausible address is what separates a test
+  // ping from a genuine event. Checking only `typeof email === 'string'` lets
+  // '' through and writes the test ping as a real suppression.
+  const events = entries.filter(isMailjetEvent)
   const skipped = entries.length - events.length
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
