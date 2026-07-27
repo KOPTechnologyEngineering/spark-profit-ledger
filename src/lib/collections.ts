@@ -72,6 +72,10 @@ export const TEMPLATE_TYPES = [
   { value: "internal_escalation", label: "Internal escalation notice" },
 ];
 
+// Kept in sync manually with the duplicated status-derivation logic in
+// supabase/functions/sync-collections-chase-queue/index.ts (the scheduled,
+// all-users backstop for this same reconciliation) -- update both if the
+// due_soon/overdue/paid rules ever change.
 export function daysOverdue(dueDate: string): number {
   const due = new Date(dueDate);
   const now = new Date();
