@@ -176,19 +176,29 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Invalid signature' }, 401)
   }
 
-  // Parse the Mailjet event payload -- either a single object or an array
-  // of events delivered in one call.
-  let events: MailjetEventPayload[]
+  // Parse the payload -- Mailjet posts either a single event object or an
+  // array of them in one call (batched delivery).
+  let entries: unknown[]
   try {
     const parsed = await req.json()
-    const list = Array.isArray(parsed) ? parsed : [parsed]
-    if (list.some((e) => !e?.event || !e?.email)) {
-      return jsonResponse({ error: 'Missing required fields: event, email' }, 400)
-    }
-    events = list as MailjetEventPayload[]
+    entries = Array.isArray(parsed) ? parsed : [parsed]
   } catch {
     return jsonResponse({ error: 'Invalid JSON' }, 400)
   }
+
+  // Keep only entries that actually look like events. Mailjet's "Send a test"
+  // button posts a sample payload carrying no event/email, and answering that
+  // with a 400 shows up in Mailjet as a failed delivery -- enough of those and
+  // it disables the webhook. So acknowledge unrecognized entries with a 200
+  // and just report how many were skipped.
+  const events = entries.filter(
+    (e): e is MailjetEventPayload =>
+      !!e &&
+      typeof e === 'object' &&
+      typeof (e as MailjetEventPayload).event === 'string' &&
+      typeof (e as MailjetEventPayload).email === 'string',
+  )
+  const skipped = entries.length - events.length
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -201,7 +211,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  return jsonResponse({ success: true, results })
+  return jsonResponse({ success: true, results, skipped })
 })
 
 function mapReasonToStatus(
