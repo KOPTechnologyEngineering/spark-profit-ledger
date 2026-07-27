@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { withLogging } from '../_shared/logger.ts'
 
 // Inbound webhook for Mailjet transactional email events (bounces, spam
 // complaints, unsubscribes). Replaced the former Brevo-shaped version when
@@ -165,7 +166,7 @@ async function processEvent(
   return { suppressed: reason }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withLogging('handle-email-suppression', async (req) => {
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
@@ -220,7 +221,7 @@ Deno.serve(async (req) => {
   }
 
   return jsonResponse({ success: true, results, skipped })
-})
+}))
 
 function mapReasonToStatus(
   reason: string,

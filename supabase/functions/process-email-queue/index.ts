@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { withLogging } from '../_shared/logger.ts'
 
 const MAILJET_API_URL = 'https://api.mailjet.com/v3.1/send'
 const SENDER_EMAIL = 'noreply@koptechnology.co.uk'
@@ -145,7 +146,7 @@ async function moveToDlq(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withLogging('process-email-queue', async (req) => {
   const apiKey = Deno.env.get('MAILJET_API_KEY')
   const secretKey = Deno.env.get('MAILJET_SECRET_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -427,4 +428,4 @@ Deno.serve(async (req) => {
     JSON.stringify({ processed: totalProcessed }),
     { headers: { 'Content-Type': 'application/json' } }
   )
-})
+}))
