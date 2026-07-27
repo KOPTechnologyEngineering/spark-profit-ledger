@@ -95,11 +95,27 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
         if (error) throw error;
       }
 
+      // Create notifications for approvers. The transaction itself is already
+      // saved at this point, so a failure here shouldn't be reported as the
+      // transaction failing -- but it must not be silently discarded either,
+      // since that's exactly how approvers went un-notified before.
       const verb = isEdit ? "was updated and needs your re-approval" : "needs your approval";
-      await supabase.from("tbl_notifications").insert([
+      const { error: notifyError } = await supabase.from("tbl_notifications").insert([
         { user_id: approver1, title: "Approval Required", message: `Transaction "${description}" ${verb} (£${Number(amount).toLocaleString()})`, link: "/approvals" },
         { user_id: approver2, title: "Approval Required", message: `Transaction "${description}" ${verb} (£${Number(amount).toLocaleString()})`, link: "/approvals" },
       ] as any);
+      if (notifyError) {
+        console.error("Failed to notify approvers", notifyError);
+        toast({
+          title: isEdit ? "Transaction updated" : "Transaction added",
+          description: "Saved, but approvers could not be notified in-app. They may still see it under Approvals.",
+          variant: "destructive",
+        });
+        setOpen(false);
+        resetForm();
+        onCreated?.();
+        return;
+      }
 
       toast({ title: isEdit ? "Transaction updated" : "Transaction added", description: isEdit ? "Sent for re-approval" : "Sent for approval" });
       setOpen(false);

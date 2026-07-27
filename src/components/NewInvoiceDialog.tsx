@@ -107,12 +107,27 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
         if (error) throw error;
       }
 
-      // Create notifications for approvers
+      // Create notifications for approvers. The invoice itself is already
+      // saved at this point, so a failure here shouldn't be reported as the
+      // invoice failing -- but it must not be silently discarded either,
+      // since that's exactly how approvers went un-notified before.
       const verb = isEdit ? "was updated and needs your re-approval" : "needs your approval";
-      await supabase.from("tbl_notifications").insert([
+      const { error: notifyError } = await supabase.from("tbl_notifications").insert([
         { user_id: approver1, title: "Approval Required", message: `Invoice ${invoiceNumber} ${verb} (£${total.toLocaleString()})`, link: "/approvals" },
         { user_id: approver2, title: "Approval Required", message: `Invoice ${invoiceNumber} ${verb} (£${total.toLocaleString()})`, link: "/approvals" },
       ] as any);
+      if (notifyError) {
+        console.error("Failed to notify approvers", notifyError);
+        toast({
+          title: isEdit ? "Invoice updated" : "Invoice created",
+          description: "Saved, but approvers could not be notified in-app. They may still see it under Approvals.",
+          variant: "destructive",
+        });
+        setOpen(false);
+        resetForm();
+        onCreated?.();
+        return;
+      }
 
       toast({ title: isEdit ? "Invoice updated" : "Invoice created", description: `${invoiceNumber} sent for ${isEdit ? "re-approval" : "approval"}` });
       setOpen(false);

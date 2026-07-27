@@ -114,9 +114,30 @@ Deno.serve(async (req) => {
       results.push({ to: adminUser.email, ok: !error, error: error?.message })
     }
 
-    return new Response(JSON.stringify({ sent: results.length, results }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    // In-app bell notification (tbl_notifications), in addition to the email
+    // above. Done here with the service-role client rather than as a
+    // client-side insert from the new signup's own session: users-module
+    // admins and invoice/transaction approvers (is_approver) are separate,
+    // independently-set flags -- the RLS policy that lets a regular user
+    // notify an approver has no equivalent for "notify a users-module
+    // admin", and a brand-new pending account has no business inserting
+    // notifications for arbitrary other users anyway.
+    const { error: notifyError } = await admin.from('tbl_notifications').insert(
+      recipients.map((adminUser: any) => ({
+        user_id: adminUser.user_id,
+        title: 'New user awaiting approval',
+        message: `${trustedNewUserName || trustedNewUserEmail} signed up and needs admin approval.`,
+        link: '/users',
+      })),
+    )
+    if (notifyError) {
+      console.error('Failed to insert admin approval notifications', { error: notifyError })
+    }
+
+    return new Response(
+      JSON.stringify({ sent: results.length, results, notified: !notifyError }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
