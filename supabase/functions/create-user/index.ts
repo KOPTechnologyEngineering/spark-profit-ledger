@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { withLogging } from '../_shared/logger.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,7 +18,7 @@ const ACCESS = ['none', 'view', 'edit', 'admin'] as const
 // with a chosen password don't need email verification (the app has its own
 // approval workflow), so this does it server-side with email_confirm=true,
 // no email required, and applies the chosen roles + approval in one step.
-Deno.serve(async (req) => {
+Deno.serve(withLogging('create-user', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   const json = (body: unknown, status = 200) =>
@@ -115,4 +116,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return json({ success: false, error: (e as Error).message }, 500)
   }
-})
+}))

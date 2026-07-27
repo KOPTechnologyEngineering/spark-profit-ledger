@@ -3,6 +3,7 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+import { withLogging } from '../_shared/logger.ts'
 
 const SITE_NAME = "KOP Ledger"
 // Sender identity. The actual send is performed by the queue consumer
@@ -28,7 +29,7 @@ function generateToken(): string {
 // satisfies it. To prevent open-relay abuse we additionally require the
 // caller to be either a real authenticated user OR the service_role key.
 
-Deno.serve(async (req) => {
+Deno.serve(withLogging('send-transactional-email', async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -485,4 +486,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     }
   )
-})
+}))

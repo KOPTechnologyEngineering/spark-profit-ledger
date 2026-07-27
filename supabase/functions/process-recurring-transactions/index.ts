@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { withLogging } from "../_shared/logger.ts";
 
 function advance(date: string, frequency: string): string {
   const d = new Date(date + "T00:00:00Z");
@@ -13,7 +14,7 @@ function advance(date: string, frequency: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withLogging("process-recurring-transactions", async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const supabase = createClient(
@@ -181,4 +182,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     },
   );
-});
+}));
