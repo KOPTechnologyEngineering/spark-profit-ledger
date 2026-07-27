@@ -1,35 +1,33 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-// Inbound webhook for Brevo transactional email events (bounces, spam
-// complaints, unsubscribes). Replaces the former Lovable/Mailgun pipeline,
-// which delivered events via @lovable.dev/webhooks-js + LOVABLE_API_KEY.
+// Inbound webhook for Mailjet transactional email events (bounces, spam
+// complaints, unsubscribes). Replaced the former Brevo-shaped version when
+// the send path (process-email-queue) switched ESPs from Brevo to Mailjet.
 //
-// Brevo does NOT sign its webhooks, so we authenticate with a shared secret
-// sent as a custom header (configured on the Brevo webhook). Set the same
-// value as the BREVO_WEBHOOK_SECRET edge-function secret and as a custom
-// header named X-Webhook-Secret on the webhook in the Brevo dashboard.
+// Mailjet doesn't sign webhooks either, so we authenticate with a shared
+// secret sent as a custom header. Set the same value as the
+// MAILJET_WEBHOOK_SECRET edge-function secret and as a custom header named
+// X-Webhook-Secret on the event webhook configured in the Mailjet dashboard
+// (Account Settings -> Event API / Webhooks).
 const SECRET_HEADER = 'x-webhook-secret'
 
-// Brevo transactional event names → our internal suppression reason.
-// Only permanent-failure / complaint / opt-out events suppress; transient
-// events (soft_bounce, deferred, error) and informational ones (delivered,
-// opened, clicked, request) are acknowledged but never suppress an address.
-const SUPPRESSING_EVENTS: Record<string, 'bounce' | 'complaint' | 'unsubscribe'> = {
-  hard_bounce: 'bounce',
-  invalid_email: 'bounce',
-  blocked: 'bounce',
-  spam: 'complaint',
-  unsubscribed: 'unsubscribe',
-}
+// Mailjet event names -> our internal suppression reason. Only permanent
+// failures / complaints / opt-outs suppress; a soft bounce (hard_bounce:
+// false) is transient and must not suppress the address.
+type SuppressionReason = 'bounce' | 'complaint' | 'unsubscribe'
 
-// Brevo posts a flat JSON object (no envelope). Only the fields we use.
-interface BrevoEventPayload {
+// Mailjet posts either a single event object or an array of event objects
+// in one call (batched delivery), so both shapes must be handled.
+interface MailjetEventPayload {
   event: string
   email: string
-  'message-id'?: string
-  reason?: string
-  tags?: string[]
-  sending_ip?: string
+  MessageID?: number | string
+  time?: number
+  hard_bounce?: boolean
+  blocked?: boolean
+  error?: string
+  error_related_to?: string
+  comment?: string
 }
 
 // Constant-time comparison via SHA-256 digests, so neither the length nor the
@@ -60,57 +58,46 @@ function redactEmail(email: string): string {
   return (local?.[0] ?? '') + '***@' + (domain ?? '')
 }
 
-Deno.serve(async (req) => {
-  if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405)
+// bounce: only a hard bounce or a bounce that got the address blocked is
+// permanent; a soft bounce (hard_bounce: false, blocked: false) is transient
+// (e.g. mailbox full, greylisted) and must not suppress the address.
+function reasonForEvent(payload: MailjetEventPayload): SuppressionReason | null {
+  switch (payload.event) {
+    case 'bounce':
+      return payload.hard_bounce || payload.blocked ? 'bounce' : null
+    case 'blocked':
+      return 'bounce'
+    case 'spam':
+      return 'complaint'
+    case 'unsub':
+      return 'unsubscribe'
+    default:
+      return null
   }
+}
 
-  const webhookSecret = Deno.env.get('BREVO_WEBHOOK_SECRET')
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+async function processEvent(
+  supabase: ReturnType<typeof createClient>,
+  payload: MailjetEventPayload,
+): Promise<{ ignored?: string } | { suppressed: SuppressionReason }> {
+  const reason = reasonForEvent(payload)
 
-  if (!webhookSecret || !supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing required environment variables')
-    return jsonResponse({ error: 'Server configuration error' }, 500)
-  }
-
-  // Authenticate the caller via the shared-secret header (constant-time).
-  const presentedSecret = req.headers.get(SECRET_HEADER) ?? ''
-  if (!presentedSecret || !(await constantTimeEqual(presentedSecret, webhookSecret))) {
-    console.error('Invalid or missing webhook secret')
-    return jsonResponse({ error: 'Invalid signature' }, 401)
-  }
-
-  // Parse the Brevo event payload.
-  let payload: BrevoEventPayload
-  try {
-    const parsed = await req.json()
-    if (!parsed?.event || !parsed?.email) {
-      return jsonResponse({ error: 'Missing required fields: event, email' }, 400)
-    }
-    payload = parsed as BrevoEventPayload
-  } catch {
-    return jsonResponse({ error: 'Invalid JSON' }, 400)
-  }
-
-  const reason = SUPPRESSING_EVENTS[payload.event]
-
-  // Not a suppression-worthy event: acknowledge so Brevo doesn't retry, no-op.
   if (!reason) {
-    return jsonResponse({ success: true, ignored: payload.event })
+    return { ignored: payload.event }
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
   const normalizedEmail = payload.email.toLowerCase()
-  const messageId = payload['message-id'] ?? null
+  const messageId = payload.MessageID != null ? String(payload.MessageID) : null
   const metadata = {
     event: payload.event,
-    brevo_reason: payload.reason ?? null,
-    tags: payload.tags ?? null,
-    sending_ip: payload.sending_ip ?? null,
+    error: payload.error ?? null,
+    error_related_to: payload.error_related_to ?? null,
+    comment: payload.comment ?? null,
+    hard_bounce: payload.hard_bounce ?? null,
+    blocked: payload.blocked ?? null,
   }
 
-  // 1. Upsert to suppressed_emails (idempotent — safe for retries)
+  // 1. Upsert to suppressed_emails (idempotent -- safe for retries)
   const { error: suppressError } = await supabase
     .from('suppressed_emails')
     .upsert(
@@ -123,7 +110,7 @@ Deno.serve(async (req) => {
       error: suppressError,
       email_redacted: redactEmail(normalizedEmail),
     })
-    return jsonResponse({ error: 'Failed to write suppression' }, 500)
+    throw new Error('Failed to write suppression')
   }
 
   // 2. Append a new log entry for the suppression event (never update existing rows)
@@ -139,7 +126,7 @@ Deno.serve(async (req) => {
     })
 
   if (insertError) {
-    // Non-fatal — the suppression was already recorded.
+    // Non-fatal -- the suppression was already recorded.
     console.warn('Failed to insert email_send_log', { error: insertError })
   }
 
@@ -150,7 +137,56 @@ Deno.serve(async (req) => {
     has_message_id: !!messageId,
   })
 
-  return jsonResponse({ success: true })
+  return { suppressed: reason }
+}
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405)
+  }
+
+  const webhookSecret = Deno.env.get('MAILJET_WEBHOOK_SECRET')
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+  if (!webhookSecret || !supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing required environment variables')
+    return jsonResponse({ error: 'Server configuration error' }, 500)
+  }
+
+  // Authenticate the caller via the shared-secret header (constant-time).
+  const presentedSecret = req.headers.get(SECRET_HEADER) ?? ''
+  if (!presentedSecret || !(await constantTimeEqual(presentedSecret, webhookSecret))) {
+    console.error('Invalid or missing webhook secret')
+    return jsonResponse({ error: 'Invalid signature' }, 401)
+  }
+
+  // Parse the Mailjet event payload -- either a single object or an array
+  // of events delivered in one call.
+  let events: MailjetEventPayload[]
+  try {
+    const parsed = await req.json()
+    const list = Array.isArray(parsed) ? parsed : [parsed]
+    if (list.some((e) => !e?.event || !e?.email)) {
+      return jsonResponse({ error: 'Missing required fields: event, email' }, 400)
+    }
+    events = list as MailjetEventPayload[]
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON' }, 400)
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  const results = []
+  for (const event of events) {
+    try {
+      results.push(await processEvent(supabase, event))
+    } catch {
+      return jsonResponse({ error: 'Failed to write suppression' }, 500)
+    }
+  }
+
+  return jsonResponse({ success: true, results })
 })
 
 function mapReasonToStatus(

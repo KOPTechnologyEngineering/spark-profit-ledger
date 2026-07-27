@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
+const MAILJET_API_URL = 'https://api.mailjet.com/v3.1/send'
 const SENDER_EMAIL = 'noreply@koptechnology.co.uk'
 const SENDER_NAME = 'KOP Ledger'
 
@@ -20,46 +20,63 @@ class EmailAPIError extends Error {
   }
 }
 
-// Sends via Brevo's transactional email REST API (replaces Lovable's
-// proprietary email-js service, decoupling outbound mail from Lovable Cloud).
-async function sendBrevoEmail(
+// Sends via Mailjet's Send API v3.1 (switched from Brevo -- koptechnology.co.uk
+// already carries a valid Mailjet DKIM record and is included in its own SPF,
+// so no further DNS work was needed to authenticate this sender there).
+async function sendMailjetEmail(
   payload: { to: string; subject: string; html: string; text: string; unsubscribe_token?: string },
   apiKey: string,
+  secretKey: string,
 ): Promise<void> {
   const headers: Record<string, string> = {}
   if (payload.unsubscribe_token) {
     headers['List-Unsubscribe'] = `<https://kopledger.koptechnology.com/unsubscribe?token=${payload.unsubscribe_token}>`
   }
 
-  const res = await fetch(BREVO_API_URL, {
+  const res = await fetch(MAILJET_API_URL, {
     method: 'POST',
     headers: {
-      'api-key': apiKey,
+      'Authorization': `Basic ${btoa(`${apiKey}:${secretKey}`)}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
     },
     body: JSON.stringify({
-      sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-      to: [{ email: payload.to }],
-      subject: payload.subject,
-      htmlContent: payload.html,
-      textContent: payload.text,
-      ...(Object.keys(headers).length ? { headers } : {}),
+      Messages: [
+        {
+          From: { Email: SENDER_EMAIL, Name: SENDER_NAME },
+          To: [{ Email: payload.to }],
+          Subject: payload.subject,
+          HTMLPart: payload.html,
+          TextPart: payload.text,
+          ...(Object.keys(headers).length ? { Headers: headers } : {}),
+        },
+      ],
     }),
   })
 
-  if (res.ok) return
-
   const retryAfterHeader = res.headers.get('Retry-After')
   const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : null
-  let message = `Brevo API error (${res.status})`
-  try {
-    const body = await res.json()
-    message = body?.message || message
-  } catch {
-    // ignore parse failure, use default message
+
+  if (!res.ok) {
+    let message = `Mailjet API error (${res.status})`
+    try {
+      const body = await res.json()
+      message = body?.ErrorMessage || message
+    } catch {
+      // ignore parse failure, use default message
+    }
+    throw new EmailAPIError(message, res.status, retryAfterSeconds)
   }
-  throw new EmailAPIError(message, res.status, retryAfterSeconds)
+
+  // v3.1/send can return 200 with a per-message failure inside the batch --
+  // check the actual message status rather than trusting the HTTP status alone.
+  const body = await res.json()
+  const result = body?.Messages?.[0]
+  if (result?.Status && result.Status !== 'success') {
+    const firstError = result?.Errors?.[0]
+    const message = firstError?.ErrorMessage || `Mailjet send failed (status: ${result.Status})`
+    const status = typeof firstError?.StatusCode === 'number' ? firstError.StatusCode : 400
+    throw new EmailAPIError(message, status, retryAfterSeconds)
+  }
 }
 
 function isRateLimited(error: unknown): boolean {
@@ -129,11 +146,12 @@ async function moveToDlq(
 }
 
 Deno.serve(async (req) => {
-  const apiKey = Deno.env.get('BREVO_API_KEY')
+  const apiKey = Deno.env.get('MAILJET_API_KEY')
+  const secretKey = Deno.env.get('MAILJET_SECRET_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!apiKey || !secretKey || !supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
@@ -306,7 +324,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await sendBrevoEmail(
+        await sendMailjetEmail(
           {
             to: payload.to,
             subject: payload.subject,
@@ -315,6 +333,7 @@ Deno.serve(async (req) => {
             unsubscribe_token: payload.unsubscribe_token,
           },
           apiKey,
+          secretKey,
         )
 
         // Log success
@@ -364,7 +383,7 @@ Deno.serve(async (req) => {
             })
             .eq('id', 1)
 
-          // Stop processing — remaining messages stay in queue (VT expires, retried next cycle)
+          // Stop processing -- remaining messages stay in queue (VT expires, retried next cycle)
           return new Response(
             JSON.stringify({ processed: totalProcessed, stopped: 'rate_limited' }),
             { headers: { 'Content-Type': 'application/json' } }
