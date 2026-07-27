@@ -4,12 +4,26 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 // complaints, unsubscribes). Replaced the former Brevo-shaped version when
 // the send path (process-email-queue) switched ESPs from Brevo to Mailjet.
 //
-// Mailjet doesn't sign webhooks either, so we authenticate with a shared
-// secret sent as a custom header. Set the same value as the
-// MAILJET_WEBHOOK_SECRET edge-function secret and as a custom header named
-// X-Webhook-Secret on the event webhook configured in the Mailjet dashboard
-// (Account Settings -> Event API / Webhooks).
-const SECRET_HEADER = 'x-webhook-secret'
+// Mailjet doesn't sign webhooks, and its dashboard Event API config has no
+// custom-header field -- only an endpoint URL. Mailjet's own docs recommend
+// securing it with HTTP Basic Auth embedded in that URL instead
+// (https://<user>:<password>@host/path), which its dispatcher decodes into a
+// standard Authorization: Basic header on the actual request. So: configure
+// the endpoint URL in Mailjet as
+//   https://mailjet:<MAILJET_WEBHOOK_SECRET value>@<project>.supabase.co/functions/v1/handle-email-suppression
+// The username is not secret and is not checked -- only the password (the
+// MAILJET_WEBHOOK_SECRET value) is verified, constant-time.
+function decodeBasicAuthPassword(authHeader: string): string | null {
+  if (!authHeader.startsWith('Basic ')) return null
+  try {
+    const decoded = atob(authHeader.slice('Basic '.length).trim())
+    const separatorIndex = decoded.indexOf(':')
+    if (separatorIndex === -1) return null
+    return decoded.slice(separatorIndex + 1)
+  } catch {
+    return null
+  }
+}
 
 // Mailjet event names -> our internal suppression reason. Only permanent
 // failures / complaints / opt-outs suppress; a soft bounce (hard_bounce:
@@ -154,10 +168,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Server configuration error' }, 500)
   }
 
-  // Authenticate the caller via the shared-secret header (constant-time).
-  const presentedSecret = req.headers.get(SECRET_HEADER) ?? ''
+  // Authenticate the caller via the URL-embedded Basic Auth password
+  // (constant-time compare) -- see the comment on decodeBasicAuthPassword.
+  const presentedSecret = decodeBasicAuthPassword(req.headers.get('authorization') ?? '') ?? ''
   if (!presentedSecret || !(await constantTimeEqual(presentedSecret, webhookSecret))) {
-    console.error('Invalid or missing webhook secret')
+    console.error('Invalid or missing webhook credentials')
     return jsonResponse({ error: 'Invalid signature' }, 401)
   }
 
