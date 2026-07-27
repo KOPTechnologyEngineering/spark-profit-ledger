@@ -4,7 +4,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
-const SITE_NAME = "KOPLedger"
+const SITE_NAME = "KOP Ledger"
 // Sender identity. The actual send is performed by the queue consumer
 // (process-email-queue), which sends via Mailjet from koptechnology.co.uk --
 // already carrying a valid Mailjet DKIM record and SPF include, so no DNS
