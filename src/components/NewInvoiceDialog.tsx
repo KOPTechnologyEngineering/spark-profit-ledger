@@ -138,11 +138,12 @@ export default function NewInvoiceDialog({ onCreated, record, open: controlledOp
       }
 
       // Email both approvers too. Best-effort: the record and its in-app
-      // notification already succeeded, so a failure here is logged but
-      // doesn't change the success toast -- email is a supplementary
-      // channel, not the primary one.
+      // notification already succeeded, so this runs in the background --
+      // not awaited -- rather than making the user watch a spinner for
+      // however long two email sends take. Failures are logged, not
+      // surfaced, since email is a supplementary channel, not the primary one.
       const formattedAmount = `£${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      await Promise.allSettled(
+      Promise.allSettled(
         [approver1, approver2].map((approverId) => {
           const approverProfile = profiles.find((p) => p.user_id === approverId);
           if (!approverProfile?.email) return Promise.resolve();
