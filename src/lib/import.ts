@@ -7,6 +7,8 @@ export interface ImportColumn {
   key: string;
   /** CSV header label — also used as the template's column header. */
   label: string;
+  /** Older header names still accepted for this column (matched the same normalized way as `label`), so a column rename doesn't silently break files exported/downloaded under the old name. */
+  aliases?: string[];
   required?: boolean;
   type?: ImportColumnType;
   /** Allowed values for type "enum" (case-insensitive match, stored as the canonical value listed here). */
@@ -63,7 +65,13 @@ export function parseImportRows(csvText: string, columns: ImportColumn[]): Parse
     const data: Record<string, string | number> = {};
     const errors: string[] = [];
     for (const col of columns) {
-      const idx = headerIndex.get(normalizeHeader(col.label));
+      let idx = headerIndex.get(normalizeHeader(col.label));
+      if (idx === undefined) {
+        for (const alias of col.aliases ?? []) {
+          idx = headerIndex.get(normalizeHeader(alias));
+          if (idx !== undefined) break;
+        }
+      }
       const raw = idx !== undefined ? row[idx] ?? "" : "";
       const { value, error } = validateImportCell(raw, col);
       if (error) errors.push(error);
