@@ -9,8 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { useTransactionsData } from "@/hooks/useFinancialData";
+import { categoryOptions } from "@/lib/categories";
 
-const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
 const frequencies = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const;
 const NO_ORG = "__none__";
 
@@ -38,6 +39,8 @@ export default function RecurringTransactionDialog({ onSaved, record, open: cont
   const [vendors, setVendors] = useState<{ id: string; name: string; org_type: string }[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { data: existingTransactions = [] } = useTransactionsData();
+  const categories = categoryOptions(existingTransactions.map((t) => t.category));
 
   useEffect(() => {
     if (!open) return;

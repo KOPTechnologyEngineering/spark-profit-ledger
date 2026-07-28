@@ -12,9 +12,10 @@ import { friendlyErrorMessage } from "@/lib/errors";
 import ApproverSelect from "@/components/ApproverSelect";
 import AttachmentUpload from "@/components/AttachmentUpload";
 import { useProfiles } from "@/hooks/useProfiles";
+import { useTransactionsData } from "@/hooks/useFinancialData";
 import { VAT_TREATMENTS, defaultVatTreatmentForCategory, type VatTreatment } from "@/lib/tax";
+import { categoryOptions } from "@/lib/categories";
 
-const categories = ["Revenue", "Rent", "Software", "Contractors", "Marketing", "Insurance", "Payroll", "Utilities", "Other"];
 const NO_ORG = "__none__";
 
 interface AddTransactionDialogProps {
@@ -48,6 +49,8 @@ export default function AddTransactionDialog({ onCreated, record, open: controll
   const { user } = useAuth();
   const { toast } = useToast();
   const profiles = useProfiles();
+  const { data: existingTransactions = [] } = useTransactionsData();
+  const categories = categoryOptions(existingTransactions.map((t) => t.category));
 
   useEffect(() => {
     if (!open) return;

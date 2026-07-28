@@ -3,6 +3,7 @@ import { formatGBP, sumAmounts } from "@/lib/format";
 import { toCSV, parseCSV } from "@/lib/csv";
 import { parseImportRows, type ImportColumn } from "@/lib/import";
 import { calcCorporationTax, calcUKDeductions, defaultVatTreatmentForCategory } from "@/lib/tax";
+import { categoryOptions, DEFAULT_CATEGORIES } from "@/lib/categories";
 
 describe("formatGBP", () => {
   it("formats numbers with thousands separators", () => {
@@ -242,5 +243,45 @@ describe("parseImportRows", () => {
     const [row] = parseImportRows(csv, columns);
     expect(row.errors).toEqual([]);
     expect(row.data.category).toBe("Other");
+  });
+
+  it("matches a column by an alias header when the primary label isn't present", () => {
+    const aliasColumns: ImportColumn[] = [
+      { key: "organization", label: "Counterparty", aliases: ["Organization"], type: "string" },
+    ];
+    const csv = "Organization\nAcme Ltd";
+    const [row] = parseImportRows(csv, aliasColumns);
+    expect(row.errors).toEqual([]);
+    expect(row.data.organization).toBe("Acme Ltd");
+  });
+
+  it("prefers the primary label over an alias when both are present", () => {
+    const aliasColumns: ImportColumn[] = [
+      { key: "organization", label: "Counterparty", aliases: ["Organization"], type: "string" },
+    ];
+    const csv = "Organization,Counterparty\nOld Value,New Value";
+    const [row] = parseImportRows(csv, aliasColumns);
+    expect(row.data.organization).toBe("New Value");
+  });
+});
+
+describe("categoryOptions", () => {
+  it("returns the seed list unchanged when no transactions reference a new category", () => {
+    expect(categoryOptions(["Revenue", "Rent"])).toEqual(DEFAULT_CATEGORIES);
+  });
+
+  it("appends categories not in the seed list, sorted, before the trailing Other", () => {
+    const result = categoryOptions(["Revenue", "Zebra Consulting", "Legal Fees"]);
+    expect(result.slice(0, -1)).toEqual([...DEFAULT_CATEGORIES.filter((c) => c !== "Other"), "Legal Fees", "Zebra Consulting"]);
+    expect(result[result.length - 1]).toBe("Other");
+  });
+
+  it("ignores null, undefined, and empty category values", () => {
+    expect(categoryOptions([null, undefined, "", "Rent"])).toEqual(DEFAULT_CATEGORIES);
+  });
+
+  it("de-duplicates repeated extra categories", () => {
+    const result = categoryOptions(["Legal Fees", "Legal Fees", "Legal Fees"]);
+    expect(result.filter((c) => c === "Legal Fees")).toHaveLength(1);
   });
 });
