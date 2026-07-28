@@ -26,7 +26,7 @@ const navItems = [
   { label: "Collections", icon: Mail, path: "/collections", module: "invoices" },
   { label: "VAT", icon: Receipt, path: "/vat", module: "vat" },
   { label: "Profit & Loss", icon: TrendingUp, path: "/pnl", module: "pnl" },
-  { label: "Organizations", icon: Building2, path: "/organizations", module: null },
+  { label: "Counterparties", icon: Building2, path: "/counterparties", module: null },
   { label: "PAYE", icon: Users, path: "/paye", module: "paye" },
   { label: "Reports", icon: ClipboardList, path: "/reports", module: "reports" },
   { label: "User Management", icon: Shield, path: "/users", module: "users" },

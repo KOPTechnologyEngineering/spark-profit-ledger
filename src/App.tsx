@@ -26,7 +26,7 @@ const Reports = lazy(() => import("@/pages/Reports"));
 const UserManagement = lazy(() => import("@/pages/UserManagement"));
 const AuditLog = lazy(() => import("@/pages/AuditLog"));
 const Logging = lazy(() => import("@/pages/Logging"));
-const Organizations = lazy(() => import("@/pages/Organizations"));
+const CounterParties = lazy(() => import("@/pages/CounterParties"));
 const Approvals = lazy(() => import("@/pages/Approvals"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
@@ -70,7 +70,7 @@ const App = () => (
                 <Route path="/users" element={<UserManagement />} />
                 <Route path="/audit" element={<AuditLog />} />
                 <Route path="/logs" element={<Logging />} />
-                <Route path="/organizations" element={<Organizations />} />
+                <Route path="/counterparties" element={<CounterParties />} />
                 <Route path="/collections" element={<CollectionsLayout />}>
 
                   <Route index element={<CollectionsDashboard />} />

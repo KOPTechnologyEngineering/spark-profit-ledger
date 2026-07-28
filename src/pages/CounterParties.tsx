@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Pencil, Search, Building2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Search, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -19,12 +19,14 @@ import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { useOrganizationsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
 
-type OrgRow = Tables<"tbl_organizations">;
+type CounterpartyRow = Tables<"tbl_organizations">;
 type OrgType = "customer" | "vendor" | "both";
+type EntityType = "individual" | "organization";
 
 const emptyForm = {
   name: "",
   org_type: "customer" as OrgType,
+  entity_type: "" as "" | EntityType,
   email: "",
   phone: "",
   address: "",
@@ -41,7 +43,10 @@ const typeStyles: Record<OrgType, string> = {
   both: "bg-primary/10 text-primary border-primary/20",
 };
 
-export default function Organizations() {
+/** Needs review: auto-created by a transaction CSV import and never confirmed. */
+const needsReview = (row: CounterpartyRow) => !row.entity_type;
+
+export default function CounterParties() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: rows = [], isLoading: loading } = useOrganizationsData();
@@ -49,7 +54,7 @@ export default function Organizations() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<(typeof typeFilters)[number]>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<OrgRow | null>(null);
+  const [editing, setEditing] = useState<CounterpartyRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
@@ -59,11 +64,12 @@ export default function Organizations() {
     setDialogOpen(true);
   };
 
-  const openEdit = (org: OrgRow) => {
+  const openEdit = (org: CounterpartyRow) => {
     setEditing(org);
     setForm({
       name: org.name,
       org_type: org.org_type as OrgType,
+      entity_type: (org.entity_type as EntityType) || "",
       email: org.email || "",
       phone: org.phone || "",
       address: org.address || "",
@@ -76,11 +82,13 @@ export default function Organizations() {
 
   const handleSave = async () => {
     if (!user) return;
-    if (!form.name.trim()) return toast({ title: "Name required", description: "Please enter an organization name.", variant: "destructive" });
+    if (!form.name.trim()) return toast({ title: "Name required", description: "Please enter a counterparty name.", variant: "destructive" });
+    if (!form.entity_type) return toast({ title: "Entity type required", description: "Select whether this counterparty is an Individual or an Organization.", variant: "destructive" });
     setSaving(true);
     const payload = {
       name: form.name.trim(),
       org_type: form.org_type,
+      entity_type: form.entity_type,
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
       address: form.address.trim() || null,
@@ -94,24 +102,24 @@ export default function Organizations() {
     setSaving(false);
     if (error) {
       return toast({
-        title: editing ? "Couldn't update organization" : "Couldn't add organization",
+        title: editing ? "Couldn't update counterparty" : "Couldn't add counterparty",
         description: friendlyErrorMessage(error),
         variant: "destructive",
       });
     }
-    toast({ title: editing ? "Organization updated" : "Organization added" });
+    toast({ title: editing ? "Counterparty updated" : "Counterparty added" });
     setDialogOpen(false);
     invalidateOrganizations();
   };
 
-  const handleDelete = async (org: OrgRow) => {
+  const handleDelete = async (org: CounterpartyRow) => {
     if (!confirm(`Delete "${org.name}"?`)) return;
     const { error } = await supabase
       .from("tbl_organizations")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", org.id);
-    if (error) return toast({ title: "Couldn't remove organization", description: friendlyErrorMessage(error), variant: "destructive" });
-    toast({ title: "Organization removed" });
+    if (error) return toast({ title: "Couldn't remove counterparty", description: friendlyErrorMessage(error), variant: "destructive" });
+    toast({ title: "Counterparty removed" });
     invalidateOrganizations();
   };
 
@@ -123,22 +131,22 @@ export default function Organizations() {
 
   const customerCount = rows.filter((r) => r.org_type === "customer" || r.org_type === "both").length;
   const vendorCount = rows.filter((r) => r.org_type === "vendor" || r.org_type === "both").length;
+  const reviewCount = rows.filter(needsReview).length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader title="Organizations" subtitle="Manage the customers and vendors you do business with">
+      <PageHeader title="Counterparties" subtitle="Manage the individuals and organizations you do business with">
         <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" /> New organization
+          <Plus className="mr-2 h-4 w-4" /> New counterparty
         </Button>
       </PageHeader>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <SummaryTile label="Total" value={String(rows.length)} />
         <SummaryTile label="Customers" value={String(customerCount)} tone="inflow" />
         <SummaryTile label="Vendors" value={String(vendorCount)} tone="outflow" />
-
+        <SummaryTile label="Needs review" value={String(reviewCount)} tone={reviewCount > 0 ? "outflow" : undefined} />
       </div>
-
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -164,7 +172,7 @@ export default function Organizations() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
-            No organizations found. Click "New organization" to add one.
+            No counterparties found. Click "New counterparty" to add one.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -172,6 +180,7 @@ export default function Organizations() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Entity Type</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="hidden md:table-cell">Email</TableHead>
                   <TableHead className="hidden lg:table-cell">Phone</TableHead>
@@ -181,28 +190,42 @@ export default function Organizations() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((org) => (
-                  <TableRow key={org.id}>
-                    <TableCell className="font-medium">{org.name}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${typeStyles[org.org_type as OrgType]}`}>
-                        {org.org_type}
-                      </span>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{org.email || "—"}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.phone || "—"}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.vat_number || "—"}</TableCell>
-                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">{org.nature_of_business || "—"}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(org)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => handleDelete(org)}>
-                        <Trash2 className="h-4 w-4 text-outflow" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((org) => {
+                  const review = needsReview(org);
+                  return (
+                    <TableRow key={org.id} className={review ? "bg-outflow-muted/60 hover:bg-outflow-muted" : undefined}>
+                      <TableCell className="font-medium">{org.name}</TableCell>
+                      <TableCell>
+                        {review ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-outflow/30 bg-outflow/10 px-2 py-0.5 text-xs font-medium text-outflow">
+                            <AlertTriangle className="h-3 w-3" /> Needs review
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full border px-2 py-0.5 text-xs font-medium capitalize bg-secondary text-secondary-foreground border-border">
+                            {org.entity_type}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${typeStyles[org.org_type as OrgType]}`}>
+                          {org.org_type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{org.email || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.phone || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{org.vat_number || "—"}</TableCell>
+                      <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">{org.nature_of_business || "—"}</TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(org)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => handleDelete(org)}>
+                          <Trash2 className="h-4 w-4 text-outflow" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -212,13 +235,25 @@ export default function Organizations() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit organization" : "New organization"}</DialogTitle>
+            <DialogTitle>{editing ? "Edit counterparty" : "New counterparty"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <Label>Name *</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Entity Type *</Label>
+                <Select value={form.entity_type} onValueChange={(v: EntityType) => setForm({ ...form, entity_type: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="organization">Organization</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Type *</Label>
@@ -265,7 +300,7 @@ export default function Organizations() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : editing ? "Save changes" : "Add organization"}
+                {saving ? "Saving..." : editing ? "Save changes" : "Add counterparty"}
               </Button>
             </div>
           </div>

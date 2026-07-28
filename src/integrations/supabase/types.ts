@@ -845,6 +845,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           email: string | null
+          entity_type: string | null
           id: string
           name: string
           nature_of_business: string | null
@@ -860,6 +861,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           email?: string | null
+          entity_type?: string | null
           id?: string
           name: string
           nature_of_business?: string | null
@@ -875,6 +877,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           email?: string | null
+          entity_type?: string | null
           id?: string
           name?: string
           nature_of_business?: string | null
