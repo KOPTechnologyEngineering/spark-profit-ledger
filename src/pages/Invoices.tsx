@@ -20,6 +20,8 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { useInvoicesData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 type InvoiceRow = Tables<"tbl_invoices">;
 
@@ -76,6 +78,11 @@ export default function Invoices() {
     .filter((i) => filter === "all" || i.status === filter)
     .filter((i) => !search || i.invoice_number?.toLowerCase().includes(search.toLowerCase()) || i.client?.toLowerCase().includes(search.toLowerCase()));
 
+  const { page, pageSize, total: pagedTotal, pageItems: pagedInvoices, setPage, setPageSize } = usePagedList(
+    filtered,
+    `${filter}|${search}|${range?.from ?? ""}|${range?.to ?? ""}`,
+  );
+
   const downloadAllCSV = () => {
     downloadCSV(
       "invoices.csv",
@@ -129,7 +136,7 @@ export default function Invoices() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((invoice, i) => (
+              {pagedInvoices.map((invoice, i) => (
                 <motion.tr
                   key={invoice.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -161,6 +168,11 @@ export default function Invoices() {
               ))}
             </tbody>
           </table>
+          </div>
+        )}
+        {!loading && filtered.length > 0 && (
+          <div className="px-4 sm:px-6 pb-4">
+            <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
           </div>
         )}
       </div>

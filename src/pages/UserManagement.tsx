@@ -17,6 +17,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PageHeader from "@/components/PageHeader";
 import { motion } from "framer-motion";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 const modules = ["invoices", "transactions", "pnl", "vat", "paye", "reports", "users"] as const;
 const accessLevels = ["none", "view", "edit", "admin"] as const;
@@ -256,6 +258,7 @@ export default function UserManagement() {
 
 
   const visibleUsers = users.filter((u) => !u.is_hidden && u.approval_status === "approved");
+  const { page: usersPage, pageSize: usersPageSize, total: usersPagedTotal, pageItems: pagedUsers, setPage: setUsersPage, setPageSize: setUsersPageSize } = usePagedList(visibleUsers);
   const pendingUsers = users.filter((u) => !u.is_hidden && u.approval_status === "pending");
 
   // On first load only: if sign-ups are waiting, open the Pending Approvals tab
@@ -392,7 +395,7 @@ export default function UserManagement() {
                 </tr>
               </thead>
               <tbody>
-                {visibleUsers.map((u, i) => (
+                {pagedUsers.map((u, i) => (
                   <motion.tr
                     key={u.user_id}
                     initial={{ opacity: 0, y: 10 }}
@@ -481,6 +484,11 @@ export default function UserManagement() {
               </tbody>
             </table>
           </div>
+          {visibleUsers.length > 0 && (
+            <div className="px-4 pb-4">
+              <TablePagination page={usersPage} pageSize={usersPageSize} total={usersPagedTotal} onPageChange={setUsersPage} onPageSizeChange={setUsersPageSize} />
+            </div>
+          )}
         </div>
         </TabsContent>
         <TabsContent value="audit" className="mt-0">

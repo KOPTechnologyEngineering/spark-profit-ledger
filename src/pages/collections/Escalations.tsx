@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ESCALATION_LEVELS, logActivity } from "@/lib/collections";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 const STATUS_OPTIONS = ["open", "in_progress", "resolved", "cancelled"];
 
@@ -43,6 +45,7 @@ export default function Escalations() {
   };
 
   const filtered = list.filter((e) => filter === "all" || e.status === filter);
+  const { page, pageSize, total: pagedTotal, pageItems: pagedEscalations, setPage, setPageSize } = usePagedList(filtered, filter);
 
   return (
     <div className="space-y-4">
@@ -82,7 +85,7 @@ export default function Escalations() {
                   </td>
                 </tr>
               )}
-              {filtered.map((e) => (
+              {pagedEscalations.map((e) => (
                 <tr key={e.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
                   <td className="px-4 py-3 font-medium">{e.customer_name}</td>
                   <td className="px-4 py-3">£{Number(e.amount).toLocaleString()}</td>
@@ -104,6 +107,11 @@ export default function Escalations() {
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <div className="px-4 pb-4 pt-1">
+            <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </div>
+        )}
       </div>
 
       <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>

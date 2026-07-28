@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/collections";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 const STATUSES = ["active", "broken", "paid", "renegotiated", "escalated"];
 
@@ -51,6 +53,7 @@ export default function PaymentPromises() {
   };
 
   const filtered = list.filter((p) => filter === "all" || p.status === filter);
+  const { page, pageSize, total: pagedTotal, pageItems: pagedPromises, setPage, setPageSize } = usePagedList(filtered, filter);
 
   return (
     <div className="space-y-4">
@@ -89,7 +92,7 @@ export default function PaymentPromises() {
                   </td>
                 </tr>
               )}
-              {filtered.map((p) => (
+              {pagedPromises.map((p) => (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
                   <td className="px-4 py-3 font-medium">{p.customer_name}</td>
                   <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{p.contact_person || "—"}</td>
@@ -117,6 +120,11 @@ export default function PaymentPromises() {
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <div className="px-4 pb-4 pt-1">
+            <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </div>
+        )}
       </div>
     </div>
   );

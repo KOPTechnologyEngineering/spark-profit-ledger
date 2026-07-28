@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useRecurringTransactionsData, useOrganizationsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 type RunLog = {
   id: string;
@@ -35,6 +37,7 @@ export default function RecurringTransactionsTab() {
   const canEdit = hasEdit("transactions");
   const canDelete = hasAdmin("transactions");
   const canRun = hasAdmin("transactions");
+  const { page, pageSize, total: pagedTotal, pageItems: pagedItems, setPage, setPageSize } = usePagedList(items);
 
   const fetchLastRun = async () => {
     const { data, error } = await supabase
@@ -137,7 +140,7 @@ export default function RecurringTransactionsTab() {
         <div className="py-12 text-center text-muted-foreground">No recurring transactions yet.</div>
       ) : (
         <div className="space-y-2">
-          {items.map((r) => (
+          {pagedItems.map((r) => (
             <div key={r.id} className="glass-card flex items-center justify-between px-6 py-4 flex-wrap gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">{r.description}</p>
@@ -170,6 +173,7 @@ export default function RecurringTransactionsTab() {
               </div>
             </div>
           ))}
+          <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </div>
       )}
 

@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DISPUTE_REASONS, logActivity } from "@/lib/collections";
 import { friendlyErrorMessage } from "@/lib/errors";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 const STATUSES = ["open", "under_review", "awaiting_customer", "resolved", "rejected", "cancelled"];
 
@@ -47,6 +49,7 @@ export default function Disputes() {
   };
 
   const filtered = list.filter((d) => filter === "all" || d.status === filter);
+  const { page, pageSize, total: pagedTotal, pageItems: pagedDisputes, setPage, setPageSize } = usePagedList(filtered, filter);
 
   return (
     <div className="space-y-4">
@@ -70,7 +73,7 @@ export default function Disputes() {
             No disputes.
           </div>
         )}
-        {filtered.map((d) => (
+        {pagedDisputes.map((d) => (
           <div key={d.id} className="glass-card p-4 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -91,6 +94,9 @@ export default function Disputes() {
           </div>
         ))}
       </div>
+      {filtered.length > 0 && (
+        <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
+      )}
 
       <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
