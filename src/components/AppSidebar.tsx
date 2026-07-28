@@ -21,12 +21,12 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/", module: null },
-  { label: "Invoices", icon: FileText, path: "/invoices", module: "invoices" },
-  { label: "Organizations", icon: Building2, path: "/organizations", module: null },
-  { label: "Collections", icon: Mail, path: "/collections", module: "invoices" },
   { label: "Transactions", icon: ArrowDownUp, path: "/transactions", module: "transactions" },
-  { label: "Profit & Loss", icon: TrendingUp, path: "/pnl", module: "pnl" },
+  { label: "Invoices", icon: FileText, path: "/invoices", module: "invoices" },
+  { label: "Collections", icon: Mail, path: "/collections", module: "invoices" },
   { label: "VAT", icon: Receipt, path: "/vat", module: "vat" },
+  { label: "Profit & Loss", icon: TrendingUp, path: "/pnl", module: "pnl" },
+  { label: "Organizations", icon: Building2, path: "/organizations", module: null },
   { label: "PAYE", icon: Users, path: "/paye", module: "paye" },
   { label: "Reports", icon: ClipboardList, path: "/reports", module: "reports" },
   { label: "User Management", icon: Shield, path: "/users", module: "users" },
