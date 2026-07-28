@@ -45,11 +45,14 @@ export default function NotificationBell() {
 
   const markRead = async (id: string) => {
     await supabase.from("tbl_notifications").update({ is_read: true } as any).eq("id", id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
   };
 
   const handleClick = (n: Notification) => {
     markRead(n.id);
+    // Drop it from the list immediately rather than just re-styling it as
+    // read -- clicking through to act on a notification is the signal that
+    // it's been dealt with, so it shouldn't linger in the dropdown.
+    setNotifications((prev) => prev.filter((item) => item.id !== n.id));
     if (n.link) navigate(n.link);
     setOpen(false);
   };
