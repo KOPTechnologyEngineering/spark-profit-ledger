@@ -54,6 +54,9 @@ export default function AppLayout() {
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-3">
+            <span className="hidden sm:inline text-sm text-muted-foreground">
+              {new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+            </span>
             <NotificationBell />
             <ProfileMenu />
           </div>
