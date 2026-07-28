@@ -30,6 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { useTransactionsData, useOrganizationsData, useRecurringTransactionsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
 import { VAT_TREATMENTS } from "@/lib/tax";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 type TransactionRow = Tables<"tbl_transactions">;
 
@@ -272,6 +274,11 @@ export default function Transactions() {
     })
     .filter((t) => !search || t.description?.toLowerCase().includes(search.toLowerCase()));
 
+  const { page, pageSize, total: pagedTotal, pageItems: pagedTransactions, setPage, setPageSize } = usePagedList(
+    filtered,
+    `${period}|${range?.from ?? ""}|${range?.to ?? ""}|${typeFilter}|${recurringFilter}|${search}`,
+  );
+
   const totalInflow = sumAmounts(periodFiltered.filter((t) => t.type === "inflow"), "amount");
   const totalOutflow = sumAmounts(periodFiltered.filter((t) => t.type === "outflow"), "amount");
   const netFlow = totalInflow - totalOutflow;
@@ -353,7 +360,7 @@ export default function Transactions() {
             <div className="py-12 text-center text-muted-foreground">No transactions found.</div>
           ) : (
             <div className="space-y-2">
-              {filtered.map((tx, i) => (
+              {pagedTransactions.map((tx, i) => (
                 <motion.div
                   key={tx.id}
                   initial={{ opacity: 0, x: -10 }}
@@ -394,6 +401,7 @@ export default function Transactions() {
                   </div>
                 </motion.div>
               ))}
+              <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
             </div>
           )}
         </TabsContent>

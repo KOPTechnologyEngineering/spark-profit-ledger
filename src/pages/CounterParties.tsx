@@ -18,6 +18,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { useOrganizationsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 type CounterpartyRow = Tables<"tbl_organizations">;
 type OrgType = "customer" | "vendor" | "both" | "investor";
@@ -130,6 +132,8 @@ export default function CounterParties() {
     return true;
   });
 
+  const { page, pageSize, total: pagedTotal, pageItems: pagedRows, setPage, setPageSize } = usePagedList(filtered, `${typeFilter}|${search}`);
+
   const customerCount = rows.filter((r) => r.org_type === "customer" || r.org_type === "both").length;
   const vendorCount = rows.filter((r) => r.org_type === "vendor" || r.org_type === "both").length;
   const investorCount = rows.filter((r) => r.org_type === "investor").length;
@@ -198,7 +202,7 @@ export default function CounterParties() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((org) => {
+                {pagedRows.map((org) => {
                   const review = needsReview(org);
                   return (
                     <TableRow key={org.id} className={review ? "gradient-outflow hover:bg-outflow/10" : undefined}>
@@ -236,6 +240,11 @@ export default function CounterParties() {
                 })}
               </TableBody>
             </Table>
+          </div>
+        )}
+        {!loading && filtered.length > 0 && (
+          <div className="px-4 pb-4">
+            <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
           </div>
         )}
       </motion.div>

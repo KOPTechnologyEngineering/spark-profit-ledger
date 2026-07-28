@@ -16,6 +16,8 @@ import {
   renderTemplate,
 } from "@/lib/collections";
 import ChaseDetailDialog from "@/components/collections/ChaseDetailDialog";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 export default function ChaseQueue() {
   const { user } = useAuth();
@@ -307,6 +309,8 @@ export default function ChaseQueue() {
     return true;
   });
 
+  const { page, pageSize, total: pagedTotal, pageItems: pagedItems, setPage, setPageSize } = usePagedList(filtered, `${statusFilter}|${search}`);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
@@ -368,7 +372,7 @@ export default function ChaseQueue() {
                   </td>
                 </tr>
               )}
-              {filtered.map((it) => {
+              {pagedItems.map((it) => {
                 const inv = invMap[it.invoice_id];
                 const dOver = daysOverdue(inv.due_date);
                 return (
@@ -411,6 +415,11 @@ export default function ChaseQueue() {
             </tbody>
           </table>
         </div>
+        {!loading && filtered.length > 0 && (
+          <div className="px-4 pb-4 pt-1">
+            <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </div>
+        )}
       </div>
 
       {selected && (

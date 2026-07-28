@@ -8,6 +8,8 @@ import PageHeader from "@/components/PageHeader";
 import RecordDetailDialog from "@/components/RecordDetailDialog";
 import { formatGBP } from "@/lib/format";
 import { CheckCircle, Clock } from "lucide-react";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 interface PendingItem {
   id: string;
@@ -88,6 +90,8 @@ export default function Approvals() {
     fetchPending();
   }, [user]);
 
+  const { page, pageSize, total: pagedTotal, pageItems: pagedItems, setPage, setPageSize } = usePagedList(items);
+
   return (
     <div className="space-y-6">
       <PageHeader title="Approvals" subtitle="Items pending your approval" />
@@ -104,7 +108,7 @@ export default function Approvals() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {items.map((item) => (
+          {pagedItems.map((item) => (
             <Card
               key={item.id}
               className="cursor-pointer hover:border-primary/40 transition-colors"
@@ -131,6 +135,7 @@ export default function Approvals() {
               </CardContent>
             </Card>
           ))}
+          <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </div>
       )}
 

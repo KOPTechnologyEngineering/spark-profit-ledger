@@ -9,6 +9,8 @@ import { downloadCSV } from "@/lib/csv";
 import DateRangePicker from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 
 const REPORTS = [
   { id: "overdue", label: "Overdue invoices" },
@@ -72,6 +74,8 @@ export default function CollectionsReports() {
     })();
   }, [report, from, to]);
 
+  const { page, pageSize, total: pagedTotal, pageItems: pagedData, setPage, setPageSize } = usePagedList(data, `${report}|${from}|${to}`);
+
   const exportCSV = () => {
     if (!data.length) return;
     const keys = Object.keys(data[0]);
@@ -114,7 +118,7 @@ export default function CollectionsReports() {
                 </tr>
               </thead>
               <tbody>
-                {data.map((row, i) => (
+                {pagedData.map((row, i) => (
                   <tr key={i} className="border-b border-border last:border-0 hover:bg-secondary/40">
                     {Object.keys(data[0]).map((k) => (
                       <td key={k} className="px-4 py-3 text-foreground">
@@ -127,6 +131,11 @@ export default function CollectionsReports() {
             </table>
           )}
         </div>
+        {data.length > 0 && (
+          <div className="px-4 pb-4 pt-1">
+            <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { friendlyErrorMessage } from "@/lib/errors";
 import { usePayeEmployeesData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
+import { usePagedList } from "@/hooks/usePagedList";
+import TablePagination from "@/components/TablePagination";
 import { calcUKDeductions } from "@/lib/tax";
 
 const ISE_GRADES = [
@@ -71,6 +73,7 @@ export default function PAYE() {
 
   const { data: employees = [] } = usePayeEmployeesData();
   const { invalidatePayeEmployees } = useInvalidateFinancialData();
+  const { page, pageSize, total: pagedTotal, pageItems: pagedEmployees, setPage, setPageSize } = usePagedList(employees);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -285,7 +288,7 @@ export default function PAYE() {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp, i) => (
+                {pagedEmployees.map((emp, i) => (
                   <motion.tr key={emp.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-foreground">{emp.name}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{emp.designation || emp.role}</td>
@@ -315,6 +318,11 @@ export default function PAYE() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {employees.length > 0 && (
+          <div className="px-6 pb-4">
+            <TablePagination page={page} pageSize={pageSize} total={pagedTotal} onPageChange={setPage} onPageSizeChange={setPageSize} />
           </div>
         )}
       </div>
