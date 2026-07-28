@@ -46,7 +46,7 @@ const TRANSACTION_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "category", label: "Category", type: "string", defaultValue: "Other" },
   { key: "status", label: "Status", type: "enum", enumValues: ["completed", "pending", "overdue", "rejected"], defaultValue: "completed" },
   { key: "date", label: "Date", type: "date", defaultValue: new Date().toISOString().split("T")[0] },
-  { key: "organization", label: "Counterparty", type: "string" },
+  { key: "organization", label: "Counterparty", aliases: ["Organization"], type: "string" },
   { key: "vat_treatment", label: "VAT Treatment", type: "enum", enumValues: VAT_TREATMENTS.map((v) => v.value), defaultValue: "standard" },
 ];
 const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15", "Example Ltd", "standard"];
@@ -238,6 +238,13 @@ export default function Transactions() {
         vat_treatment: String(r.vat_treatment || "standard"),
         organization_id,
         created_by_name: user.user_metadata?.full_name || user.email || "",
+        // Imported rows have no approver1_id/approver2_id assigned, so left
+        // at the 'pending' default they'd sit stuck forever -- nobody is
+        // ever able to click Approve on a record with no approver attached.
+        // CSV import is already admin-gated (canImport), so treat the
+        // import itself as the authorization.
+        approver1_status: "approved",
+        approver2_status: "approved",
       };
     });
 
