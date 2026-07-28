@@ -148,7 +148,12 @@ export default function CounterParties() {
         <SummaryTile label="Customers" value={String(customerCount)} tone="inflow" />
         <SummaryTile label="Vendors" value={String(vendorCount)} tone="outflow" />
         <SummaryTile label="Investors" value={String(investorCount)} />
-        <SummaryTile label="Needs review" value={String(reviewCount)} tone={reviewCount > 0 ? "outflow" : undefined} />
+        <SummaryTile
+          label="Needs review"
+          value={String(reviewCount)}
+          tone={reviewCount > 0 ? "outflow" : undefined}
+          className={reviewCount > 0 ? "glow-red gradient-outflow" : undefined}
+        />
       </div>
 
       <motion.div
@@ -196,7 +201,7 @@ export default function CounterParties() {
                 {filtered.map((org) => {
                   const review = needsReview(org);
                   return (
-                    <TableRow key={org.id} className={review ? "bg-outflow-muted/60 hover:bg-outflow-muted" : undefined}>
+                    <TableRow key={org.id} className={review ? "gradient-outflow hover:bg-outflow/10" : undefined}>
                       <TableCell className="font-medium">{org.name}</TableCell>
                       <TableCell>
                         {review ? (
