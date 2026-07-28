@@ -46,7 +46,7 @@ const TRANSACTION_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "category", label: "Category", type: "string", defaultValue: "Other" },
   { key: "status", label: "Status", type: "enum", enumValues: ["completed", "pending", "overdue", "rejected"], defaultValue: "completed" },
   { key: "date", label: "Date", type: "date", defaultValue: new Date().toISOString().split("T")[0] },
-  { key: "organization", label: "Organization", type: "string" },
+  { key: "organization", label: "Counterparty", type: "string" },
   { key: "vat_treatment", label: "VAT Treatment", type: "enum", enumValues: VAT_TREATMENTS.map((v) => v.value), defaultValue: "standard" },
 ];
 const TRANSACTION_IMPORT_SAMPLE = ["Client Payment - Example Ltd", 1500, "inflow", "Revenue", "completed", "2026-01-15", "Example Ltd", "standard"];
@@ -57,7 +57,7 @@ export default function Transactions() {
   const { data: allTransactions = [], isLoading: loading } = useTransactionsData();
   const { data: organizations = [] } = useOrganizationsData();
   const { data: recurringTransactions = [] } = useRecurringTransactionsData();
-  const { invalidateTransactions } = useInvalidateFinancialData();
+  const { invalidateTransactions, invalidateOrganizations } = useInvalidateFinancialData();
   const orgMap: Record<string, string> = {};
   organizations.forEach((o) => { orgMap[o.id] = o.name; });
   const recurringList = [...recurringTransactions]
@@ -195,15 +195,38 @@ export default function Transactions() {
     if (!user) return { error: "Not signed in" };
     const nameToId = new Map<string, string>();
     Object.entries(orgMap).forEach(([id, name]) => nameToId.set(name.trim().toLowerCase(), id));
-    const missing: string[] = [];
-    const payload = rows.map((r) => {
-      let organization_id: string | null = null;
+
+    // Counterparty names on the CSV that don't match an existing record are no
+    // longer a hard failure -- they're auto-created (entity_type left null)
+    // so the import can proceed, and the user is pointed at Counterparties
+    // afterward to pick Individual/Organization and complete the record. That
+    // page highlights any row with entity_type null in red until it's saved.
+    const missingNames = new Set<string>();
+    rows.forEach((r) => {
       const orgName = r.organization ? String(r.organization).trim() : "";
-      if (orgName) {
-        const id = nameToId.get(orgName.toLowerCase());
-        if (!id) missing.push(orgName);
-        else organization_id = id;
-      }
+      if (orgName && !nameToId.has(orgName.toLowerCase())) missingNames.add(orgName);
+    });
+
+    if (missingNames.size) {
+      const { data: created, error: createErr } = await supabase
+        .from("tbl_organizations")
+        .insert(
+          Array.from(missingNames).map((name) => ({
+            user_id: user.id,
+            name,
+            org_type: "both",
+            entity_type: null,
+            notes: "Auto-created from a transaction import. Review and set Individual/Organization to complete setup.",
+          })) as never,
+        )
+        .select("id, name");
+      if (createErr) return { error: createErr.message };
+      (created ?? []).forEach((o: any) => nameToId.set(String(o.name).trim().toLowerCase(), o.id));
+    }
+
+    const payload = rows.map((r) => {
+      const orgName = r.organization ? String(r.organization).trim() : "";
+      const organization_id = orgName ? nameToId.get(orgName.toLowerCase()) ?? null : null;
       return {
         user_id: user.id,
         description: String(r.description),
@@ -217,12 +240,18 @@ export default function Transactions() {
         created_by_name: user.user_metadata?.full_name || user.email || "",
       };
     });
-    if (missing.length) {
-      const uniq = Array.from(new Set(missing));
-      return { error: `Unknown organization${uniq.length > 1 ? "s" : ""}: ${uniq.join(", ")}. Add them in Organizations first.` };
-    }
+
     const { error } = await supabase.from("tbl_transactions").insert(payload as never);
-    if (!error) invalidateTransactions();
+    if (!error) {
+      invalidateTransactions();
+      if (missingNames.size) {
+        invalidateOrganizations();
+        toast({
+          title: `${missingNames.size} new counterpart${missingNames.size === 1 ? "y" : "ies"} added`,
+          description: "Created automatically from this import. Go to Counterparties to review and set Individual/Organization for each.",
+        });
+      }
+    }
     return { error: error?.message };
   };
 
@@ -243,7 +272,7 @@ export default function Transactions() {
   const downloadAllCSV = () => {
     downloadCSV(
       "transactions.csv",
-      ["Description", "Amount", "Type", "Category", "Status", "Date", "Organization", "VAT Treatment", "Created By"],
+      ["Description", "Amount", "Type", "Category", "Status", "Date", "Counterparty", "VAT Treatment", "Created By"],
       filtered.map((t) => [t.description, t.amount, t.type, t.category, t.status, t.date, (t.organization_id && orgMap[t.organization_id]) || "", (t as any).vat_treatment || "standard", t.created_by_name || ""]),
     );
   };

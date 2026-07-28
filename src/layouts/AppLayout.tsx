@@ -18,7 +18,7 @@ const ROUTE_META: Record<string, { title: string; description: string }> = {
   "/approvals": { title: "Approvals | KOP Ledger", description: "Review and approve pending invoices and transactions." },
   "/reports": { title: "Reports | KOP Ledger", description: "Financial reports and exports." },
   "/users": { title: "User Management | KOP Ledger", description: "Manage user access, roles and approvers." },
-  "/organizations": { title: "Organizations | KOP Ledger", description: "Manage customers and vendors you do business with." },
+  "/counterparties": { title: "Counterparties | KOP Ledger", description: "Manage the individuals and organizations you do business with." },
   "/collections": { title: "Collections Dashboard | KOP Ledger", description: "Track receivables ageing and chase performance." },
   "/collections/queue": { title: "Chase Queue | KOP Ledger", description: "Outstanding invoices queued for chasing." },
   "/collections/rules": { title: "Automation Rules | KOP Ledger", description: "Automate chase reminders and escalations." },
