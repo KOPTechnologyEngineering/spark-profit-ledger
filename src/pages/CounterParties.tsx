@@ -20,7 +20,7 @@ import { friendlyErrorMessage } from "@/lib/errors";
 import { useOrganizationsData, useInvalidateFinancialData } from "@/hooks/useFinancialData";
 
 type CounterpartyRow = Tables<"tbl_organizations">;
-type OrgType = "customer" | "vendor" | "both";
+type OrgType = "customer" | "vendor" | "both" | "investor";
 type EntityType = "individual" | "organization";
 
 const emptyForm = {
@@ -35,12 +35,13 @@ const emptyForm = {
   notes: "",
 };
 
-const typeFilters = ["all", "customer", "vendor", "both"] as const;
+const typeFilters = ["all", "customer", "vendor", "both", "investor"] as const;
 
 const typeStyles: Record<OrgType, string> = {
   customer: "bg-inflow/10 text-inflow border-inflow/20",
   vendor: "bg-outflow/10 text-outflow border-outflow/20",
   both: "bg-primary/10 text-primary border-primary/20",
+  investor: "bg-warning/10 text-warning border-warning/20",
 };
 
 /** Needs review: auto-created by a transaction CSV import and never confirmed. */
@@ -131,6 +132,7 @@ export default function CounterParties() {
 
   const customerCount = rows.filter((r) => r.org_type === "customer" || r.org_type === "both").length;
   const vendorCount = rows.filter((r) => r.org_type === "vendor" || r.org_type === "both").length;
+  const investorCount = rows.filter((r) => r.org_type === "investor").length;
   const reviewCount = rows.filter(needsReview).length;
 
   return (
@@ -141,10 +143,11 @@ export default function CounterParties() {
         </Button>
       </PageHeader>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <SummaryTile label="Total" value={String(rows.length)} />
         <SummaryTile label="Customers" value={String(customerCount)} tone="inflow" />
         <SummaryTile label="Vendors" value={String(vendorCount)} tone="outflow" />
+        <SummaryTile label="Investors" value={String(investorCount)} />
         <SummaryTile label="Needs review" value={String(reviewCount)} tone={reviewCount > 0 ? "outflow" : undefined} />
       </div>
 
@@ -265,6 +268,7 @@ export default function CounterParties() {
                     <SelectItem value="customer">Customer</SelectItem>
                     <SelectItem value="vendor">Vendor</SelectItem>
                     <SelectItem value="both">Both</SelectItem>
+                    <SelectItem value="investor">Investor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
